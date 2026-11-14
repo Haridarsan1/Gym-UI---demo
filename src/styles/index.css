@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    /* Pinned sections change height while you scroll past them; scroll anchoring would cancel smooth scrolling. */
+    overflow-anchor: none;
+    scroll-behavior: smooth;
+    scroll-padding-top: 6rem;
+    -webkit-text-size-adjust: 100%;
+    background: #fbf8f4;
+  }
+  body {
+    color: #231c35;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    font-feature-settings: "ss01";
+  }
+  ::selection {
+    background: #fc5200;
+    color: #fff;
+  }
+  :focus-visible {
+    outline: 2.5px solid #fc5200;
+    outline-offset: 3px;
+    border-radius: 10px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * Clay: soft 3D surfaces. A top highlight, a bottom inner shade and a long soft drop shadow
+   * make a card read as a physical, slightly puffy object.
+   */
+  .clay {
+    background: #ffffff;
+    border-radius: 1.75rem;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255, 255, 255, 1),
+      inset 0 -4px 0 rgba(35, 28, 53, 0.045),
+      0 1px 2px rgba(35, 28, 53, 0.06),
+      0 12px 24px -10px rgba(35, 28, 53, 0.12),
+      0 34px 60px -30px rgba(35, 28, 53, 0.28);
+  }
+  .clay-flat {
+    background: #ffffff;
+    border-radius: 1.25rem;
+    box-shadow:
+      inset 0 -3px 0 rgba(35, 28, 53, 0.04),
+      0 1px 2px rgba(35, 28, 53, 0.06),
+      0 8px 18px -10px rgba(35, 28, 53, 0.16);
+  }
+  /* Pressed-in well, for inputs and inset panels. */
+  .clay-well {
+    background: #f6f2f8;
+    border-radius: 1rem;
+    box-shadow: inset 0 2px 5px rgba(35, 28, 53, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.9);
+  }
+  .clay-ember {
+    background: linear-gradient(150deg, #ffa778 0%, #ff7a3d 45%, #fc5200 100%);
+    color: #fff;
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -6px 0 rgba(122, 39, 0, 0.18),
+      0 22px 40px -18px rgba(252, 82, 0, 0.6);
+  }
+  .clay-lilac {
+    background: linear-gradient(150deg, #c4b5fd 0%, #8b6cf6 100%);
+    color: #fff;
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -6px 0 rgba(43, 22, 120, 0.18),
+      0 22px 40px -18px rgba(139, 108, 246, 0.55);
+  }
+  .clay-mint {
+    background: linear-gradient(150deg, #c8f0dd 0%, #7fd1ae 100%);
+    color: #0b4a33;
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -6px 0 rgba(11, 74, 51, 0.12),
+      0 22px 40px -18px rgba(63, 182, 139, 0.5);
+  }
+  .clay-night {
+    background: linear-gradient(160deg, #1c2640, #121a2e);
+    color: #fff;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -5px 0 rgba(0, 0, 0, 0.25),
+      0 24px 50px -24px rgba(6, 10, 20, 0.7);
+  }
+  /* Tactile press: cards and buttons sink slightly when pressed. */
+  .press {
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+  }
+  .press:hover {
+    transform: translateY(-2px);
+  }
+  .press:active {
+    transform: translateY(2px) scale(0.99);
+  }
+
+  /* Floodlit glass for dark stadium sections. */
+  .night-glass {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+
+  /* Cursor spotlight (dark sections): set --mx/--my via useSpotlight. */
+  .spotlight {
+    position: relative;
+    isolation: isolate;
+  }
+  .spotlight::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: var(--spot-o, 0);
+    transition: opacity 0.35s ease;
+    background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 233, 210, 0.16), transparent 65%);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+
+  /* Power-bar range for pricing. --fill is set inline. */
+  .power-range {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 16px;
+    border-radius: 999px;
+    background:
+      linear-gradient(90deg, #ffa778, #fc5200) 0 0 / var(--fill, 50%) 100% no-repeat,
+      #efe9f3;
+    box-shadow: inset 0 2px 4px rgba(35, 28, 53, 0.1);
+    cursor: pointer;
+  }
+  .power-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow:
+      inset 0 -3px 0 rgba(35, 28, 53, 0.08),
+      0 2px 4px rgba(35, 28, 53, 0.15),
+      0 10px 20px -6px rgba(252, 82, 0, 0.55);
+    border: 3px solid #fc5200;
+  }
+  .power-range::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #fc5200;
+  }
+}
