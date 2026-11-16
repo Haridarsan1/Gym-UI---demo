@@ -3,7 +3,7 @@
  *   return fetch("/api/trials", { method: "POST", headers: {...}, body: JSON.stringify(payload) })
  */
 export type BranchRange = "1" | "2-3" | "4-10" | "10+";
-export type MemberRange = "under-250" | "250-500" | "500-1000" | "1000+";
+export type MemberRange = "under-75" | "75-250" | "250-500" | "500+";
 
 export interface TrialSignupPayload {
   fullName: string;

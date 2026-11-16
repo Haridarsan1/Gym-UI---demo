@@ -45,7 +45,7 @@ export const pricingTiers: PricingTier[] = [
   {
     id: "starter",
     name: "Starter",
-    memberLimit: 250,
+    memberLimit: 75,
     monthly: 2499,
     yearlyMonthly: 1999,
     summary: "For a single gym getting organised.",
@@ -54,7 +54,7 @@ export const pricingTiers: PricingTier[] = [
   {
     id: "growth",
     name: "Growth",
-    memberLimit: 500,
+    memberLimit: 250,
     monthly: 4499,
     yearlyMonthly: 3599,
     summary: "For busy gyms with a training team.",
@@ -63,7 +63,7 @@ export const pricingTiers: PricingTier[] = [
   {
     id: "pro",
     name: "Pro",
-    memberLimit: 1000,
+    memberLimit: 500,
     monthly: 7999,
     yearlyMonthly: 6399,
     summary: "For multi-branch operators.",
@@ -75,7 +75,7 @@ export const pricingTiers: PricingTier[] = [
     memberLimit: null,
     monthly: null,
     yearlyMonthly: null,
-    summary: "For chains above 1,000 active members.",
+    summary: "For chains above 500 active members.",
     features: ["Custom member limits", "Assisted data import", "Uptime and support SLA", "Dedicated onboarding"],
   },
 ];
@@ -136,10 +136,10 @@ export const branchOptions: Array<{ value: BranchRange; label: string }> = [
 ];
 
 export const memberOptions: Array<{ value: MemberRange; label: string; tier: PricingTier["id"] }> = [
-  { value: "under-250", label: "Under 250", tier: "starter" },
-  { value: "250-500", label: "250 to 500", tier: "growth" },
-  { value: "500-1000", label: "500 to 1,000", tier: "pro" },
-  { value: "1000+", label: "More than 1,000", tier: "enterprise" },
+  { value: "under-75", label: "Under 75", tier: "starter" },
+  { value: "75-250", label: "75 to 250", tier: "growth" },
+  { value: "250-500", label: "250 to 500", tier: "pro" },
+  { value: "500+", label: "More than 500", tier: "enterprise" },
 ];
 
 /* ───────────── Thermal home page additions ───────────── */

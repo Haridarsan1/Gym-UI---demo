@@ -9,8 +9,8 @@ import { pricingTiers, type PricingTier } from "@/data/content";
 import { cn, formatINR, formatIndian } from "@/lib/format";
 
 type Billing = "monthly" | "annual";
-const MIN = 50;
-const MAX = 1500;
+const MIN = 25;
+const MAX = 750;
 
 function tierFor(members: number): PricingTier {
   return pricingTiers.find((t) => t.memberLimit !== null && members <= t.memberLimit) ?? pricingTiers[pricingTiers.length - 1];
@@ -18,7 +18,7 @@ function tierFor(members: number): PricingTier {
 
 export function Pricing() {
   const sliderId = useId();
-  const [members, setMembers] = useState(320);
+  const [members, setMembers] = useState(150);
   const [billing, setBilling] = useState<Billing>("annual");
   const fit = useMemo(() => tierFor(members), [members]);
   const fillPct = ((members - MIN) / (MAX - MIN)) * 100;
@@ -49,14 +49,14 @@ export function Pricing() {
             <label htmlFor={sliderId} className="text-lg font-semibold">
               How many active members do you have?
             </label>
-            <p className="font-display text-6xl font-extrabold leading-none tabular text-ember-500">{members >= MAX ? "1,500+" : formatIndian(members)}</p>
+            <p className="font-display text-6xl font-extrabold leading-none tabular text-ember-500">{members >= MAX ? `${formatIndian(MAX)}+` : formatIndian(members)}</p>
           </div>
           <input
             id={sliderId}
             type="range"
             min={MIN}
             max={MAX}
-            step={10}
+            step={5}
             value={members}
             onChange={(e) => setMembers(Number(e.target.value))}
             aria-valuetext={`${members} active members, fits the ${fit.name} plan`}
@@ -64,9 +64,9 @@ export function Pricing() {
             style={{ ["--fill" as string]: `${fillPct}%` }}
           />
           <div className="relative mt-3 h-4 text-xs text-clay-subtle" aria-hidden="true">
-            {[50, 250, 500, 1000, 1500].map((v) => (
-              <span key={v} className={cn("absolute -translate-x-1/2 first:translate-x-0 last:-translate-x-full", v === 250 && "max-sm:hidden")} style={{ left: `${((v - MIN) / (MAX - MIN)) * 100}%` }}>
-                {v === 1500 ? "1,500+" : formatIndian(v)}
+            {[25, 75, 250, 500, 750].map((v) => (
+              <span key={v} className={cn("absolute -translate-x-1/2 first:translate-x-0 last:-translate-x-full", (v === 75 || v === 250) && "max-sm:hidden")} style={{ left: `${((v - MIN) / (MAX - MIN)) * 100}%` }}>
+                {v === 750 ? `${formatIndian(MAX)}+` : formatIndian(v)}
               </span>
             ))}
           </div>
@@ -99,7 +99,7 @@ function PriceCard({ tier, billing, highlighted }: { tier: PricingTier; billing:
         <h3 className="text-xl font-bold">{tier.name}</h3>
         {highlighted && <span className="clay-ember rounded-full px-3 py-1 text-xs font-semibold">Fits your gym</span>}
       </div>
-      <p className="mt-1 text-sm text-clay-subtle">{tier.memberLimit ? `Up to ${formatIndian(tier.memberLimit)} active members` : "1,000+ active members"}</p>
+      <p className="mt-1 text-sm text-clay-subtle">{tier.memberLimit ? `Up to ${formatIndian(tier.memberLimit)} active members` : "500+ active members"}</p>
       <div className="mt-6 min-h-[5rem]">
         {perMonth === null ? (
           <p className="font-display text-5xl font-extrabold leading-tight">Custom</p>

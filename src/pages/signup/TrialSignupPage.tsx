@@ -27,9 +27,9 @@ interface FormState {
 type Errors = Partial<Record<keyof FormState, string>>;
 
 const planToMembers: Record<string, MemberRange> = {
-  starter: "under-250",
-  growth: "250-500",
-  pro: "500-1000",
+  starter: "under-75",
+  growth: "75-250",
+  pro: "250-500",
 };
 
 function validate(step: Step, f: FormState): Errors {
