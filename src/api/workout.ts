@@ -3,11 +3,12 @@ import { db } from "@/demo/db";
 import { assertCan } from "@/api/context";
 import { ApiError } from "@/api/errors";
 import { openMember, type MemberContext } from "@/api/member";
+import { awardBadges } from "@/api/workoutSummary";
 import { daysBetween, eachDay, weekStart, addDays } from "@/domain/dates";
 import { currentMembership } from "@/domain/membership";
 import { estimateMinutes, planFor, scheduledBetween } from "@/domain/metrics";
 import { LoggedExercise as LoggedExerciseSchema, type LoggedExercise, type Exercise, type Prescription, type WorkoutLog, type WorkoutPlanVersion } from "@/domain/types";
-import { hasActivity, inOrder, loggingBlockedReason, normalizeEntries, progress, statusFor, type Progress } from "@/domain/workout";
+import { hasActivity, inOrder, lastTimeFor, loggingBlockedReason, normalizeEntries, progress, statusFor, type LastTime, type Progress } from "@/domain/workout";
 import type { Session } from "@/app/session";
 
 /**
@@ -29,6 +30,8 @@ export interface WorkoutExercise {
   exercise: ExerciseInfo;
   /** Swaps the trainer or the library suggests for this exercise (W01). */
   alternatives: ExerciseInfo[];
+  /** The last set the member did for this exercise in an earlier workout, used to pre-fill and to show “Last time”. */
+  last?: LastTime;
 }
 
 export interface WorkoutView {
@@ -64,6 +67,7 @@ interface DayContext {
   version: WorkoutPlanVersion;
   day: WorkoutPlanVersion["days"][number];
   log?: WorkoutLog;
+  logs: WorkoutLog[];
   membershipStatus?: string;
 }
 
@@ -80,7 +84,7 @@ async function loadDay(session: Session | null, date: string, access: "read" | "
   ]);
   const p = planFor(versions.filter((v) => v.status === "published"), date);
   if (p.state !== "workout") throw new ApiError("not_found", "There is no workout planned for this day. Rest days are part of the plan.");
-  return { c, version: p.version, day: p.day, log: logs.find((l) => l.scheduledOn === date), membershipStatus: currentMembership(memberships)?.status };
+  return { c, version: p.version, day: p.day, log: logs.find((l) => l.scheduledOn === date), logs, membershipStatus: currentMembership(memberships)?.status };
 }
 
 async function exercisesFor(ids: string[]): Promise<Map<string, Exercise>> {
@@ -90,7 +94,7 @@ async function exercisesFor(ids: string[]): Promise<Map<string, Exercise>> {
 
 /** The workout for one day, as the trainer prescribed it, with whatever the member has logged. Used to preview and to log. */
 export async function getWorkout(session: Session | null, date: string): Promise<WorkoutView> {
-  const { c, version, day, log, membershipStatus } = await loadDay(session, date, "read");
+  const { c, version, day, log, logs, membershipStatus } = await loadDay(session, date, "read");
   const prescriptions = inOrder(day);
   const first = await exercisesFor(prescriptions.map((p) => p.exerciseId));
   const swaps = await exercisesFor([...prescriptions.flatMap((p) => first.get(p.exerciseId)?.substitutionIds ?? []), ...(log?.entries.map((e) => e.exerciseId) ?? [])]);
@@ -107,7 +111,7 @@ export async function getWorkout(session: Session | null, date: string): Promise
       const used = log?.entries.find((e) => e.substitutionFor === p.exerciseId);
       const usedInfo = used && lookup(used.exerciseId);
       if (usedInfo && !alternatives.some((a) => a.id === usedInfo.id)) alternatives.push(info(usedInfo));
-      return [{ prescription: p, exercise: info(exercise), alternatives }];
+      return [{ prescription: p, exercise: info(exercise), alternatives, last: lastTimeFor(logs, p.exerciseId, date) }];
     }),
     status: log?.status ?? "none",
     entries: normalizeEntries(day, log?.entries ?? []),
@@ -179,7 +183,7 @@ export interface SubmitResult {
 export async function submitWorkout(session: Session | null, raw: SubmitInput): Promise<SubmitResult> {
   const input = parse(SubmitInput, raw);
   const d = await loadDay(session, input.date, "write");
-  return db.transaction("rw", db.workoutLogs, async () => {
+  return db.transaction("rw", [db.workoutLogs, db.badgeAwards, db.workoutPlanVersions, db.memberships, db.goals, db.checkIns, db.gymPolicies], async () => {
     const byKey = await db.workoutLogs.where("idempotencyKey").equals(input.idempotencyKey).first();
     if (byKey && byKey.memberId !== d.c.memberId) throw new ApiError("conflict", "That workout could not be saved. Reload the page and try again.");
     if (byKey && byKey.status !== "draft") return { logId: byKey.id, date: byKey.scheduledOn, status: byKey.status, progress: progress(d.day, byKey.entries), repeated: true };
@@ -204,6 +208,8 @@ export async function submitWorkout(session: Session | null, raw: SubmitInput): 
       await db.workoutLogs.add(log);
       logId = log.id;
     }
+    const saved = (await db.workoutLogs.get(logId))!;
+    await awardBadges({ memberId: d.c.memberId, tenantId: d.c.tenantId, today: d.c.today, nowIso: d.c.nowIso, log: saved });
     return { logId, date: input.date, status, progress: p, repeated: false };
   });
 }

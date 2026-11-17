@@ -39,6 +39,8 @@ describe("reading a workout", () => {
     expect(bench.prescription).toMatchObject({ sets: 3, reps: 10 });
     expect(bench.exercise.instructions.length).toBeGreaterThan(20);
     expect(bench.alternatives.map((a) => a.id)).toContain("ex_pushup");
+    expect(bench.last).toMatchObject({ set: { skipped: false } });
+    expect(bench.last!.date < TODAY).toBe(true);
     expect(w.entries).toHaveLength(w.exercises.length);
     expect(w.idempotencyKey).toMatch(/^wk-/);
   });

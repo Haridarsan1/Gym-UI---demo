@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlanDay, Prescription } from "@/domain/types";
-import { asPrescribed, clearSet, describeLogged, describeSet, describeTarget, emptyEntries, entryFor, fieldsFor, hasActivity, logSet, loggingBlockedReason, normalizeEntries, progress, restAfter, skipSet, statusFor, substituteExercise, targetReps } from "@/domain/workout";
+import { asPrescribed, clearSet, describeLogged, lastTimeFor, lastTimeText, prefillFor, describeSet, describeTarget, emptyEntries, entryFor, fieldsFor, hasActivity, logSet, loggingBlockedReason, normalizeEntries, progress, restAfter, skipSet, statusFor, substituteExercise, targetReps } from "@/domain/workout";
 
 const bench: Prescription = { exerciseId: "ex_bench", order: 1, section: "main", sets: 3, reps: 10, loadKg: 20, restSec: 75 };
 const row: Prescription = { exerciseId: "ex_row", order: 2, section: "main", sets: 2, reps: { min: 8, max: 12 }, restSec: 60 };
@@ -149,5 +149,41 @@ describe("logged sets in words", () => {
   });
   it("lists the sets in order", () => {
     expect(describeLogged({ sets: [{ setNumber: 1, reps: 10, loadKg: 20, skipped: false }, { setNumber: 2, reps: 10, loadKg: 20, skipped: false }, { setNumber: 3, reps: 8, loadKg: 20, skipped: false }] })).toBe("10 × 20 kg, 10 × 20 kg, 8 × 20 kg");
+  });
+});
+
+describe("last time", () => {
+  const log = (scheduledOn: string, sets: Array<[number, number, boolean?]>, status: "completed" | "partial" | "skipped" | "draft" = "completed") => ({
+    status, scheduledOn, entries: [{ exerciseId: "ex_bench", sets: sets.map(([reps, loadKg, skipped], i) => ({ setNumber: i + 1, reps, loadKg, skipped: !!skipped })) }],
+  });
+  it("is the last set done in the most recent finished workout", () => {
+    const last = lastTimeFor([log("2026-11-03", [[10, 20]]), log("2026-11-10", [[10, 22.5], [10, 22.5], [8, 22.5]])], "ex_bench", "2026-11-17");
+    expect(last).toMatchObject({ date: "2026-11-10", set: { reps: 8, loadKg: 22.5 } });
+    expect(lastTimeText(last!)).toBe("Last time: 8 × 22.5 kg");
+  });
+  it("ignores skipped sets, skipped and draft workouts, and today and later", () => {
+    const logs = [log("2026-11-03", [[10, 20]]), log("2026-11-10", [[10, 25, true]]), log("2026-11-12", [[10, 30]], "skipped"), log("2026-11-14", [[10, 30]], "draft"), log("2026-11-17", [[10, 30]])];
+    expect(lastTimeFor(logs, "ex_bench", "2026-11-17")).toMatchObject({ date: "2026-11-03" });
+    expect(lastTimeFor([], "ex_bench", "2026-11-17")).toBeUndefined();
+    expect(lastTimeFor(logs, "ex_other", "2026-11-17")).toBeUndefined();
+  });
+  const last = { date: "2026-11-10", set: { setNumber: 1, reps: 10, loadKg: 22.5, skipped: false } };
+  it("pre-fills last time’s reps when they are inside the range, otherwise the bottom of the range", () => {
+    expect(prefillFor({ reps: { min: 8, max: 12 } }, last).reps).toBe(10);
+    expect(prefillFor({ reps: { min: 8, max: 12 } }, { ...last, set: { ...last.set, reps: 15 } }).reps).toBe(8);
+    expect(prefillFor({ reps: { min: 8, max: 12 } }, { ...last, set: { ...last.set, reps: 5 } }).reps).toBe(8);
+    expect(prefillFor({ reps: { min: 8, max: 12 } }).reps).toBe(8);
+  });
+  it("keeps a fixed rep target as prescribed", () => {
+    expect(prefillFor({ reps: 10 }, { ...last, set: { ...last.set, reps: 7 } }).reps).toBe(10);
+  });
+  it("pre-fills last time’s load, otherwise the prescribed load", () => {
+    expect(prefillFor({ reps: 10, loadKg: 20 }, last).loadKg).toBe(22.5);
+    expect(prefillFor({ reps: 10, loadKg: 20 }).loadKg).toBe(20);
+    expect(prefillFor({ reps: 10, loadKg: 20 }, { ...last, set: { setNumber: 1, reps: 10, skipped: false } }).loadKg).toBe(20);
+    expect(prefillFor({ reps: 10 }).loadKg).toBeUndefined();
+  });
+  it("gives a swapped exercise the reps but no load", () => {
+    expect(prefillFor({ reps: { min: 8, max: 12 }, loadKg: 20 }, last, true)).toEqual({ reps: 8, loadKg: undefined });
   });
 });

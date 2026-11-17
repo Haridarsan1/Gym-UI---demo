@@ -163,3 +163,42 @@ export function describeSet(s: LoggedSet): string {
 
 /** The sets of one exercise in words, in order: “10 × 20 kg, 10 × 20 kg, 8 × 20 kg”. */
 export const describeLogged = (e: Pick<LoggedExercise, "sets">): string => e.sets.map(describeSet).join(", ");
+
+/** What the member did last time for an exercise: the date, and the last set they did. */
+export interface LastTime {
+  date: string;
+  set: LoggedSet;
+}
+
+/**
+ * The most recent finished workout before `before` in which the member did this exercise, and the last set they did in it.
+ * Skipped sets and skipped workouts don’t count. Substitutions count as the exercise actually done.
+ */
+export function lastTimeFor(logs: Array<Pick<WorkoutLog, "status" | "scheduledOn" | "entries">>, exerciseId: string, before: string): LastTime | undefined {
+  const finished = logs.filter((l) => l.status !== "draft" && l.status !== "skipped" && l.scheduledOn < before).sort((a, b) => b.scheduledOn.localeCompare(a.scheduledOn));
+  for (const log of finished) {
+    const sets = log.entries.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets).filter((s) => !s.skipped && (s.reps !== undefined || s.loadKg !== undefined));
+    const set = sets.at(-1);
+    if (set) return { date: log.scheduledOn, set };
+  }
+  return undefined;
+}
+
+/**
+ * What a set is pre-filled with. Reps: the prescribed number; for a range, last time’s reps when they fall inside it,
+ * otherwise the bottom of the range. Load: last time’s load when there is one, otherwise the prescribed load. A swapped
+ * exercise is a different movement, so it gets the reps but no load.
+ */
+export function prefillFor(p: Pick<Prescription, "reps" | "loadKg">, last?: LastTime, substituted = false): { reps?: number; loadKg?: number } {
+  let reps: number | undefined;
+  if (typeof p.reps === "number") reps = p.reps;
+  else if (p.reps) {
+    const lastReps = substituted ? undefined : last?.set.reps;
+    reps = lastReps !== undefined && lastReps >= p.reps.min && lastReps <= p.reps.max ? lastReps : p.reps.min;
+  }
+  const loadKg = substituted ? undefined : (last?.set.loadKg ?? p.loadKg);
+  return { reps, loadKg };
+}
+
+/** “Last time: 10 × 22.5 kg”. */
+export const lastTimeText = (last: LastTime): string => `Last time: ${describeSet(last.set)}`;

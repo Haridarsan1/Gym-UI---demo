@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { LoggedSet, Prescription } from "@/domain/types";
 import { Button3D } from "@/design/Button3D";
-import { asPrescribed, fieldsFor, targetReps } from "@/domain/workout";
+import { asPrescribed, fieldsFor, lastTimeText, prefillFor, type LastTime } from "@/domain/workout";
 import { NumberField } from "@/features/member/workout/NumberField";
 
 const text = (n: number | undefined) => (n === undefined ? "" : String(n));
@@ -12,15 +12,16 @@ const loadStep = (kg: string) => (Number(kg || 0) >= 20 ? 2.5 : 1);
  * Logging one set. Everything is pre-filled with the target, so a set done as prescribed is one tap (W03). Change a number
  * if it went differently. “Skip set” records that it was not done, calmly.
  */
-export function SetForm({ p, setNumber, initial, scrollIntoView, onLog, onSkip, onCancel }: { p: Prescription; setNumber: number; initial?: LoggedSet; /** Bring the form into view, clear of the bottom bar, when it opens after a set was logged. */ scrollIntoView?: boolean; onLog: (s: LoggedSet) => void; onSkip: () => void; onCancel?: () => void }) {
+export function SetForm({ p, setNumber, initial, scrollIntoView, last, substituted = false, onLog, onSkip, onCancel }: { p: Prescription; setNumber: number; initial?: LoggedSet; /** Last time’s set for this exercise: pre-fills the form and is shown under the title. */ last?: LastTime; /** A swapped exercise gets no pre-filled load. */ substituted?: boolean; /** Bring the form into view, clear of the bottom bar, when it opens after a set was logged. */ scrollIntoView?: boolean; onLog: (s: LoggedSet) => void; onSkip: () => void; onCancel?: () => void }) {
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (scrollIntoView) form.current?.scrollIntoView({ block: "nearest" });
   }, [scrollIntoView]);
   const fields = fieldsFor(p);
   const from = initial && !initial.skipped ? initial : undefined;
-  const [reps, setReps] = useState(text(from ? from.reps : targetReps(p)));
-  const [load, setLoad] = useState(text(from ? from.loadKg : p.loadKg));
+  const fill = prefillFor(p, last, substituted);
+  const [reps, setReps] = useState(text(from ? from.reps : fill.reps));
+  const [load, setLoad] = useState(text(from ? from.loadKg : fill.loadKg));
   const [seconds, setSeconds] = useState(text(from ? from.durationSec : p.durationSec));
   const [metres, setMetres] = useState(text(from ? from.distanceM : p.distanceM));
   const [error, setError] = useState<string>();
@@ -59,6 +60,7 @@ export function SetForm({ p, setNumber, initial, scrollIntoView, onLog, onSkip, 
       className="scroll-mb-56 rounded-2xl bg-clay-lavender p-4"
     >
       <p className="font-bold">Set {setNumber} of {p.sets}</p>
+      {last && !substituted && <p className="text-sm text-clay-muted">{lastTimeText(last)}</p>}
       <div className="mt-3 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
         {fields.includes("reps") && <NumberField label="Reps" value={reps} onChange={setReps} />}
         {fields.includes("load") && <NumberField label="Load" unit="kg" value={load} onChange={setLoad} step={loadStep(load)} decimal />}

@@ -66,6 +66,8 @@ export function ExerciseStep({ x, entry, actions }: { x: WorkoutExercise; entry:
                   setNumber={n}
                   initial={s}
                   scrollIntoView={afterLogging.current}
+                  last={x.last}
+                  substituted={!!entry.substitutionFor}
                   onLog={(set) => {
                     afterLogging.current = true;
                     setChosen(null);

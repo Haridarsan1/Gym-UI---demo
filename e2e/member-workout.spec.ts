@@ -44,9 +44,13 @@ test.describe("Workout session: Arjun", () => {
     // Set 1 and 2 as prescribed: one tap each. A rest timer starts after each.
     const form = page.getByRole("form", { name: "Set 1" });
     await expect(form.getByRole("textbox", { name: "Reps" })).toHaveValue("10");
+    // The load is last time’s load, and the hint says so.
+    const hint = await form.getByText(/^Last time: /).textContent();
+    const lastLoad = /× ([\d.]+) kg/.exec(hint!)![1]!;
+    await expect(form.getByRole("textbox", { name: "Load (kg)" })).toHaveValue(lastLoad);
     await form.getByRole("button", { name: "Log set" }).click();
     await expect(page.getByRole("timer")).toBeVisible();
-    await expect(page.getByText(/10 × [\d.]+ kg · as prescribed/)).toBeVisible();
+    await expect(page.getByText(new RegExp(`10 × ${lastLoad} kg`)).first()).toBeVisible();
     await page.getByRole("button", { name: "Skip rest" }).click();
     await expect(page.getByRole("timer")).toHaveCount(0);
     await page.getByRole("form", { name: "Set 2" }).getByRole("button", { name: "Log set" }).click();

@@ -3,6 +3,7 @@ import { getMe } from "@/api/me";
 import { listMembers, type MemberListParams } from "@/api/members";
 import { getToday } from "@/api/member";
 import type { DraftInput, SubmitInput } from "@/api/workout";
+import type { FeedbackInput } from "@/api/workoutSummary";
 import { isRetryable } from "@/api/errors";
 import { useSession } from "@/app/SessionContext";
 
@@ -15,6 +16,7 @@ import { useSession } from "@/app/SessionContext";
  * program or workout screen asks for it, so it stays out of every area’s first download (the `/m` budget).
  */
 const workoutApi = () => import("@/api/workout");
+const summaryApi = () => import("@/api/workoutSummary");
 
 const retry = (count: number, error: unknown) => count < 2 && isRetryable(error);
 
@@ -87,4 +89,24 @@ export function useSubmitWorkout() {
     retryDelay: 600,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId] }),
   });
+}
+
+/** The finished workout’s summary: result, volume, new records, week, streak and badges. Read fresh, so a badge is never shown from a stale copy. */
+export function useWorkoutSummary(date: string) {
+  const { session } = useSession();
+  return useQuery({
+    queryKey: ["member", session?.userId, "summary", date],
+    queryFn: async () => (await summaryApi()).getWorkoutSummary(session, date),
+    enabled: !!session,
+    retry,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** Saves effort and recovery for a finished workout (P04). Each tap saves; nothing needs submitting. */
+export function useSaveWorkoutFeedback() {
+  const { session } = useSession();
+  return useMutation({ mutationFn: async (input: FeedbackInput) => (await summaryApi()).saveWorkoutFeedback(session, input), retry, retryDelay: 400 });
 }
