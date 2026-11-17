@@ -116,9 +116,9 @@ test.describe("Progress: Arjun", () => {
     const weight = card(page, "Weight");
     const group = weight.getByRole("group", { name: /^Weight, \d+ readings/ });
     await group.focus();
-    await expect(weight.getByText(/^latest, /)).toBeVisible();
+    await expect(weight.getByText(/^latest reading on /)).toBeVisible();
     await page.keyboard.press("ArrowLeft");
-    await expect(weight.getByText(/^latest, /)).toHaveCount(0);
+    await expect(weight.getByText(/^latest reading on /)).toHaveCount(0);
   });
 
   test("measurements switch between kinds, and strength between exercises", async ({ page }) => {
@@ -131,14 +131,23 @@ test.describe("Progress: Arjun", () => {
     await expect(s.getByRole("img", { name: /^Back squat, best set: \d+ readings/ })).toBeVisible();
   });
 
-  test("the trophy shelf lists personal records newest first, and each opens its history", async ({ page }) => {
+  test("the trophy shelf has one tile for each exercise, newest first, and each opens its history of records", async ({ page }) => {
     const shelf = card(page, "Personal records");
     const tiles = shelf.getByRole("button", { name: /up from/ });
     expect(await tiles.count()).toBeGreaterThanOrEqual(4);
+    const names = await tiles.evaluateAll((els) => els.map((e) => e.querySelector("span")?.nextElementSibling?.textContent ?? ""));
+    expect(new Set(names).size).toBe(names.length); // never two tiles for one exercise
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const dates = (await tiles.evaluateAll((els) => els.map((e) => /(\d+) (\w{3}), up from/.exec(e.textContent ?? "")?.slice(1, 3).join(" ") ?? ""))).map((d) => { const [day, mon] = d.split(" "); return MONTHS.indexOf(mon!) * 40 + Number(day); });
+    expect(dates).toEqual([...dates].sort((a, b) => b - a));
+    const count = Number(/(\d+) records?$/.exec((await tiles.first().textContent())!)![1]);
     await tiles.first().click();
     const dialog = page.getByRole("dialog", { name: "Record history" });
-    await expect(dialog.getByRole("list", { name: "Records for this exercise" }).getByRole("listitem").first()).toContainText(/kg/);
-    await expect(dialog.getByRole("list", { name: "Records for this exercise" }).getByRole("listitem").first()).toContainText(/Up from/);
+    const list = dialog.getByRole("list", { name: "Records for this exercise" }).getByRole("listitem");
+    await expect(list).toHaveCount(count);
+    await expect(list.first()).toContainText(/kg/);
+    await expect(list.first()).toContainText(/Up from/);
+    await expect(dialog.getByText(`${count} records, newest first`)).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });

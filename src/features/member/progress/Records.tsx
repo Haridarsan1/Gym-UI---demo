@@ -15,11 +15,15 @@ const SHELF = 6;
 export function RecordsShelf({ data }: { data: ProgressData }) {
   const [all, setAll] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
-  const shown = all ? data.records : data.records.slice(0, SHELF);
+  // One tile for each exercise: its current record, newest first. Opening it shows every record that exercise has had.
+  const tiles = data.records.filter((r, i) => data.records.findIndex((x) => x.exerciseId === r.exerciseId) === i);
+  const counts = new Map<string, number>();
+  for (const r of data.records) counts.set(r.exerciseId, (counts.get(r.exerciseId) ?? 0) + 1);
+  const shown = all ? tiles : tiles.slice(0, SHELF);
   return (
     <section aria-labelledby="records-title" className="clay p-5">
       <h2 id="records-title" className="text-lg font-bold">Personal records</h2>
-      <p className="text-sm text-clay-muted">The heaviest you have lifted for each exercise, newest first.</p>
+      <p className="text-sm text-clay-muted">Your heaviest lift in each exercise, newest first. Tap one for its history.</p>
       {data.records.length === 0 ? (
         <p className="mt-3 rounded-2xl bg-clay-lavender px-4 py-4 text-[0.95rem]">Your first record appears when you lift more than before in an exercise you have already logged. Keep logging your sets.</p>
       ) : (
@@ -34,13 +38,14 @@ export function RecordsShelf({ data }: { data: ProgressData }) {
                     {formatValue(r.loadKg, 1)} <span className="text-sm font-semibold">kg</span>
                   </span>
                   <span className="text-xs text-clay-muted">{formatDayMonth(r.date)}, up from {formatValue(r.previousKg, 1)} kg</span>
+                  <span className="text-xs font-semibold text-ember-800">{counts.get(r.exerciseId)} {counts.get(r.exerciseId) === 1 ? "record" : "records"}</span>
                 </button>
               </li>
             ))}
           </ul>
-          {data.records.length > SHELF && (
+          {tiles.length > SHELF && (
             <button type="button" onClick={() => setAll(!all)} className="mt-2 min-h-[2.75rem] font-semibold underline underline-offset-4">
-              {all ? "Show fewer" : `Show all ${data.records.length} records`}
+              {all ? "Show fewer" : `Show all ${tiles.length} exercises`}
             </button>
           )}
         </>
@@ -60,6 +65,7 @@ function RecordHistory({ data, exerciseId, onClose }: { data: ProgressData; exer
         <div>
           <p className="text-sm font-semibold text-clay-muted">Record history</p>
           <h2 className="text-2xl font-bold tracking-tight">{name}</h2>
+          <p className="text-sm text-clay-muted">{records.length} {records.length === 1 ? "record" : "records"}, newest first</p>
         </div>
         <button type="button" onClick={onClose} aria-label="Close" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-clay-muted hover:bg-clay-lavender" data-autofocus>
           <X className="h-5 w-5" aria-hidden="true" />

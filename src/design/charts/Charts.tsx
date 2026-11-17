@@ -15,7 +15,7 @@ export const CHART_COLORS = { ember: "#D14000", lilac: "#8B6CF6", neutral: "#B6A
 
 const W = 320;
 const H = 176;
-const M = { l: 38, r: 12, t: 12, b: 26 };
+const M = { l: 38, r: 12, t: 26, b: 26 };
 const PW = W - M.l - M.r;
 const PH = H - M.t - M.b;
 
@@ -35,7 +35,7 @@ function Grid({ f, unitLabel }: { f: Frame; unitLabel?: string }) {
           </text>
         </g>
       ))}
-      {unitLabel && <text x={M.l - 6} y={M.t - 3} textAnchor="end" fontSize={10} fill={CHART_COLORS.muted}>{unitLabel}</text>}
+      {unitLabel && <text x={2} y={9} textAnchor="start" fontSize={10} fill={CHART_COLORS.muted}>{unitLabel}</text>}
     </g>
   );
 }
@@ -120,7 +120,7 @@ export function LineChart({ label, unit, points, from, to, maxGapDays, decimals 
   const fmt = (v: number) => `${formatValue(v, decimals)} ${unit}`;
   return (
     <div>
-      <Readout value={shown ? fmt(shown.value) : undefined} label={shown ? `${sel.index === null ? "latest, " : ""}${formatDate(shown.date)}` : ""} />
+      <Readout value={shown ? fmt(shown.value) : undefined} label={shown ? `${sel.index === null ? "latest reading on" : "on"} ${formatDate(shown.date)}` : ""} />
       <div tabIndex={0} role="group" aria-label={`${label}, ${points.length} ${points.length === 1 ? "reading" : "readings"}. Use the arrow keys to step through them.`} onKeyDown={sel.onKeyDown} className="rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-ember-600">
         <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="block w-full touch-pan-y select-none" role="img" aria-label={`${label}: ${points.length} readings from ${formatValue(points[0]!.value, decimals)} to ${formatValue(points.at(-1)!.value, decimals)} ${unit}`} onPointerDown={onPointer} onPointerMove={(e) => e.pointerType === "mouse" && onPointer(e)}>
           <Grid f={f} unitLabel={unit} />
@@ -174,7 +174,7 @@ export function BarChart({ label, unit, weeks, values, noun, color = CHART_COLOR
   const v = i === null ? null : values[i]!;
   return (
     <div>
-      {i === null ? <Readout label="No data in this range" gap /> : v === null ? <Readout label={`Week of ${formatDayMonth(weeks[i]!)}: no ${noun} recorded`} gap /> : <Readout value={`${formatValue(v)} ${unit}`} label={`${sel.index === null ? "latest, " : ""}week of ${formatDayMonth(weeks[i]!)}`} />}
+      {i === null ? <Readout label="No data in this range" gap /> : v === null ? <Readout label={`Week of ${formatDayMonth(weeks[i]!)}: no ${noun} recorded`} gap /> : <Readout value={`${formatValue(v)} ${unit}`} label={`${sel.index === null ? "in the latest week with data, the week of" : "in the week of"} ${formatDayMonth(weeks[i]!)}`} />}
       <div tabIndex={0} role="group" aria-label={`${label}, ${weeks.length} weeks. Use the arrow keys to step through them.`} onKeyDown={sel.onKeyDown} className="rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-ember-600">
         <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="block w-full touch-pan-y select-none" role="img" aria-label={`${label}, weekly, ${values.filter((x) => x !== null).length} of ${weeks.length} weeks have data`} onPointerDown={onPointer}>
           <Grid f={{ y, ticks: t.ticks }} unitLabel={unit} />
@@ -183,7 +183,7 @@ export function BarChart({ label, unit, weeks, values, noun, color = CHART_COLOR
             const bx = M.l + slot * k + (slot - bw) / 2;
             if (val === null) return <line key={k} x1={bx + bw / 2 - 2} x2={bx + bw / 2 + 2} y1={M.t + PH - 1} y2={M.t + PH - 1} stroke={CHART_COLORS.track} strokeWidth={2} strokeLinecap="round" aria-hidden="true" />;
             const h = Math.max(2, M.t + PH - y(val));
-            return <path key={k} d={barPath(bx, M.t + PH - h, bw, h)} fill={color} opacity={sel.index === null || sel.index === k ? 1 : 0.45} />;
+            return <path key={k} d={barPath(bx, M.t + PH - h, bw, h)} fill={color} opacity={sel.index === null || sel.index === k ? 1 : 0.6} />;
           })}
           {sel.index !== null && <rect x={M.l + slot * sel.index} y={M.t} width={slot} height={PH} fill="none" stroke={CHART_COLORS.muted} strokeWidth={1} strokeDasharray="0" rx={2} opacity={0.5} />}
         </svg>
@@ -205,7 +205,7 @@ const PARTS: Array<{ key: keyof Stack; label: string; fill: string }> = [
   { key: "completed", label: "Completed", fill: CHART_COLORS.ember },
   { key: "partial", label: "Partly done", fill: CHART_COLORS.lilac },
   { key: "skipped", label: "Skipped", fill: CHART_COLORS.neutral },
-  { key: "missed", label: "Not logged", fill: CHART_COLORS.track },
+  { key: "missed", label: "Not logged", fill: "#D5CAE3" },
 ];
 
 export function Legend({ totals }: { totals: Stack }) {
@@ -238,7 +238,7 @@ export function StackedBars({ label, weeks, data }: { label: string; weeks: stri
   return (
     <div>
       {i < 0 ? <Readout label="No scheduled workouts have passed in this range" gap /> : !d ? <Readout label={`Week of ${formatDayMonth(weeks[i]!)}: no workouts were scheduled`} gap /> : (
-        <Readout value={`${d.completed} of ${d.completed + d.partial + d.skipped + d.missed} completed`} label={`${sel.index === null ? "latest, " : ""}week of ${formatDayMonth(weeks[i]!)}: ${d.partial} partly done, ${d.skipped} skipped, ${d.missed} not logged`} />
+        <Readout value={`${d.completed} of ${d.completed + d.partial + d.skipped + d.missed} completed`} label={`${sel.index === null ? "in the latest week with data, the week of" : "in the week of"} ${formatDayMonth(weeks[i]!)}: ${d.partial} partly done, ${d.skipped} skipped, ${d.missed} not logged`} />
       )}
       <div tabIndex={0} role="group" aria-label={`${label}, ${weeks.length} weeks. Use the arrow keys to step through them.`} onKeyDown={sel.onKeyDown} className="rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-ember-600">
         <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="block w-full touch-pan-y select-none" role="img" aria-label={`${label}, weekly`} onPointerDown={onPointer}>
@@ -250,7 +250,7 @@ export function StackedBars({ label, weeks, data }: { label: string; weeks: stri
             let top = M.t + PH;
             const live = PARTS.filter((p) => s[p.key] > 0);
             return (
-              <g key={k} opacity={sel.index === null || sel.index === k ? 1 : 0.45}>
+              <g key={k} opacity={sel.index === null || sel.index === k ? 1 : 0.6}>
                 {live.map((p, n) => {
                   const h = M.t + PH - y(s[p.key]);
                   top -= h;

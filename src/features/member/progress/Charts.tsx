@@ -165,7 +165,7 @@ export function CompletionCard({ data, range }: { data: ProgressData; range: Ran
   const s = summarize(rate);
   const stacks = rows.map((r) => (r.scheduled ? { completed: r.completed, partial: r.partial, skipped: r.skipped, missed: r.missed } : null));
   return (
-    <MetricCard id="completion-title" title="Workout completion" hint="Completed workouts against those scheduled whose dates have passed." stats={<Stats baseline={s?.baseline} latest={s?.latest} change={s?.change} unit="% of the week" decimals={0} />}>
+    <MetricCard id="completion-title" title="Workout completion" hint="Completed workouts against those scheduled whose dates have passed. The three figures are each week’s share completed." stats={<Stats baseline={s?.baseline} latest={s?.latest} change={s?.change} unit="%" decimals={0} />}>
       {rangeTotal.scheduled === 0 ? (
         <NoData>No scheduled workouts have passed in this range yet. Completion appears after your first planned day.</NoData>
       ) : (
