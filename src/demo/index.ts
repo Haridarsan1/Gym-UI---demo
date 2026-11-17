@@ -8,6 +8,7 @@ const SEED_KEY = "seedVersion";
 let seeding: Promise<void> | null = null;
 
 async function writeSeed(): Promise<void> {
+  performance.mark("demo-seed-start");
   const data = generateSeed();
   await db.transaction("rw", db.tables, async () => {
     const current = await db.meta.get(SEED_KEY);
@@ -21,6 +22,8 @@ async function writeSeed(): Promise<void> {
     ]);
     await db.meta.bulkPut([{ key: SEED_KEY, value: SEED_VERSION }, { key: "seededAt", value: new Date().toISOString() }]);
   });
+  // The first-open budget is 1 second on a mid-range phone. The e2e test reads this measure.
+  performance.measure("demo-seed", "demo-seed-start");
 }
 
 /**

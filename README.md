@@ -9,6 +9,10 @@ npm install
 npm run dev        # http://localhost:5173
 npm run build      # type-checks, then builds to dist/
 npm run preview    # serve the production build at http://localhost:4173
+npm run test       # unit tests (domain rules, seed, API)
+npm run e2e        # browser tests (marketing regression, login, guards, shells)
+npm run e2e:pwa    # service worker tests against a production build
+npm run bundle-report  # after build: JS downloaded per route
 ```
 
 Requires Node.js 18.18 or newer.
@@ -57,8 +61,10 @@ No environment variables are needed for this demo.
 |-----------|------------|
 | `/`       | Home page: member-journey hero, role tour, check-in demo, what’s included, progress, customer quotes, pricing, FAQ |
 | `/signup` | 3-step free-trial signup with validation, ending on the "Set up your gym" checklist. `?plan=starter\|growth\|pro` preselects the member range |
-| `/login`  | Demo login (any email and password) |
-| `/app`    | Demo end page describing the role-based app (next phase) |
+| `/login`  | Demo login: email + any password, or (members) phone + any 6-digit code, or one tap under “Try the demo as”. The email or phone must belong to someone in the sample gym (`src/app/demoAccounts.ts`) |
+| `/app`    | Sends you to your own home, or to log in |
+| `/m` `/t` `/desk` `/owner` `/admin` | The role-based app (member, trainer, front desk and finance, owner and branch manager, platform admin). Runs on a sample gym, “Pulse Fitness”, stored in your browser. Built milestone by milestone, see `docs/PLAN.md` |
+| `/dev/design` | Design gallery, development only |
 | `/privacy`, `/terms`, `/refunds` | Placeholders until the real policies are written |
 
 ## Where to change things

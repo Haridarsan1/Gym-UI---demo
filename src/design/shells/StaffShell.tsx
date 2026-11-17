@@ -42,7 +42,7 @@ export function StaffShell({ area }: { area: StaffArea }) {
     cn("flex h-14 min-w-[44px] flex-col items-center justify-center gap-0.5 rounded-2xl text-[0.7rem] font-semibold", isActive ? "text-ember-700" : "text-clay-muted");
 
   return (
-    <BranchProvider userId={session.userId} branchIds={branches.map((b) => b.id)} key={branches.map((b) => b.id).join(",")}>
+    <BranchProvider userId={session.userId} branchIds={branches.map((b) => b.id)}>
       <div className="min-h-dvh bg-clay-canvas text-clay-ink lg:grid lg:grid-cols-[16.5rem_1fr]">
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[80] focus:rounded-full focus:bg-white focus:px-4 focus:py-2">
           Skip to content

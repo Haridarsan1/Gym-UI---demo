@@ -198,6 +198,24 @@ test.describe("command palette", () => {
   });
 });
 
+test.describe("slow data", () => {
+  for (const [userId, home] of [["u_owner", "/owner"], ["u_member_arjun", "/m"]] as const) {
+    test(`the account menu stays open when ${userId}’s details arrive after it was opened`, async ({ page }) => {
+      await signInAs(page, userId, home);
+      // From now on every call takes about a second, so the shell is up well before the user’s details arrive.
+      await page.evaluate(() => localStorage.setItem("ember.demo.simulation", JSON.stringify({ minMs: 1200, maxMs: 1200, failureRate: 0 })));
+      await page.reload();
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await page.getByRole("button", { name: /Account menu/ }).click();
+      const signOut = page.getByRole("banner").getByRole("button", { name: "Sign out" });
+      await expect(signOut).toBeVisible();
+      await page.waitForTimeout(2200); // the details arrive during this wait
+      await expect(page.getByRole("banner").getByText(/^(Owner|Member), Pulse Fitness$/)).toBeVisible();
+      await expect(signOut).toBeVisible();
+    });
+  }
+});
+
 test.describe("sign out and reset", () => {
   for (const [userId, home] of [["u_member_arjun", "/m"], ["u_owner", "/owner"], ["u_admin", "/admin"]] as const) {
     test(`${userId} can sign out from the avatar menu`, async ({ page }) => {

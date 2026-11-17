@@ -256,7 +256,7 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
   - Caches static files only (app scripts, styles, Latin fonts, icons), about 790 KB uncompressed. `index.html` is never precached and there is no navigation fallback; page loads are network first (3 s timeout) with the last copy kept for offline, so a Vercel deploy shows on the next load. Marketing-only chunks and Latin-extended fonts are not precached.
   - The page is not reloaded for you, so a workout in progress is safe. A “New version available” toast with a Reload button stays until dismissed. The same toast shows when a lazy screen’s file was removed by a deploy (`vite:preloadError`).
   - `public/icons/` is made by `npm run icons`. `vercel.json` serves `sw.js` and the manifest with no caching. Tests: `npm run e2e:pwa` (builds and uses `scripts/serve-dist.mjs`, which can simulate a deploy).
-- **Done when:** each role lands on its own empty home inside its shell, on phone and desktop, with the correct navigation.
+- **Done when:** each role lands on its own empty home inside its shell, on phone and desktop, with the correct navigation. ✔ Checked by `e2e/m0.spec.ts` (all seven logins, 390 px and 1440 px), `shells.spec.ts`, `guards.spec.ts` and `login.spec.ts`.
 
 ### M1 · Member app (R05)
 - [ ] Today
@@ -338,3 +338,15 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 | Payment gateway | Razorpay-style flow simulated in demo |
 | Languages | English first, structure ready for Hindi |
 | Launch gyms, peak load, retention, policies | From the requirements’ sign-off list; seed uses sensible defaults |
+
+**Decisions to confirm (raised during M0, defaults in use)**
+
+| Question | Default in use |
+|---|---|
+| Member menu: where do “Reviews and check-ins” live? The brief listed membership, receipts, check-in pass, consent and preferences behind the avatar. | Added to the avatar menu so every §4 screen has a place. Could move into Progress. |
+| Finance staff work in `/desk` but cannot check members in. Where do they land? | On Invoices and payments. |
+| Owners cannot read assessments, progress photos or private trainer notes (only the assigned trainer and the member can). The requirements restrict desk and finance explicitly but are silent on owners. | Denied by default. Say if owners should see assessments. |
+| Platform administrators see no gym records, not even in support mode yet. | Support access (M5) adds a time-limited, reasoned, audited grant. |
+| `react-router-dom` 6.28.0 has a published advisory (`@remix-run/router`). It was in the project before M0. Vite 5’s dev server has one for esbuild (development only). | Not upgraded. Upgrading React Router to a patched 6.x is small; Vite 6 is a larger change and would let Vitest move to 4. |
+| Button faces: white text on Ember orange is about 3.4:1 (needs 4.5:1). | `Button3D` uses light faces with plum-ink text. The marketing buttons are unchanged. |
+| Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6. Bundle budget for `/m` is met: 129 KB of 170 KB. |
