@@ -4,6 +4,7 @@ import { listMembers, type MemberListParams } from "@/api/members";
 import { getToday } from "@/api/member";
 import type { DraftInput, SubmitInput } from "@/api/workout";
 import type { FeedbackInput } from "@/api/workoutSummary";
+import type { CheckInInput, MeasurementInput, PhotoInput } from "@/api/progress";
 import { isRetryable } from "@/api/errors";
 import { useSession } from "@/app/SessionContext";
 
@@ -17,6 +18,7 @@ import { useSession } from "@/app/SessionContext";
  */
 const workoutApi = () => import("@/api/workout");
 const summaryApi = () => import("@/api/workoutSummary");
+const progressApi = () => import("@/api/progress");
 
 const retry = (count: number, error: unknown) => count < 2 && isRetryable(error);
 
@@ -109,4 +111,63 @@ export function useWorkoutSummary(date: string) {
 export function useSaveWorkoutFeedback() {
   const { session } = useSession();
   return useMutation({ mutationFn: async (input: FeedbackInput) => (await summaryApi()).saveWorkoutFeedback(session, input), retry, retryDelay: 400 });
+}
+
+/** Everything the Progress screen charts, for the member’s whole history. The date range is applied on the screen. */
+export function useProgress() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["member", session?.userId, "progress"], queryFn: async () => (await progressApi()).getProgress(session), enabled: !!session, retry, staleTime: 15_000 });
+}
+
+/** Saves a weight or measurement. Refreshes the charts and goals. */
+export function useLogMeasurement() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: MeasurementInput) => (await progressApi()).logMeasurement(session, input),
+    retry,
+    retryDelay: 400,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId] }),
+  });
+}
+
+export function usePhotos() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["member", session?.userId, "photos"], queryFn: async () => (await progressApi()).getPhotos(session), enabled: !!session, retry, staleTime: 15_000 });
+}
+
+export function useAddPhoto() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: async (input: PhotoInput) => (await progressApi()).addProgressPhoto(session, input), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId, "photos"] }) });
+}
+
+export function useDeletePhoto() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: async (id: string) => (await progressApi()).deleteProgressPhoto(session, id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId, "photos"] }) });
+}
+
+/** Shared reviews and the member’s own check-ins. Read fresh, so “new” is never shown from a stale copy. */
+export function useReviews() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["member", session?.userId, "reviews"], queryFn: async () => (await progressApi()).getReviews(session), enabled: !!session, retry, staleTime: 0, gcTime: 0, refetchOnWindowFocus: false });
+}
+
+/** Marks shared reviews as read, which clears the card on Today. */
+export function useMarkReviewsRead() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: async () => (await progressApi()).markReviewsRead(session), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId, "today"] }) });
+}
+
+export function useSubmitCheckIn() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CheckInInput) => (await progressApi()).submitCheckIn(session, input),
+    retry,
+    retryDelay: 400,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId, "reviews"] }),
+  });
 }

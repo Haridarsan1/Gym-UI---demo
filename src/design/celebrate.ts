@@ -1,11 +1,11 @@
 import { haptic } from "@/design/haptics";
 
-export type CelebrationKind = "result" | "record" | "badge";
+export type CelebrationKind = "result" | "record" | "badge" | "goal";
 
-const PATTERN: Record<CelebrationKind, number[]> = { result: [30, 40, 30], record: [40, 50, 40, 50, 80], badge: [60, 40, 60] };
+const PATTERN: Record<CelebrationKind, number[]> = { result: [30, 40, 30], record: [40, 50, 40, 50, 80], badge: [60, 40, 60], goal: [60, 50, 60, 50, 120] };
 
 /**
- * The one place celebrations are triggered. Every kind buzzes on Android. Records and new badges also throw a short burst of
+ * The one place celebrations are triggered. Every kind buzzes on Android. Records, new badges and achieved goals also throw a short burst of
  * confetti, loaded only then so it stays out of the app’s first download. Reduced motion gets the buzz and no confetti.
  * Never used where money or access is handled.
  */
