@@ -34,8 +34,8 @@ test.describe("first open of the app", () => {
 });
 
 test.describe("each role lands in its own home", () => {
-  const landings: Array<[string, string, string]> = [
-    ["u_member_arjun", "/m", "Today"],
+  const landings: Array<[string, string, string | RegExp]> = [
+    ["u_member_arjun", "/m", /^Good (morning|afternoon|evening), Arjun$/],
     ["u_trainer_meera", "/t", "Today"],
     ["u_desk_andheri", "/desk", "Check-in"],
     ["u_finance", "/desk/finance/invoices", "Invoices and payments"],
@@ -66,7 +66,7 @@ test.describe("member app navigation", () => {
 
   test("every tab opens its screen", async ({ page }) => {
     await signInAs(page, "u_member_arjun", "/m");
-    for (const [tab, heading] of [["Program", "Program"], ["Progress", "Progress"], ["Bookings", "Bookings"], ["Today", "Today"]] as const) {
+    for (const [tab, heading] of [["Program", "Program"], ["Progress", "Progress"], ["Bookings", "Bookings"], ["Today", /^Good (morning|afternoon|evening), Arjun$/]] as const) {
       await main(page).getByRole("link", { name: tab, exact: true }).click();
       await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
     }

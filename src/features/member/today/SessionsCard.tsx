@@ -10,7 +10,7 @@ export function SessionsCard({ t }: { t: TodayData }) {
   if (!b && credits.available + credits.reserved + credits.consumed === 0) return null;
   return (
     <section aria-labelledby="sessions-title" className="clay p-5">
-      <h2 id="sessions-title" className="text-xs font-semibold uppercase tracking-wide text-clay-muted">Training sessions</h2>
+      <h2 id="sessions-title" className="text-lg font-bold">Training sessions</h2>
       <div className="mt-3 flex items-end justify-between gap-4">
         <p>
           <span className="font-display text-5xl font-extrabold leading-none tabular">{credits.available}</span>

@@ -1,6 +1,5 @@
 import { useToday } from "@/api/hooks";
 import type { TodayData } from "@/api/member";
-import { todayIST } from "@/domain/dates";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonCard, SkeletonRows } from "@/design/Skeleton";
 import { greeting, formatWeekdayDate } from "@/lib/when";
@@ -16,10 +15,6 @@ export default function Today() {
   const query = useToday();
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="text-sm font-semibold uppercase tracking-wide text-clay-muted">Today</h1>
-        <p className="text-sm text-clay-subtle">{formatWeekdayDate(todayIST())}</p>
-      </header>
       <QueryBoundary query={query} errorTitle="We couldn’t load today" skeleton={<TodaySkeleton />}>
         {(t) => <TodayContent t={t} />}
       </QueryBoundary>
@@ -30,9 +25,12 @@ export default function Today() {
 function TodayContent({ t }: { t: TodayData }) {
   return (
     <>
-      <p className="text-[1.7rem] font-bold leading-tight tracking-tight">
-        {greeting(t.nowIso)}, {t.firstName}
-      </p>
+      <header>
+        <p className="text-sm text-clay-muted">{formatWeekdayDate(t.today)}</p>
+        <h1 className="text-[1.7rem] font-bold leading-tight tracking-tight">
+          {greeting(t.nowIso)}, {t.firstName}
+        </h1>
+      </header>
       <Notices t={t} />
       <WorkoutCard t={t} />
       <ReviewCard t={t} />
@@ -46,6 +44,7 @@ function TodayContent({ t }: { t: TodayData }) {
 function TodaySkeleton() {
   return (
     <div className="space-y-5" aria-label="Loading today" role="status">
+      <h1 className="sr-only">Today</h1>
       <SkeletonCard />
       <SkeletonCard />
       <SkeletonRows rows={2} />

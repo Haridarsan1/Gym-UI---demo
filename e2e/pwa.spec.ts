@@ -15,7 +15,7 @@ async function openAppWithWorker(page: Page) {
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload(); // the first load happens before the worker takes over
   await expect.poll(() => controlled(page)).toBe(true);
-  await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Arjun$/, level: 1 })).toBeVisible();
 }
 
 test("the manifest describes an installable app with real icons", async ({ page, request }) => {
@@ -75,7 +75,7 @@ test("page loads go to the network first and the last copy opens the app when of
   await expect.poll(() => page.evaluate(async () => (await (await caches.open("pages")).keys()).map((r) => new URL(r.url).pathname)), { timeout: 10_000 }).toContain("/m");
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Arjun$/, level: 1 })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
   await context.setOffline(false);
 });
@@ -98,7 +98,7 @@ test("shows “New version available” when a new service worker takes over, an
   const navigated = page.waitForNavigation();
   await toast.getByRole("button", { name: "Reload" }).click();
   await navigated;
-  await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Arjun$/, level: 1 })).toBeVisible();
   await expect(page.getByText("New version available")).toHaveCount(0);
 });
 
@@ -114,7 +114,7 @@ test("a deploy shows up on the next page load, even with the service worker in c
   await page.reload();
   // The page the browser loaded is the new one, not the copy the worker kept.
   expect(deployNumber(await page.content())).toBe(before + 1);
-  await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Arjun$/, level: 1 })).toBeVisible();
 });
 
 test("a lazy screen that a deploy removed offers the same reload", async ({ page }) => {

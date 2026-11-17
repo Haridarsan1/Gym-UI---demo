@@ -97,7 +97,7 @@ export function Session({ view }: { view: WorkoutView }) {
           <div className="min-w-0 flex-1 text-center">
             <p className="truncate text-sm font-semibold">{view.title}</p>
             <p className="text-xs text-clay-muted" aria-live="polite">
-              Exercise {step + 1} of {total} ·{" "}
+              Exercise {step + 1} of {total},{" "}
               {autosave.state === "saving" ? "Saving…" : autosave.state === "error" ? "Not saved yet" : autosave.state === "saved" ? "Saved" : "Sets save as you go"}
             </p>
           </div>

@@ -12,7 +12,7 @@ interface Role {
   pick: RegExp;
   name: string;
   url: RegExp;
-  home: string;
+  home: string | RegExp;
   /** Links in the main navigation on a phone (bottom bar) and on a desktop (sidebar or bottom bar). */
   phone: string[];
   desktop: string[];
@@ -23,7 +23,7 @@ interface Role {
 }
 
 const roles: Role[] = [
-  { pick: /^Member/, built: true, name: "Arjun Kumar", url: /\/m$/, home: "Today", phone: ["Today", "Program", "Start today’s workout", "Progress", "Bookings"], desktop: ["Today", "Program", "Start today’s workout", "Progress", "Bookings"], absent: ["Clients", "Dashboard", "Refunds"] },
+  { pick: /^Member/, built: true, name: "Arjun Kumar", url: /\/m$/, home: /^Good (morning|afternoon|evening), Arjun$/, phone: ["Today", "Program", "Start today’s workout", "Progress", "Bookings"], desktop: ["Today", "Program", "Start today’s workout", "Progress", "Bookings"], absent: ["Clients", "Dashboard", "Refunds"] },
   { pick: /^Trainer/, name: "Meera Joshi", url: /\/t$/, home: "Today", phone: ["Today", "Clients", "Log session", "Schedule", "Exercises"], desktop: ["Today", "Clients", "Log session", "Schedule", "Exercises"], absent: ["Program", "Bookings", "Dashboard"] },
   { pick: /^Front desk/, name: "Pooja Nair", url: /\/desk$/, home: "Check-in", phone: ["Check-in", "Members", "Bookings", "Dues"], desktop: ["Check-in", "New member", "Members", "Collect payment", "Bookings", "Dues"], absent: ["Refunds", "Reconciliation", "Exports", "Invoices and payments", "Reports", "Settings"] },
   { pick: /^Finance/, name: "Deepa Menon", url: /\/desk\/finance\/invoices$/, home: "Invoices and payments", phone: ["Members", "Dues", "Collect payment", "Invoices and payments"], desktop: ["Members", "Collect payment", "Dues", "Invoices and payments", "Refunds", "Reconciliation", "Exports"], absent: ["Check-in", "New member", "Bookings", "Settings"] },
@@ -126,7 +126,7 @@ test("the sample gym is the same for everyone who opens it", async ({ page }) =>
 test("the ring and streak describe themselves in words", async ({ page }) => {
   await page.goto("/dev/design");
   await expect(page.getByRole("img", { name: "2 of 4 workouts done this week" })).toBeVisible();
-  await expect(page.getByRole("img", { name: "6-week streak" })).toBeVisible();
-  await expect(page.getByRole("img", { name: "No streak yet" })).toBeVisible();
-  await expect(page.getByRole("img", { name: "Streak paused at 6 weeks" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "6-week streak", exact: true })).toBeVisible();
+  await expect(page.getByText("Finish your first week to start a streak")).toBeVisible();
+  await expect(page.getByRole("img", { name: "6-week streak, paused" })).toBeVisible();
 });

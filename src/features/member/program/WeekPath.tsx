@@ -32,7 +32,7 @@ function RestRow({ date }: { date: string }) {
         <Moon className="h-4 w-4" />
       </span>
       <span>
-        <span className="font-semibold">{formatWeekdayDate(date)}</span> · Rest day
+        <span className="font-semibold">{formatWeekdayDate(date)}</span>, rest day
       </span>
     </li>
   );
@@ -53,10 +53,10 @@ function WorkoutRow({ day, state, onOpen }: { day: ProgramDay; state: Exclude<Pr
           <Icon className="h-5 w-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-xs font-semibold uppercase tracking-wide text-clay-muted">{formatWeekdayDate(day.date)}</span>
+          <span className="block text-sm font-semibold text-clay-muted">{formatWeekdayDate(day.date)}</span>
           <span className="block truncate text-lg font-bold">{day.title}</span>
           <span className="block text-sm text-clay-muted">
-            {look.label} · {day.exerciseCount} exercises · about {day.minutes} min
+            {look.label}, {day.exerciseCount} exercises, about {day.minutes} min
           </span>
         </span>
         <ChevronRight className="h-5 w-5 shrink-0 text-clay-subtle" aria-hidden="true" />

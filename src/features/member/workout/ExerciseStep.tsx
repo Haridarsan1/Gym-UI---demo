@@ -38,7 +38,7 @@ export function ExerciseStep({ x, entry, actions }: { x: WorkoutExercise; entry:
   return (
     <section aria-labelledby="exercise-name" className="space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-clay-muted">{SECTION[p.section]}</p>
+        <p className="text-sm font-semibold text-clay-muted">{SECTION[p.section]}</p>
         <h2 id="exercise-name" tabIndex={-1} className="mt-1 text-[1.7rem] font-bold leading-tight tracking-tight focus:outline-none">
           {shown.name}
         </h2>
@@ -92,7 +92,7 @@ export function ExerciseStep({ x, entry, actions }: { x: WorkoutExercise; entry:
                 <div className="min-w-0">
                   <p className="font-bold">Set {n}</p>
                   <p className="truncate text-sm text-clay-muted">
-                    {s ? (s.skipped ? "Skipped" : `${describeSet(s)}${s.asPrescribed ? " · as prescribed" : ""}`) : `Target ${describeTarget({ ...p, sets: 1, restSec: undefined })}`}
+                    {s ? (s.skipped ? "Skipped" : `${describeSet(s)}${s.asPrescribed ? ", as prescribed" : ""}`) : `Target ${describeTarget({ ...p, sets: 1, restSec: undefined })}`}
                   </p>
                 </div>
               </div>

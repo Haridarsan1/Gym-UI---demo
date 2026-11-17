@@ -1,4 +1,5 @@
-import { DEMO_ACCOUNTS, type DemoAccount } from "@/app/demoAccounts";
+import { DEMO_ACCOUNTS, TENANT_NAME, type DemoAccount } from "@/app/demoAccounts";
+import { writeGym } from "@/app/gymCache";
 import { writeSession, type Session } from "@/app/session";
 
 /**
@@ -15,6 +16,8 @@ export function signInDemo(userId: string): Session | null {
   if (!account) return null;
   const session = sessionFor(account);
   writeSession(session);
+  // The gym’s name is known at sign-in, so the header never has to show anything else while it loads.
+  if (account.tenantId) writeGym({ tenantId: account.tenantId, name: TENANT_NAME });
   return session;
 }
 

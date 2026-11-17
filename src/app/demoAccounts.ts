@@ -7,6 +7,7 @@ import type { Role } from "@/domain/roles";
  * the marketing bundle.
  */
 export const TENANT_ID = "t_pulse";
+export const TENANT_NAME = "Pulse Fitness";
 export const BRANCH = { andheri: "br_andheri", bandra: "br_bandra", powai: "br_powai" } as const;
 export const ALL_BRANCHES: string[] = [BRANCH.andheri, BRANCH.bandra, BRANCH.powai];
 

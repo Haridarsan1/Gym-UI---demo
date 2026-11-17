@@ -33,9 +33,9 @@ export function SwapSheet({ open, original, current, alternatives, hasLoggedSets
                 <span className="font-bold">
                   {c.name}
                   {c.id === original.id ? " (prescribed)" : ""}
-                  {selected ? " · selected" : ""}
+                  {selected ? " (selected)" : ""}
                 </span>
-                <span className="text-sm text-clay-muted">{sentence(`${c.muscleGroups.join(", ")}${c.equipment.length ? ` · ${c.equipment.join(", ")}` : " · no equipment"}`)}</span>
+                <span className="text-sm text-clay-muted">{sentence(`works ${c.muscleGroups.join(", ")}. ${c.equipment.length ? `Needs ${c.equipment.join(", ")}` : "No equipment"}.`)}</span>
               </button>
             </li>
           );

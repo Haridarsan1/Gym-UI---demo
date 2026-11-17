@@ -7,7 +7,7 @@ export interface Me {
   userId: string;
   name: string;
   role: Session["role"];
-  tenant: Pick<Tenant, "id" | "name"> | null;
+  tenant: Pick<Tenant, "id" | "name" | "logoUrl"> | null;
   /** Branches this person can work in. Owners see all of them. */
   branches: Array<Pick<Branch, "id" | "name">>;
   memberId?: string;
@@ -24,7 +24,7 @@ export async function getMe(session: Session | null): Promise<Me> {
     userId: principal.userId,
     name: user?.name ?? "",
     role: principal.role,
-    tenant: tenant ? { id: tenant.id, name: tenant.name } : null,
+    tenant: tenant ? { id: tenant.id, name: tenant.name, logoUrl: tenant.logoUrl } : null,
     branches: branches.map(({ id, name }) => ({ id, name })),
     memberId: principal.memberId,
   };

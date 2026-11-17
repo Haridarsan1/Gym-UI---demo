@@ -7,11 +7,12 @@ test.describe("Today: Arjun (a workout today)", () => {
   test.beforeEach(async ({ page }) => signInAs(page, "u_member_arjun", "/m"));
 
   test("greets him, shows today’s workout from the new plan, and a Start button he can reach with a thumb", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
-    await expect(page.getByText(/^Good (morning|afternoon|evening), Arjun$/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Arjun$/, level: 1 })).toBeVisible();
+    await expect(page.getByText(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} \w{3}$/).first()).toBeVisible(); // the small date line above the greeting
     const hero = card(page, "Upper body and core");
-    await expect(hero.getByText(/^Today’s workout · Week 2$/)).toBeVisible();
-    await expect(hero.getByText(/5 exercises · about \d+ min/)).toBeVisible();
+    await expect(hero.getByText(/^Today’s workout, week 2$/)).toBeVisible();
+    await expect(hero.getByText(/5 exercises, about \d+ min/)).toBeVisible();
+    await expect(hero.getByRole("list", { name: "Exercises" }).getByRole("listitem")).toHaveText(["Dumbbell bench press", "One-arm dumbbell row", "Seated dumbbell press", "+2 more"]);
     await expect(hero.getByText(/^New plan from Coach Meera, \d+ \w{3}$/)).toBeVisible();
     const start = hero.getByRole("link", { name: "Start workout" });
     await expect(start).toBeVisible();
@@ -70,19 +71,20 @@ test.describe("Today: other states", () => {
     await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: /Start today’s workout/ })).toHaveCount(0);
     const due = page.getByLabel("Payment due");
     await expect(due).toContainText("of ₹2,950 was due 4 days ago.");
-    await expect(due.getByRole("link", { name: "See invoice" })).toHaveAttribute("href", "/m/membership");
+    await expect(due.getByRole("link", { name: "Pay ₹2,950" })).toHaveAttribute("href", /^\/m\/membership\?pay=inv_/);
+    await expect(hero.getByRole("link", { name: "Log your weight" })).toHaveAttribute("href", "/m/progress?log=weight");
+    await expect(hero.getByRole("link", { name: "Book a session" })).toHaveAttribute("href", "/m/bookings");
     // Money is never shown in red.
     expect(await due.evaluate((el) => getComputedStyle(el).color)).not.toMatch(/rgb\((1[6-9]\d|2\d\d), ([0-5]?\d), ([0-5]?\d)\)/);
   });
 
   test("Rahul: a frozen membership explains itself, pauses the streak, and offers no workout", async ({ page }) => {
     await signInAs(page, "u_member_rahul", "/m");
-    await expect(page.getByLabel("Membership frozen")).toContainText("Your membership is frozen until");
-    await expect(page.getByLabel("Membership frozen")).toContainText("nothing counts as missed");
+    await expect(page.getByRole("complementary", { name: "Membership frozen" })).toContainText("Your membership is frozen until");
+    await expect(page.getByRole("complementary", { name: "Membership frozen" })).toContainText("nothing counts as missed");
     await expect(card(page, "Taking a break")).toBeVisible();
-    await expect(page.getByText("paused", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: /Start (today’s )?workout/ })).toHaveCount(0);
-    await expect(page.getByRole("img", { name: /^Streak paused at \d+ weeks?$/ })).toBeVisible();
+    await expect(page.getByRole("img", { name: /^\d+-week streak, paused$/ })).toBeVisible();
   });
 
   test("Sneha: no plan yet, with her trainer’s name and no empty cards", async ({ page }) => {
@@ -90,7 +92,8 @@ test.describe("Today: other states", () => {
     const hero = card(page, "Your plan is on its way");
     await expect(hero).toContainText("Coach Meera is putting your plan together.");
     await expect(page.getByRole("img", { name: "No workouts planned this week" })).toBeVisible();
-    await expect(page.getByRole("img", { name: "No streak yet" })).toBeVisible();
+    await expect(page.getByText("Finish your first week to start a streak")).toBeVisible();
+    await expect(page.getByRole("img", { name: /week streak/ })).toHaveCount(0);
     await expect(card(page, "Training sessions")).toHaveCount(0);
     await expect(card(page, "10-visit pass")).toContainText("4 visits left");
   });

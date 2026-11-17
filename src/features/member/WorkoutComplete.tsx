@@ -32,8 +32,8 @@ export default function WorkoutComplete() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-sm font-semibold uppercase tracking-wide text-clay-muted">Workout complete</h1>
-        <p className="text-sm text-clay-subtle">{formatWeekdayDate(date)}</p>
+        <p className="text-sm text-clay-muted">{formatWeekdayDate(date)}</p>
+        <h1 className="text-[1.7rem] font-bold leading-tight tracking-tight">Workout complete</h1>
       </header>
       <QueryBoundary query={query} errorTitle="We couldn’t load your summary" skeleton={<SkeletonCard label="Loading your summary" />}>
         {(s) => <Celebration s={s} celebrate={celebrate} />}

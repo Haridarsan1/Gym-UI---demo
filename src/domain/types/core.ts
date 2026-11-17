@@ -22,6 +22,8 @@ export const Tenant = z.object({
   gstin: z.string().optional(),
   /** Registered name and address, printed on tax receipts. */
   legalName: z.string().optional(),
+  /** The gym’s logo, shown in the header and on loading screens. Without one the gym’s initials are shown. */
+  logoUrl: z.string().optional(),
   address: z.string().optional(),
   currency: z.literal("INR"),
   timeZone: z.string(),

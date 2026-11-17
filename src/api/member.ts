@@ -5,8 +5,8 @@ import { ApiError } from "@/api/errors";
 import { amountDuePaise, isOverdue } from "@/domain/billing";
 import { cancellationDeadline } from "@/domain/booking";
 import { creditBalance, type CreditBalance } from "@/domain/credits";
-import { daysBetween, todayIST, weekStart } from "@/domain/dates";
-import { estimateMinutes, nextWorkout, planFor, streakWeeks, weekStats } from "@/domain/metrics";
+import { addDays, daysBetween, eachDay, todayIST, weekStart } from "@/domain/dates";
+import { estimateMinutes, nextWorkout, planFor, scheduledBetween, streakWeeks, weekStats } from "@/domain/metrics";
 import { assignmentOn, currentMembership } from "@/domain/membership";
 import type { Principal, Resource } from "@/domain/permissions";
 import type { Booking, GymPolicies, Membership, TrainerReview, WorkoutLog, WorkoutPlanVersion } from "@/domain/types";
@@ -36,6 +36,17 @@ export async function openMember(session: Session | null): Promise<MemberContext
   };
 }
 
+export type WeekDayState = "done" | "partial" | "skipped" | "planned" | "missed" | "rest" | "frozen";
+
+/** One day of this week for the strip on Today: Monday to Sunday. */
+export interface WeekDay {
+  date: string;
+  state: WeekDayState;
+  isToday: boolean;
+  /** The workout planned for the day, when there is one. */
+  title?: string;
+}
+
 export interface TodayData {
   firstName: string;
   gymName: string;
@@ -61,6 +72,9 @@ export interface TodayData {
         date: string;
         title: string;
         exerciseCount: number;
+        /** The first three main exercises, by name, and how many more there are. */
+        exercises: string[];
+        moreExercises: number;
         minutes: number;
         weekNumber: number;
         versionNumber: number;
@@ -75,6 +89,7 @@ export interface TodayData {
       };
   /** This week, Monday to Sunday. */
   week: { planned: number; done: number };
+  weekDays: WeekDay[];
   streakWeeks: number;
   /** The share of planned workouts a week needs to count towards the streak (a gym policy). */
   streakThresholdPercent: number;
@@ -83,7 +98,7 @@ export interface TodayData {
   nextBooking?: { id: string; startsAt: string; endsAt: string; trainerName: string; branchName: string; freeUntil: string; lateConsumesCredit: boolean };
   newReview?: { id: string; trainerName: string; excerpt: string; createdAt: string };
   /** Money owed on open invoices. */
-  dues?: { totalPaise: number; overdue: boolean; overdueDays: number; invoiceNumber: string };
+  dues?: { totalPaise: number; overdue: boolean; overdueDays: number; invoiceNumber: string; invoiceId: string; /** What is still owed on that invoice. */ invoiceDuePaise: number };
 }
 
 const firstSentence = (s: string) => (s.match(/^.*?[.!?](\s|$)/)?.[0] ?? s).trim();
@@ -135,8 +150,11 @@ export async function getToday(session: Session | null): Promise<TodayData> {
     const next = nextWorkout(published, c.today);
     plan = { state: "rest", versionName: p.version.name, next: next ? { date: next.date, title: next.day.title } : undefined };
   } else {
+    const main = [...p.day.prescriptions].filter((x) => x.section === "main").sort((x, y) => x.order - y.order);
+    const named = await db.exercises.bulkGet(main.slice(0, 3).map((x) => x.exerciseId));
     plan = {
-      state: "workout", date: c.today, title: p.day.title, exerciseCount: p.day.prescriptions.filter((x) => x.section === "main").length, minutes: estimateMinutes(p.day),
+      state: "workout", date: c.today, title: p.day.title, exerciseCount: main.length, minutes: estimateMinutes(p.day),
+      exercises: named.map((e) => e?.name ?? "Exercise"), moreExercises: Math.max(0, main.length - 3),
       weekNumber: Math.floor(daysBetween(p.version.startsOn, c.today) / 7) + 1, versionNumber: p.version.versionNumber, versionName: p.version.name,
       startedOn: p.version.startsOn, authorName: userName.get(p.version.authorId) ?? "Your trainer",
       newPlan: p.version.versionNumber > 1 && daysBetween(p.version.startsOn, c.today) <= 14, logStatus: todaysLog?.status,
@@ -149,6 +167,16 @@ export async function getToday(session: Session | null): Promise<TodayData> {
   const stats = published.length ? weekStats(published, logs, freezes, [...published].sort((x, y) => x.startsOn.localeCompare(y.startsOn))[0]!.startsOn, c.today) : [];
   const thisWeek = stats.find((w) => w.weekStart === monday);
 
+  // The seven days of this week for the strip
+  const finalByDate = new Map(logs.filter((l) => l.status !== "draft").map((l) => [l.scheduledOn, l]));
+  const planned = new Map(scheduledBetween(published, monday, addDays(monday, 6)).map((x) => [x.date, x.day.title]));
+  const frozenOn = (d: string) => freezes.some((f) => f.from <= d && (f.to === undefined || f.to >= d));
+  const weekDays: WeekDay[] = eachDay(monday, addDays(monday, 6)).map((date) => {
+    const log = finalByDate.get(date);
+    const state: WeekDayState = frozenOn(date) ? "frozen" : log ? (log.status === "completed" ? "done" : log.status === "partial" ? "partial" : "skipped") : !planned.has(date) ? "rest" : date < c.today ? "missed" : "planned";
+    return { date, state, isToday: date === c.today, title: planned.get(date) };
+  });
+
   // Next booking
   const upcoming = bookings.filter((b: Booking) => b.status === "booked" && b.startsAt > c.nowIso).sort((x, y) => x.startsAt.localeCompare(y.startsAt))[0];
   const newest = reviews.filter(sharedUnread).sort((x, y) => y.createdAt.localeCompare(x.createdAt))[0];
@@ -158,11 +186,11 @@ export async function getToday(session: Session | null): Promise<TodayData> {
   return {
     firstName: member.name.split(" ")[0] ?? member.name, gymName: tenant?.name ?? "Your gym", today: c.today, nowIso: c.nowIso,
     trainerName: trainerId ? userName.get(trainerId) : undefined, membership, plan,
-    week: { planned: thisWeek?.planned ?? 0, done: thisWeek?.done ?? 0 },
+    week: { planned: thisWeek?.planned ?? 0, done: thisWeek?.done ?? 0 }, weekDays,
     streakWeeks: streakWeeks(stats, policy.streakThresholdPercent, monday), streakThresholdPercent: policy.streakThresholdPercent, streakPaused: !!thisWeek?.frozen || membership?.status === "frozen",
     credits: creditBalance(ledger),
     nextBooking: upcoming ? { id: upcoming.id, startsAt: upcoming.startsAt, endsAt: upcoming.endsAt, trainerName: upcoming.trainerId ? userName.get(upcoming.trainerId) ?? "Your trainer" : "Your trainer", branchName: branches.find((b) => b.id === upcoming.branchId)?.name ?? "", freeUntil: cancellationDeadline(upcoming.startsAt, policy.cancellationCutoffHours), lateConsumesCredit: policy.lateCancelConsumesCredit } : undefined,
     newReview: newest ? { id: newest.id, trainerName: userName.get(newest.authorId) ?? "Your trainer", excerpt: firstSentence(newest.body), createdAt: newest.createdAt } : undefined,
-    dues: oldest ? { totalPaise: open.reduce((n, x) => n + x.due, 0), overdue: isOverdue(oldest.i, payments.filter((x) => x.invoiceId === oldest.i.id), c.today), overdueDays: Math.max(0, daysBetween(oldest.i.dueOn, c.today)), invoiceNumber: oldest.i.number } : undefined,
+    dues: oldest ? { totalPaise: open.reduce((n, x) => n + x.due, 0), overdue: isOverdue(oldest.i, payments.filter((x) => x.invoiceId === oldest.i.id), c.today), overdueDays: Math.max(0, daysBetween(oldest.i.dueOn, c.today)), invoiceNumber: oldest.i.number, invoiceId: oldest.i.id, invoiceDuePaise: oldest.due } : undefined,
   };
 }

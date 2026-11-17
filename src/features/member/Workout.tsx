@@ -35,8 +35,8 @@ function Blocked({ w }: { w: WorkoutView }) {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-sm font-semibold uppercase tracking-wide text-clay-muted">Workout</h1>
-        <p className="text-sm text-clay-subtle">{formatWeekdayDate(w.date)}</p>
+        <p className="text-sm text-clay-muted">{formatWeekdayDate(w.date)}</p>
+        <h1 className="text-[1.7rem] font-bold leading-tight tracking-tight">Workout</h1>
       </header>
       <section className="clay p-6" aria-labelledby="blocked-title">
         <Lock className="h-7 w-7 text-clay-muted" aria-hidden="true" />

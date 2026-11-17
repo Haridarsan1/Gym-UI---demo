@@ -24,7 +24,7 @@ export function RestTimer({ endsAt, total, onAdd, onClose }: { endsAt: number; t
     <section aria-label="Rest timer" className="clay overflow-hidden !rounded-2xl">
       <div className="flex items-center gap-3 px-4 py-2">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-clay-muted">{over ? "Rest over" : "Rest"}</p>
+          <p className="text-sm font-semibold text-clay-muted">{over ? "Rest over" : "Rest"}</p>
           <p role="timer" aria-live="off" className="font-display text-3xl font-extrabold tabular-nums leading-none">
             {clock(left)}
           </p>

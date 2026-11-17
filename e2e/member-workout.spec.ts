@@ -137,7 +137,7 @@ test.describe("Workout session: Arjun", () => {
     await page.getByRole("form", { name: "Set 2" }).getByRole("button", { name: "Log set" }).click();
     await page.getByRole("button", { name: "Finish", exact: true }).click();
     const sheet = page.getByRole("dialog", { name: "Finish workout" });
-    await expect(sheet).toContainText("1 of 15 sets done · 1 skipped · 13 not logged");
+    await expect(sheet).toContainText("1 of 15 sets done, 1 skipped, 13 not logged");
     await sheet.getByRole("button", { name: "Save partly done workout" }).click();
     await expect(page).toHaveURL(/\/complete$/);
     await expect(page.getByRole("heading", { name: "1 of 15 sets done" })).toBeVisible();
@@ -158,7 +158,7 @@ test.describe("Workout session: Arjun", () => {
     await expect(page.getByRole("heading", { name: /sets done$/ })).toBeVisible();
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Program" }).click();
     await expect(page.getByRole("button", { name: /Upper body and core/ })).toContainText("Partly done");
-    await expect(page.getByRole("list", { name: "Days of the week" }).getByText(/^Partly done ·/)).toHaveCount(1);
+    await expect(page.getByRole("list", { name: "Days of the week" }).getByText(/^Partly done,/)).toHaveCount(1);
   });
 
   test("works at the phone width: no sideways scroll, big targets, the tab bar steps aside", async ({ page }) => {

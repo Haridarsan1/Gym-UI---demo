@@ -116,3 +116,30 @@ describe("Today: who may ask", () => {
     expect((await getToday(forged)).firstName).toBe("Priya");
   });
 });
+
+describe("Today: the pieces added in the design pass", () => {
+  it("names the first three exercises and counts the rest", async () => {
+    const t = await getToday(as("u_member_arjun"));
+    expect(t.plan.state === "workout" && t.plan.exercises).toEqual(["Dumbbell bench press", "One-arm dumbbell row", "Seated dumbbell press"]);
+    expect(t.plan.state === "workout" && t.plan.moreExercises).toBe(2);
+  });
+
+  it("gives the seven days of the week, Monday to Sunday, with today marked", async () => {
+    const t = await getToday(as("u_member_arjun"));
+    expect(t.weekDays.map((d) => d.date)).toEqual(["2026-11-16", "2026-11-17", "2026-11-18", "2026-11-19", "2026-11-20", "2026-11-21", "2026-11-22"]);
+    expect(t.weekDays.filter((d) => d.isToday).map((d) => d.date)).toEqual(["2026-11-17"]);
+    expect(t.weekDays.find((d) => d.isToday)).toMatchObject({ state: "planned", title: "Upper body and core" });
+    expect(t.weekDays.filter((d) => d.state === "planned").length + t.weekDays.filter((d) => d.state === "rest").length + t.weekDays.filter((d) => d.state === "missed").length).toBe(7);
+    expect(t.weekDays.filter((d) => d.state !== "rest").length).toBe(t.week.planned);
+  });
+
+  it("shows frozen days as frozen, for a frozen membership", async () => {
+    const t = await getToday(as("u_member_rahul"));
+    expect(t.weekDays.filter((d) => d.date >= "2026-11-17").every((d) => d.state === "frozen")).toBe(true);
+  });
+
+  it("says which invoice to pay and how much is still owed on it", async () => {
+    const t = await getToday(as("u_member_priya"));
+    expect(t.dues).toMatchObject({ invoiceId: expect.stringMatching(/^inv_/), invoiceDuePaise: 295_000, totalPaise: 295_000 });
+  });
+});

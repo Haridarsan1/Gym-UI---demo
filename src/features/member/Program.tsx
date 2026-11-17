@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useProgram } from "@/api";
 import type { ProgramData } from "@/api";
 import { Button } from "@/components/ui/Button";
@@ -18,8 +18,8 @@ export default function Program() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-sm font-semibold uppercase tracking-wide text-clay-muted">Program</h1>
-        <p className="text-sm text-clay-subtle">Your plan, week by week</p>
+        <p className="text-sm text-clay-muted">Your plan, week by week</p>
+        <h1 className="text-[1.7rem] font-bold leading-tight tracking-tight">Program</h1>
       </header>
       <QueryBoundary query={query} errorTitle="We couldn’t load your program" skeleton={<ProgramSkeleton />}>
         {(p) => (p.weeks.length ? <ProgramContent p={p} /> : <NoPlan />)}
@@ -38,8 +38,11 @@ function NoPlan() {
 
 function ProgramContent({ p }: { p: ProgramData }) {
   const currentIndex = Math.max(0, p.weeks.findIndex((w) => w.isCurrent));
-  const [index, setIndex] = useState(currentIndex);
-  const [preview, setPreview] = useState<string | null>(null);
+  // Tapping a day on Today opens it here: its week, and its workout if it has one.
+  const wanted = useSearchParams()[0].get("date");
+  const wantedIndex = wanted ? p.weeks.findIndex((w) => w.days.some((d) => d.date === wanted)) : -1;
+  const [index, setIndex] = useState(wantedIndex >= 0 ? wantedIndex : currentIndex);
+  const [preview, setPreview] = useState<string | null>(() => (wanted && wantedIndex >= 0 && p.weeks[wantedIndex]!.days.some((d) => d.date === wanted && d.state !== "rest") ? wanted : null));
   // When the plan reloads (after finishing a workout, for example) stay on the same week.
   useEffect(() => setIndex((i) => Math.min(i, p.weeks.length - 1)), [p.weeks.length]);
   const week = p.weeks[index]!;
@@ -47,7 +50,7 @@ function ProgramContent({ p }: { p: ProgramData }) {
   return (
     <>
       <section aria-labelledby="plan-title" className="clay p-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-clay-muted">Current plan</p>
+        <p className="text-sm font-semibold text-clay-muted">Current plan</p>
         <h2 id="plan-title" className="mt-1 text-xl font-bold">{p.current!.name}</h2>
         <p className="text-sm text-clay-muted">
           Version {p.current!.versionNumber} from Coach {p.current!.authorName.split(" ")[0]}, started {formatDate(p.current!.startedOn)}
@@ -76,7 +79,7 @@ function ProgramContent({ p }: { p: ProgramData }) {
           <div className="text-center">
             <h2 id="week-label" className="font-bold">{week.isCurrent ? "This week" : `Week ${week.weekNumber}`}</h2>
             <p className="text-sm text-clay-muted">
-              {formatDayMonth(week.weekStart)} to {formatDayMonth(end)} · {week.done} of {week.workouts} done
+              {formatDayMonth(week.weekStart)} to {formatDayMonth(end)}, {week.done} of {week.workouts} done
             </p>
           </div>
           <Button variant="ink" aria-label="Next week" disabled={index === p.weeks.length - 1} onClick={() => setIndex(index + 1)} className="!h-11 !w-11 !p-0">

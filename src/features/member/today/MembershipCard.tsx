@@ -28,7 +28,7 @@ export function MembershipCard({ t }: { t: TodayData }) {
       )}
       {m.visitsRemaining !== null && <p className="mt-1 text-[0.95rem] text-clay-muted">{m.visitsRemaining} {m.visitsRemaining === 1 ? "visit" : "visits"} left</p>}
       <Link to="/m/membership" className="mt-2 inline-flex min-h-[2.75rem] items-center font-semibold underline underline-offset-4">
-        {m.status === "active" && m.daysLeft !== undefined && m.daysLeft <= 7 ? "Renew membership" : "Membership and receipts"}
+        Membership and receipts
       </Link>
     </section>
   );

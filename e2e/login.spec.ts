@@ -1,16 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const heading = (page: Page, name: string) => page.getByRole("heading", { name, level: 1 });
+const heading = (page: Page, name: string | RegExp) => page.getByRole("heading", { name, level: 1 });
 const fastDemo = (page: Page) => page.addInitScript(() => localStorage.setItem("ember.demo.simulation", JSON.stringify({ minMs: 0, maxMs: 0, failureRate: 0 })));
 
 test.describe("email and password", () => {
-  const people: Array<[string, string, string, string]> = [
+  const people: Array<[string, string, string | RegExp, string]> = [
     ["owner@pulsefitness.in", "/owner", "Dashboard", "owner"],
     ["rohit.sethi@pulsefitness.in", "/owner", "Dashboard", "branch manager"],
     ["pooja.nair@pulsefitness.in", "/desk", "Check-in", "front desk"],
     ["deepa.menon@pulsefitness.in", "/desk/finance/invoices", "Invoices and payments", "finance"],
     ["meera.joshi@pulsefitness.in", "/t", "Today", "trainer"],
-    ["arjun.kumar@example.in", "/m", "Today", "member"],
+    ["arjun.kumar@example.in", "/m", /^Good (morning|afternoon|evening), Arjun$/, "member"],
     ["admin@ember.example", "/admin", "Tenants", "platform admin"],
   ];
   for (const [email, url, title, who] of people) {
@@ -91,7 +91,7 @@ test.describe("phone and code", () => {
     await page.getByLabel("6-digit code").fill("123456");
     await page.getByRole("button", { name: "Log in", exact: true }).click();
     await expect(page).toHaveURL(/\/m$/);
-    await expect(heading(page, "Today")).toBeVisible();
+    await expect(heading(page, /^Good (morning|afternoon|evening), Arjun$/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Account menu for Arjun Kumar" })).toBeVisible();
   });
 
@@ -130,14 +130,14 @@ test.describe("phone and code", () => {
 });
 
 test.describe("try the demo as", () => {
-  const roles: Array<[RegExp, string, string]> = [
+  const roles: Array<[RegExp, string, string | RegExp]> = [
     [/^Platform admin/, "/admin", "Tenants"],
     [/^Owner/, "/owner", "Dashboard"],
     [/^Branch manager/, "/owner", "Dashboard"],
     [/^Front desk/, "/desk", "Check-in"],
     [/^Finance/, "/desk/finance/invoices", "Invoices and payments"],
     [/^Trainer/, "/t", "Today"],
-    [/^Member/, "/m", "Today"],
+    [/^Member/, "/m", /^Good (morning|afternoon|evening), Arjun$/],
   ];
   for (const [label, url, title] of roles) {
     test(`one tap as ${label.source.slice(1)}`, async ({ page }) => {

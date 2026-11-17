@@ -15,9 +15,9 @@ export function NumberField({ label, unit, value, onChange, step = 1, decimal = 
   };
   return (
     <div>
-      <label htmlFor={id} className="text-xs font-semibold uppercase tracking-wide text-clay-muted">
+      <label htmlFor={id} className="text-sm font-semibold text-clay-muted">
         {label}
-        {unit && <span className="normal-case tracking-normal"> ({unit})</span>}
+        {unit && <span> ({unit})</span>}
       </label>
       <div className="mt-1 flex items-center gap-1.5">
         <button type="button" onClick={() => bump(-step)} aria-label={`Less ${label.toLowerCase()}`} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-clay-lavender text-clay-ink active:scale-95">

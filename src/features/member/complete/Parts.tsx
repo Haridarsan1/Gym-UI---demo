@@ -8,7 +8,7 @@ import { kgText } from "@/domain/celebration";
 import { useTween } from "@/features/member/complete/useReveal";
 import { cn } from "@/lib/format";
 
-const eyebrow = "text-xs font-semibold uppercase tracking-wide text-clay-muted";
+const eyebrow = "text-sm font-semibold text-clay-muted";
 
 /** A part of the celebration. It pops in when it appears, unless everything is shown at once. */
 function Part({ label, tone = "white", pop, effect, children }: { label: string; tone?: "white" | "mint" | "lilac"; pop: boolean; effect?: CelebrationKind; children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export function ResultPart({ s, pop }: { s: WorkoutSummary; pop: boolean }) {
   const { done, total } = s.progress;
   const words =
     s.status === "completed"
-      ? { title: "Workout done", line: `${s.title} · ${done} of ${total} sets done.` }
+      ? { title: "Workout done", line: `${s.title}, ${done} of ${total} sets done.` }
       : s.status === "partial"
         ? { title: `${done} of ${total} sets done`, line: "Every session counts. Your trainer will see exactly what you did." }
         : { title: "Skipped today", line: "That is fine. Your next workout is waiting when you are." };

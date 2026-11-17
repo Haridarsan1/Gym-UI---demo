@@ -71,7 +71,7 @@ export function AvatarMenu() {
           )}
           {DEMO_MODE && (
             <div className="border-t border-clay-line py-1">
-              <p className="flex items-center gap-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-clay-subtle">
+              <p className="flex items-center gap-2 px-3 pb-1 pt-2 text-xs font-semibold text-clay-subtle">
                 <Shuffle className="h-3.5 w-3.5" aria-hidden="true" /> Demo: switch role
               </p>
               <ul>

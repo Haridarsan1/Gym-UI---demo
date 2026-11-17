@@ -5,11 +5,11 @@ import { Button3DLink } from "@/design/Button3D";
 import { formatDate, formatDayMonth, formatWeekdayDate } from "@/lib/when";
 import type { ReactNode } from "react";
 
-const eyebrow = "text-xs font-semibold uppercase tracking-wide text-clay-muted";
-
-function Card({ labelledBy, tone = "white", children }: { labelledBy: string; tone?: "white" | "mint" | "plain"; children: ReactNode }) {
+function Card({ labelledBy, tone = "white", children }: { labelledBy: string; tone?: "white" | "mint" | "ember"; children: ReactNode }) {
+  // The workout to do is the warm card on the screen: an Ember tint from ember-50 to ember-100.
+  const surface = tone === "mint" ? "clay-mint rounded-[1.75rem]" : tone === "ember" ? "clay bg-gradient-to-br from-ember-50 to-ember-100" : "clay";
   return (
-    <section aria-labelledby={labelledBy} className={tone === "mint" ? "clay-mint rounded-[1.75rem] p-6" : "clay p-6"}>
+    <section aria-labelledby={labelledBy} className={`${surface} p-6`}>
       {children}
     </section>
   );
@@ -94,6 +94,12 @@ export function WorkoutCard({ t }: { t: TodayData }) {
           <Button3DLink to="/m/pass" variant="white">
             Open check-in pass
           </Button3DLink>
+          <Button3DLink to="/m/progress?log=weight" variant="white">
+            Log your weight
+          </Button3DLink>
+          <Button3DLink to="/m/bookings" variant="white">
+            Book a session
+          </Button3DLink>
         </div>
       </Card>
     );
@@ -119,12 +125,18 @@ export function WorkoutCard({ t }: { t: TodayData }) {
   }
   const resume = p.logStatus === "draft";
   return (
-    <Card labelledBy="hero-title">
-      <p className={eyebrow}>Today’s workout · Week {p.weekNumber}</p>
+    <Card labelledBy="hero-title" tone="ember">
+      <p className="text-sm font-semibold text-ember-800">Today’s workout, week {p.weekNumber}</p>
       <h2 id="hero-title" className="mt-1 text-2xl font-bold tracking-tight">{p.title}</h2>
       <p className="mt-1 text-clay-muted">
-        {p.exerciseCount} exercises · about {p.minutes} min
+        {p.exerciseCount} exercises, about {p.minutes} min
       </p>
+      <ul aria-label="Exercises" className="mt-3 space-y-0.5 text-[0.95rem]">
+        {p.exercises.map((name) => (
+          <li key={name}>{name}</li>
+        ))}
+        {p.moreExercises > 0 && <li className="font-semibold text-ember-800">+{p.moreExercises} more</li>}
+      </ul>
       {p.newPlan && (
         <p className="mt-3 inline-flex rounded-full bg-lilac-100 px-3 py-1 text-sm font-semibold text-lilac-700">
           New plan from {coach(p.authorName)}, {formatDayMonth(p.startedOn)}

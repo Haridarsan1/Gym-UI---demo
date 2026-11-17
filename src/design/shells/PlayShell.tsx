@@ -1,7 +1,8 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button3DLink } from "@/design/Button3D";
-import { LogoMark } from "@/components/ui/Logo";
-import { useMe } from "@/api/hooks";
+import { GymMark } from "@/design/GymMark";
+import { Skeleton } from "@/design/Skeleton";
+import { useGym } from "@/app/useGym";
 import { raisedAction, screenPath, tabsFor, type TodaysWorkout } from "@/app/navigation";
 import { useCan } from "@/app/SessionContext";
 import { QrCode, ListChecks, Dumbbell } from "lucide-react";
@@ -15,7 +16,7 @@ import { cn } from "@/lib/format";
  */
 export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer"; todaysWorkout?: TodaysWorkout }) {
   const can = useCan();
-  const me = useMe();
+  const gym = useGym();
   // Logging a workout takes the whole screen: the tab bar steps aside for the session’s own controls.
   const immersive = area === "member" && /^\/m\/workout\/[^/]+\/?$/.test(useLocation().pathname);
   const tabs = tabsFor(area, can);
@@ -28,15 +29,24 @@ export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer";
     cn("flex h-14 min-w-[44px] flex-col items-center justify-center gap-0.5 rounded-2xl text-[0.7rem] font-semibold transition-colors", isActive ? "text-ember-700" : "text-clay-muted hover:text-clay-ink");
 
   return (
-    <div className="min-h-dvh bg-clay-canvas pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] text-clay-ink">
+    <div className="min-h-dvh bg-clay-canvas pb-[calc(9.5rem+env(safe-area-inset-bottom,0px))] text-clay-ink">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[80] focus:rounded-full focus:bg-white focus:px-4 focus:py-2">
         Skip to content
       </a>
       <header className="sticky top-0 z-30 border-b border-clay-line bg-clay-canvas/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-2xl items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top,0px)]">
           <Link to={AREA_PATH[area]} className="flex min-w-0 items-center gap-2.5" aria-label="Home">
-            <LogoMark className="h-8 w-8" />
-            <span className="truncate font-bold tracking-tight">{me.data?.tenant?.name ?? "Ember"}</span>
+            {gym ? (
+              <>
+                <GymMark name={gym.name} logoUrl={gym.logoUrl} />
+                <span className="truncate font-bold tracking-tight">{gym.name}</span>
+              </>
+            ) : (
+              <>
+                <Skeleton className="h-8 w-8 !rounded-lg" />
+                <Skeleton className="h-4 w-28" />
+              </>
+            )}
           </Link>
           <AvatarMenu />
         </div>

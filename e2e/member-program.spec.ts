@@ -10,7 +10,7 @@ test.describe("Program path: Arjun", () => {
     await expect(page.getByText(/Version 2 from Coach Meera/)).toBeVisible();
     const week = page.getByRole("list", { name: "Days of the week" });
     await expect(week.getByRole("button")).toHaveCount(4);
-    await expect(week.getByText(/Rest day/).first()).toBeVisible();
+    await expect(week.getByText(/rest day/i).first()).toBeVisible();
     await expect(week.getByRole("button", { name: /Upper body and core/ })).toContainText("Today");
     expect(await hasHorizontalScroll(page)).toBe(false);
   });
@@ -41,7 +41,7 @@ test.describe("Program path: Arjun", () => {
     await page.getByRole("button", { name: "Previous week" }).click();
     await expect(page.getByRole("button", { name: "Back to this week" })).toBeVisible();
     const week = page.getByRole("list", { name: "Days of the week" });
-    await expect(week.getByText(/^Done ·/).first()).toBeVisible();
+    await expect(week.getByText(/^Done,/).first()).toBeVisible();
     await page.getByRole("button", { name: "Back to this week" }).click();
     await expect(page.getByRole("heading", { name: "This week" })).toBeVisible();
   });

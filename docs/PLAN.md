@@ -246,6 +246,14 @@ Also added to existing records: `Invoice.placeOfSupply` (GST state code, decides
 - **When a workout can be logged:** on its day, for an active membership. A started workout can still be saved until the end of the next day. A finished workout is final; a trainer corrects it (T05). A frozen or ended membership can preview the plan but not log.
 - **Drafts and retries:** one log per member and day. A draft is saved as sets are logged and carries the workout’s idempotency key; the final submit uses the same key, so repeating it returns the same log. A draft save that arrives after the submit is ignored.
 
+### Patterns for the member app (from the Today design pass)
+
+- **No uppercase labels and no dot separators** anywhere in the member app. Cards have sentence-case titles; a small date or context line goes above a page title; commas or separate lines replace “·”. A test checks computed text-transform and the text of every member screen.
+- **The gym, not Ember:** the header, loading and error states show the gym’s logo (or its initials in a warm tile when there is none) and name, from `src/app/gymCache.ts`, written at sign-in and refreshed from the gym record, keyed by gym. `Tenant.logoUrl` is optional; the owner uploads one with Settings and logo in M4.
+- **Warm surface for the thing to do, white for the rest;** coloured faces (mint, lilac) get rounded corners locally, and the lilac face uses dark text.
+- **Celebrations** go through `celebrate()` in `src/design/celebrate.ts`: a buzz for every kind, and a lazy-loaded confetti burst (under 1 s, Ember, mint and lilac) for records and new badges only. Never where money or access is handled.
+- **Space at the bottom:** member and trainer screens leave about 76 px between the last content and the raised button; a test at 390 px requires at least 40 px.
+
 ### Sample members
 
 | Member | Login | Shows |
@@ -307,6 +315,8 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - [x] Today (step 4)
   - States: workout today (with “New plan from Coach Meera, 4 Nov”), workout started (Continue), done / partly done / skipped (never red), rest day, no plan yet, frozen, expired, pending, no membership. Notices for overdue or due invoices. Cards: this week’s ring and streak, training sessions with the exact free-cancellation deadline, new shared review, membership. The raised button starts or continues today’s workout for active members, and is the check-in pass otherwise.
   - The seed generator loads on demand, so returning visits never download it.
+  - Design pass (after step 7): a small date line above the greeting (the greeting is the page heading); sentence-case card titles. The workout card is an Ember-tinted surface (ember-50 to ember-100) with the first three exercise names and “+N more”. The week card has a strip of seven day circles, Monday to Sunday, as small clay circles: done is Ember with a tick, partial half filled, planned outlined, missed or skipped faint outlines, rest faint, frozen pale blue with a snowflake; today is larger and pulses gently (no pulse with reduced motion). Tapping a day opens it in Program (`/m/program?date=…`), with its preview if it has a workout. The streak says “12-week streak”, “5-week streak, paused”, or with none yet “Finish your first week to start a streak” (no zero, no grey flame).
+  - Actions instead of links: an open invoice shows “Pay ₹2,950” (opens `/m/membership?pay=<invoice>`, built with the Membership step); a membership ending within 7 days, with nothing owed, shows an amber card with “Renew” (`/m/membership?renew=1`); a rest day offers “Open check-in pass”, “Log your weight” (`/m/progress?log=weight`) and “Book a session”.
 - [x] Program path (step 5)
   - The plan as weeks of days, one week at a time with Previous and Next week and “Back to this week”. Workout days are markers on a path (done, partly done, skipped, not logged, today, coming up; skipped and not logged are neutral grey, never red); rest days are quiet markers. Past weeks show the version of the plan that governed them (T06), and “Earlier plans” lists older versions with their dates.
   - Tapping a workout opens a preview (`PreviewSheet`): the prescription, how to do each exercise, alternatives, and for a day already logged what was done next to the target. It offers Start or Continue only for today’s workout; for other days it says why not.

@@ -40,10 +40,10 @@ function Preview({ w, onClose }: { w: WorkoutView; onClose: () => void }) {
     <div>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-clay-muted">{formatWeekdayDate(w.date)} · Week {w.weekNumber}</p>
+          <p className="text-sm font-semibold text-clay-muted">{formatWeekdayDate(w.date)}, week {w.weekNumber}</p>
           <h2 className="mt-1 text-2xl font-bold tracking-tight">{w.title}</h2>
           <p className="mt-1 text-sm text-clay-muted">
-            {w.exercises.filter((x) => x.prescription.section === "main").length} exercises · about {w.minutes} min · {w.versionName}, version {w.versionNumber}
+            {w.exercises.filter((x) => x.prescription.section === "main").length} exercises, about {w.minutes} min. {w.versionName}, version {w.versionNumber}.
           </p>
         </div>
         <button ref={close} type="button" onClick={onClose} aria-label="Close preview" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-clay-muted hover:bg-clay-lavender">
@@ -52,7 +52,7 @@ function Preview({ w, onClose }: { w: WorkoutView; onClose: () => void }) {
       </div>
       {sections.map(({ s, items }) => (
         <section key={s} aria-label={SECTION[s]} className="mt-5">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-clay-muted">{SECTION[s]}</h3>
+          <h3 className="text-sm font-semibold text-clay-muted">{SECTION[s]}</h3>
           <ul className="mt-2 space-y-3">
             {items.map((x) => {
               const did = entryFor(w.entries, x.prescription);
