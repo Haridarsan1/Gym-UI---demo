@@ -193,7 +193,7 @@ src/
   demo/           Dexie schema, seed data, latency/failure simulation, reset (planned)
   domain/         pure business rules, no React
     roles.ts        roles, areas, home path per role
-    types.ts        S07 records as Zod schemas (planned)
+    types/          S07 records as Zod schemas: common, core, billing, ops, training. Money is whole paise; dates are ISO strings
     permissions.ts  role and branch checks (S03) (planned)
     membership.ts checkin.ts credits.ts billing.ts metrics.ts reports.ts   added in the milestone that needs each
   features/       one folder per area: member/ trainer/ desk/ owner/ admin/ (finance lives in desk/)
@@ -233,7 +233,7 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 
 ### M0 · Foundation
 - [x] Add `/app` role routing (lazy, per area); marketing pages stay in `src/pages/`
-- [ ] Domain types for every S07 record
+- [x] Domain types for every S07 record
 - [ ] Demo database (Dexie), seed generator, reset control, latency and failure simulation
 - [ ] Permission map and route guards
 - [ ] Design additions: `Button3D`, shells (member/trainer bottom tabs, staff sidebar), skeletons, toasts, empty states, status pills, ⌘K palette

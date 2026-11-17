@@ -1,0 +1,171 @@
+import { z } from "zod";
+import { ROLES } from "@/domain/roles";
+import { basisPoints, email, id, isoDate, isoDateTime, mobile } from "./common";
+
+export const SubscriptionState = z.enum(["trial", "paid", "past_due", "suspended", "canceled"]);
+
+/** Platform plan the gym pays Ember for (S02). Not the plans a gym sells to members. */
+export const SaasPlan = z.object({
+  id,
+  name: z.string(),
+  monthlyPaise: z.number().int().nonnegative().nullable(),
+  limits: z.object({ branches: z.number().int().nullable(), staff: z.number().int().nullable(), activeMembers: z.number().int().nullable() }),
+  features: z.array(z.string()),
+});
+export type SaasPlan = z.infer<typeof SaasPlan>;
+
+/** A gym organisation. Every other tenant record carries its id (S03). */
+export const Tenant = z.object({
+  id,
+  name: z.string().min(1),
+  slug: z.string().min(1),
+  gstin: z.string().optional(),
+  currency: z.literal("INR"),
+  timeZone: z.string(),
+  subscription: z.object({
+    state: SubscriptionState,
+    saasPlanId: id,
+    trialEndsAt: isoDateTime.optional(),
+    renewsOn: isoDate.optional(),
+  }),
+  createdAt: isoDateTime,
+});
+export type Tenant = z.infer<typeof Tenant>;
+
+const dayHours = z.object({ weekday: z.number().int().min(0).max(6), open: z.string(), close: z.string() });
+
+export const Branch = z.object({
+  id,
+  tenantId: id,
+  name: z.string().min(1),
+  city: z.string(),
+  address: z.string().optional(),
+  /** Days with no entry are closed. Times are local "HH:mm". */
+  hours: z.array(dayHours),
+  rooms: z.array(z.object({ id, name: z.string(), capacity: z.number().int().positive() })),
+  active: z.boolean(),
+});
+export type Branch = z.infer<typeof Branch>;
+
+export const RoleEnum = z.enum(ROLES);
+export const UserStatus = z.enum(["invited", "active", "disabled"]);
+
+/** Anyone who can log in. `tenantId` is null only for platform administrators. */
+export const User = z.object({
+  id,
+  tenantId: id.nullable(),
+  name: z.string().min(1),
+  email: email.optional(),
+  phone: mobile.optional(),
+  role: RoleEnum,
+  status: UserStatus,
+  mfaEnabled: z.boolean(),
+  /** Set for members: the member record this login belongs to. */
+  memberId: id.optional(),
+  createdAt: isoDateTime,
+});
+export type User = z.infer<typeof User>;
+
+/** Staff roles a gym can assign. Members and platform admins are not staff roles. */
+export const StaffRoleName = z.enum(["owner", "branch_manager", "front_desk", "finance", "trainer"]);
+
+/** What a staff user may do, and where (R02, S03). Branch managers and desk staff only act in `branchIds`. */
+export const StaffRole = z.object({
+  id,
+  tenantId: id,
+  userId: id,
+  role: StaffRoleName,
+  branchIds: z.array(id),
+  limits: z.object({
+    /** Largest refund this person can approve alone. Null means no limit. */
+    refundLimitPaise: z.number().int().nonnegative().nullable(),
+    canOverrideCheckIn: z.boolean(),
+    maxDiscountBp: basisPoints,
+  }),
+});
+export type StaffRole = z.infer<typeof StaffRole>;
+
+export const Member = z.object({
+  id,
+  tenantId: id,
+  userId: id.optional(),
+  name: z.string().min(1),
+  phone: mobile,
+  email: email.optional(),
+  dateOfBirth: isoDate.optional(),
+  gender: z.enum(["female", "male", "other", "undisclosed"]).optional(),
+  homeBranchId: id,
+  joinedOn: isoDate,
+  /** Value encoded in the member's QR pass (M05). */
+  qrToken: z.string().min(8),
+  emergencyContact: z.object({ name: z.string(), phone: mobile }).optional(),
+  leadSource: z.string().optional(),
+  archivedAt: isoDateTime.optional(),
+});
+export type Member = z.infer<typeof Member>;
+
+/**
+ * Who trains a member, from when to when (T01). Reassigning closes the old row (`effectiveTo`) and opens a new one.
+ * Records the old trainer wrote keep their original author (A02).
+ */
+export const TrainerAssignment = z.object({
+  id,
+  tenantId: id,
+  memberId: id,
+  trainerId: id,
+  effectiveFrom: isoDate,
+  effectiveTo: isoDate.optional(),
+  assignedBy: id,
+  reason: z.string().optional(),
+});
+export type TrainerAssignment = z.infer<typeof TrainerAssignment>;
+
+export const ConsentScope = z.enum(["photos", "assessments", "marketing", "data_processing"]);
+
+/** Consent and its scope (S04). A withdrawn consent keeps its row; `withdrawnAt` is set. */
+export const Consent = z.object({
+  id,
+  tenantId: id,
+  memberId: id,
+  scope: ConsentScope,
+  grantedAt: isoDateTime,
+  withdrawnAt: isoDateTime.optional(),
+  noticeVersion: z.string(),
+  recordedBy: id,
+});
+export type Consent = z.infer<typeof Consent>;
+
+export const AuditAction = z.enum([
+  "membership.create",
+  "membership.freeze",
+  "membership.unfreeze",
+  "membership.renew",
+  "membership.upgrade",
+  "membership.cancel",
+  "refund.create",
+  "credits.adjust",
+  "permission.change",
+  "checkin.override",
+  "support.access.start",
+  "support.access.end",
+  "record.edit",
+  "export.create",
+  "import.run",
+]);
+
+/** Who did what, when, why, and to which record (S05). Append-only. */
+export const AuditEvent = z.object({
+  id,
+  tenantId: id.nullable(),
+  actorId: id,
+  actorRole: RoleEnum,
+  at: isoDateTime,
+  action: AuditAction,
+  /** Required for refunds, overrides, credit adjustments and support access. */
+  reason: z.string().optional(),
+  entityType: z.string(),
+  entityId: id,
+  memberId: id.optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
+});
+export type AuditEvent = z.infer<typeof AuditEvent>;
