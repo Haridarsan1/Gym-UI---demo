@@ -49,13 +49,22 @@ export interface RaisedAction {
   to: string;
 }
 
+/** A workout the member can start or carry on today. */
+export interface TodaysWorkout {
+  date: string;
+  /** True when it was already started and saved as a draft. */
+  resume: boolean;
+}
+
 /**
  * The big button in the middle of the member and trainer tab bars.
- * Members start today’s workout when they have one, otherwise they open their check-in pass.
+ * Members start today’s workout when they have one still to do, carry on one they started, and otherwise (a rest day, no
+ * plan yet, or the workout is done) open their check-in pass.
  */
-export function raisedAction(area: "member" | "trainer", todaysWorkoutId?: string): RaisedAction {
+export function raisedAction(area: "member" | "trainer", todaysWorkout?: TodaysWorkout): RaisedAction {
   if (area === "trainer") return { label: "Log session", to: `${AREA_PATH.trainer}/log` };
-  return todaysWorkoutId ? { label: "Start today’s workout", to: `${AREA_PATH.member}/workout/${todaysWorkoutId}` } : { label: "Check-in pass", to: `${AREA_PATH.member}/pass` };
+  if (!todaysWorkout) return { label: "Check-in pass", to: `${AREA_PATH.member}/pass` };
+  return { label: todaysWorkout.resume ? "Continue today’s workout" : "Start today’s workout", to: `${AREA_PATH.member}/workout/${todaysWorkout.date}` };
 }
 
 /** Screens that can be jumped to from the command palette: not the ones that need an id in the address. */

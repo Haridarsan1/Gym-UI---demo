@@ -242,7 +242,7 @@ Also added to existing records: `Invoice.placeOfSupply` (GST state code, decides
 
 | Member | Login | Shows |
 |---|---|---|
-| Arjun Kumar | `u_member_arjun`, phone 98200 22002 | A workout today (new plan from 13 days ago), 12 weeks of logs, a streak, 8 training credits (5 free, 1 held, 2 used), a booking in two days at 6 pm (free cancellation open until 6 am tomorrow), one unread review, badges, a GST invoice for each month. |
+| Arjun Kumar | `u_member_arjun`, phone 98200 22002 | A workout today (new plan from 13 days ago), 12 weeks of logs, a streak, 8 training credits (5 free, 1 held, 2 used), a booking in two days at 6 pm (free cancellation until 6 am that day), one unread review, badges, a GST invoice for each month. |
 | Priya Sharma | phone 98200 22003 | A rest day, and a renewal invoice of ₹2,950 overdue by four days. |
 | Rahul Mehta | phone 98200 22004 | A frozen membership (streak paused), an IGST invoice (Karnataka). |
 | Sneha Patil | phone 98200 22005 | A trainer but no plan yet, a 10-visit pass with 4 visits left. |
@@ -296,7 +296,9 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - **Done when:** each role lands on its own empty home inside its shell, on phone and desktop, with the correct navigation. ✔ Checked by `e2e/m0.spec.ts` (all seven logins, 390 px and 1440 px), `shells.spec.ts`, `guards.spec.ts` and `login.spec.ts`.
 
 ### M1 · Member app (R05)
-- [ ] Today
+- [x] Today (step 4)
+  - States: workout today (with “New plan from Coach Meera, 4 Nov”), workout started (Continue), done / partly done / skipped (never red), rest day, no plan yet, frozen, expired, pending, no membership. Notices for overdue or due invoices. Cards: this week’s ring and streak, training sessions with the exact free-cancellation deadline, new shared review, membership. The raised button starts or continues today’s workout for active members, and is the check-in pass otherwise.
+  - The seed generator loads on demand, so returning visits never download it.
 - [ ] Program path
 - [ ] Workout session with logging, drafts, substitutions, rest timer, idempotent submit
 - [ ] Workout complete celebration and badges

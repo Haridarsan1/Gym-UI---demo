@@ -9,6 +9,7 @@ import type {
 } from "@/domain/types";
 import { PERSONAS, type Persona } from "@/demo/personas";
 import type { Rng } from "@/demo/rng";
+import { formatDayMonth } from "@/lib/when";
 
 /**
  * Training, billing and activity for the four sample members. Everything is relative to today, so the sample gym always
@@ -221,7 +222,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
     };
     if (persona.memberId === "mem_arjun") {
       review(1, "shared_review", 10, "Strong block. Your bench press is up about 20 kg since we started and you have not missed a week. Keep your elbows tucked on the way down.", { readByMemberAt: at(addDays(today, -9), "07:10"), followUpOn: addDays(today, -1) });
-      review(2, "shared_review", 1, `New plan is live from ${addDays(today, -13)}. You hit at least three of four sessions every week, so I have raised the loads on the main lifts. Tell me how the heavier squats feel.`, {});
+      review(2, "shared_review", 1, `New plan is live from ${formatDayMonth(addDays(today, -13))}. You hit at least three of four sessions every week, so I have raised the loads on the main lifts. Tell me how the heavier squats feel.`, {});
       review(3, "private_note", 12, "Left shoulder a little tight on overhead press. Watch it. Maybe swap in dumbbells if it flares up.");
       out.trainerReviews.push({ id: "rv_mem_arjun_4", tenantId: TENANT_ID, memberId: "mem_arjun", kind: "member_checkin", authorId: memberUser, body: "Good week.", effort: 7, recovery: 4, obstacles: "Work travel on Thursday.", createdAt: at(addDays(today, -6), "21:00") });
     } else if (persona.memberId === "mem_priya") {

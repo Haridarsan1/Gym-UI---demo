@@ -18,10 +18,12 @@ interface Role {
   desktop: string[];
   /** Links that must not appear anywhere in the navigation. */
   absent: string[];
+  /** True once the area’s home is a real screen, not a placeholder. */
+  built?: boolean;
 }
 
 const roles: Role[] = [
-  { pick: /^Member/, name: "Arjun Kumar", url: /\/m$/, home: "Today", phone: ["Today", "Program", "Check-in pass", "Progress", "Bookings"], desktop: ["Today", "Program", "Check-in pass", "Progress", "Bookings"], absent: ["Clients", "Dashboard", "Refunds"] },
+  { pick: /^Member/, built: true, name: "Arjun Kumar", url: /\/m$/, home: "Today", phone: ["Today", "Program", "Start today’s workout", "Progress", "Bookings"], desktop: ["Today", "Program", "Start today’s workout", "Progress", "Bookings"], absent: ["Clients", "Dashboard", "Refunds"] },
   { pick: /^Trainer/, name: "Meera Joshi", url: /\/t$/, home: "Today", phone: ["Today", "Clients", "Log session", "Schedule", "Exercises"], desktop: ["Today", "Clients", "Log session", "Schedule", "Exercises"], absent: ["Program", "Bookings", "Dashboard"] },
   { pick: /^Front desk/, name: "Pooja Nair", url: /\/desk$/, home: "Check-in", phone: ["Check-in", "Members", "Bookings", "Dues"], desktop: ["Check-in", "New member", "Members", "Collect payment", "Bookings", "Dues"], absent: ["Refunds", "Reconciliation", "Exports", "Invoices and payments", "Reports", "Settings"] },
   { pick: /^Finance/, name: "Deepa Menon", url: /\/desk\/finance\/invoices$/, home: "Invoices and payments", phone: ["Members", "Dues", "Collect payment", "Invoices and payments"], desktop: ["Members", "Collect payment", "Dues", "Invoices and payments", "Refunds", "Reconciliation", "Exports"], absent: ["Check-in", "New member", "Bookings", "Settings"] },
@@ -38,8 +40,8 @@ for (const role of roles) {
     await expect(page.getByRole("heading", { name: role.home, level: 1 })).toBeVisible();
     await expect(page.getByRole("button", { name: `Account menu for ${role.name}` })).toBeVisible();
 
-    // The home is an empty placeholder that says which milestone builds it.
-    await expect(page.getByText(/is built in milestone M\d/)).toBeVisible();
+    // Until an area’s milestone builds its home, it is a placeholder that says which milestone does.
+    if (!role.built) await expect(page.getByText(/is built in milestone M\d/)).toBeVisible();
 
     // Correct navigation for this role, for this screen size.
     for (const label of isMobile ? role.phone : role.desktop) await expect(nav(page).getByRole("link", { name: label, exact: true }), label).toBeVisible();

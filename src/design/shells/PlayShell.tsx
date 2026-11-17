@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { Button3DLink } from "@/design/Button3D";
 import { LogoMark } from "@/components/ui/Logo";
 import { useMe } from "@/api/hooks";
-import { raisedAction, screenPath, tabsFor } from "@/app/navigation";
+import { raisedAction, screenPath, tabsFor, type TodaysWorkout } from "@/app/navigation";
 import { useCan } from "@/app/SessionContext";
 import { QrCode, ListChecks, Dumbbell } from "lucide-react";
 import { AvatarMenu } from "@/design/shells/AvatarMenu";
@@ -13,14 +13,13 @@ import { cn } from "@/lib/format";
  * Shell for the member and trainer apps: a slim top bar with the avatar, and a bottom tab bar with a raised action in
  * the middle. These apps are phone first. On a wide screen the bar stays a compact pill in the centre.
  */
-export function PlayShell({ area }: { area: "member" | "trainer" }) {
+export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer"; todaysWorkout?: TodaysWorkout }) {
   const can = useCan();
   const me = useMe();
   const tabs = tabsFor(area, can);
   const left = tabs.slice(0, 2);
   const right = tabs.slice(2);
-  // No workouts are scheduled until plans are built in M1, so members see their check-in pass for now.
-  const raised = raisedAction(area, undefined);
+  const raised = raisedAction(area, todaysWorkout);
   const RaisedIcon = area === "trainer" ? ListChecks : raised.to.includes("workout") ? Dumbbell : QrCode;
 
   const tab = ({ isActive }: { isActive: boolean }) =>
@@ -56,7 +55,7 @@ export function PlayShell({ area }: { area: "member" | "trainer" }) {
               <RaisedIcon className="h-7 w-7" aria-hidden="true" />
             </Button3DLink>
             <span aria-hidden="true" className="absolute bottom-1 text-[0.7rem] font-semibold text-clay-muted">
-              {area === "trainer" ? "Log" : raised.label.startsWith("Start") ? "Start" : "Pass"}
+              {area === "trainer" ? "Log" : raised.label.startsWith("Start") ? "Start" : raised.label.startsWith("Continue") ? "Continue" : "Pass"}
             </span>
           </div>
           {right.map((s) => (

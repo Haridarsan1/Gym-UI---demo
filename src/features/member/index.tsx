@@ -1,6 +1,12 @@
+import { lazy } from "react";
 import { AreaRoutes } from "@/app/AreaRoutes";
+import { MemberShell } from "@/features/member/MemberShell";
 
-/** Member area. Screens built in this area’s milestone are added to `implemented`, keyed by screen id. */
+/** Member area. Each screen is a separate file, loaded when the member opens it. Keys are screen ids from src/app/screens.ts. */
+const implemented = {
+  today: lazy(() => import("@/features/member/Today")),
+};
+
 export default function MemberArea() {
-  return <AreaRoutes area="member" />;
+  return <AreaRoutes area="member" shell={<MemberShell />} implemented={implemented} />;
 }

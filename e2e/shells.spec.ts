@@ -53,10 +53,11 @@ test.describe("each role lands in its own home", () => {
 });
 
 test.describe("member app navigation", () => {
-  test("shows the four tabs and a raised check-in pass button, and Me behind the avatar", async ({ page }) => {
+  test("shows the four tabs and a raised button, and Me behind the avatar", async ({ page }) => {
     await signInAs(page, "u_member_arjun", "/m");
-    for (const tab of ["Today", "Program", "Progress", "Bookings"]) await expect(main(page).getByRole("link", { name: tab })).toBeVisible();
-    await expect(main(page).getByRole("link", { name: "Check-in pass" })).toBeVisible();
+    for (const tab of ["Today", "Program", "Progress", "Bookings"]) await expect(main(page).getByRole("link", { name: tab, exact: true })).toBeVisible();
+    // Arjun has a workout today, so the raised button starts it. On a rest day it is the check-in pass.
+    await expect(main(page).getByRole("link", { name: "Start today’s workout" })).toBeVisible();
     await page.getByRole("button", { name: /Account menu/ }).click();
     for (const item of ["Membership and receipts", "Check-in pass", "Profile, consent and preferences", "Sign out"]) {
       await expect(page.getByRole("button", { name: item }).or(page.getByRole("link", { name: item })).first()).toBeVisible();
@@ -66,11 +67,11 @@ test.describe("member app navigation", () => {
   test("every tab opens its screen", async ({ page }) => {
     await signInAs(page, "u_member_arjun", "/m");
     for (const [tab, heading] of [["Program", "Program path"], ["Progress", "Progress"], ["Bookings", "Bookings"], ["Today", "Today"]] as const) {
-      await main(page).getByRole("link", { name: tab }).click();
+      await main(page).getByRole("link", { name: tab, exact: true }).click();
       await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
     }
-    await main(page).getByRole("link", { name: "Check-in pass" }).click();
-    await expect(page).toHaveURL(/\/m\/pass$/);
+    await main(page).getByRole("link", { name: "Start today’s workout" }).click();
+    await expect(page).toHaveURL(/\/m\/workout\/\d{4}-\d{2}-\d{2}$/);
   });
 
   test("the avatar menu reaches membership, pass and profile, and no longer lists reviews", async ({ page }) => {
@@ -94,7 +95,7 @@ test.describe("reviews live inside Progress", () => {
     await section.getByRole("link", { name: "Reviews" }).click();
     await expect(page).toHaveURL(/\/m\/progress\/reviews$/);
     await expect(page.getByRole("heading", { name: "Reviews and check-ins", level: 1 })).toBeVisible();
-    await expect(main(page).getByRole("link", { name: "Progress" })).toHaveAttribute("aria-current", "page");
+    await expect(main(page).getByRole("link", { name: "Progress", exact: true })).toHaveAttribute("aria-current", "page");
     await section.getByRole("link", { name: "Progress" }).click();
     await expect(page.getByRole("heading", { name: "Progress", level: 1 })).toBeVisible();
   });

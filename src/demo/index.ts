@@ -1,5 +1,5 @@
 import { db } from "@/demo/db";
-import { generateSeed, SEED_VERSION } from "@/demo/seed";
+import { SEED_VERSION } from "@/demo/version";
 import { ApiError } from "@/api/errors";
 import { buildAuditEvent, type AuditInput } from "@/domain/audit";
 import type { Principal } from "@/domain/permissions";
@@ -9,6 +9,8 @@ let seeding: Promise<void> | null = null;
 
 async function writeSeed(): Promise<void> {
   performance.mark("demo-seed-start");
+  // Loaded only now: a device that already has the demo gym never downloads the generator.
+  const { generateSeed } = await import("@/demo/seed");
   const data = generateSeed();
   await db.transaction("rw", db.tables, async () => {
     const current = await db.meta.get(SEED_KEY);

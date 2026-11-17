@@ -23,8 +23,8 @@ function Landing({ area, homeId, children }: { area: Area; homeId: string; child
  * Builds one area’s routes from the screen registry and wraps them in the right shell. Each milestone replaces a stub
  * by passing the real screen in `implemented`, keyed by the screen id.
  */
-export function AreaRoutes({ area, implemented = {} }: { area: Area; implemented?: Record<string, ComponentType> }) {
-  const shell = area === "member" || area === "trainer" ? <PlayShell area={area} /> : <StaffShell area={area} />;
+export function AreaRoutes({ area, implemented = {}, shell: shellOverride }: { area: Area; implemented?: Record<string, ComponentType>; shell?: ReactNode }) {
+  const shell = shellOverride ?? (area === "member" || area === "trainer" ? <PlayShell area={area} /> : <StaffShell area={area} />);
   return (
     <Routes>
       <Route element={shell}>

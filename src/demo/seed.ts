@@ -9,8 +9,7 @@ import { PERSONAS } from "@/demo/personas";
 import { buildMemberData } from "@/demo/seedMember";
 import { EXERCISES } from "@/demo/exercises";
 
-/** Bump when the seed shape changes. The app re-seeds once when the stored version is older. */
-export const SEED_VERSION = 2;
+export { SEED_VERSION } from "@/demo/version";
 
 export interface SeedData {
   tenants: Tenant[];

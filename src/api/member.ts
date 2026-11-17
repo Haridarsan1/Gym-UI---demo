@@ -65,6 +65,9 @@ export interface TodayData {
         weekNumber: number;
         versionNumber: number;
         versionName: string;
+        /** When this version of the plan started, and who published it (T06: why the workouts changed). */
+        startedOn: string;
+        authorName: string;
         /** The plan changed within the last two weeks. */
         newPlan: boolean;
         /** Status of today’s log, when there is one: a draft means the workout was started. */
@@ -73,6 +76,8 @@ export interface TodayData {
   /** This week, Monday to Sunday. */
   week: { planned: number; done: number };
   streakWeeks: number;
+  /** The share of planned workouts a week needs to count towards the streak (a gym policy). */
+  streakThresholdPercent: number;
   streakPaused: boolean;
   credits: CreditBalance;
   nextBooking?: { id: string; startsAt: string; endsAt: string; trainerName: string; branchName: string; freeUntil: string; lateConsumesCredit: boolean };
@@ -133,6 +138,7 @@ export async function getToday(session: Session | null): Promise<TodayData> {
     plan = {
       state: "workout", date: c.today, title: p.day.title, exerciseCount: p.day.prescriptions.filter((x) => x.section === "main").length, minutes: estimateMinutes(p.day),
       weekNumber: Math.floor(daysBetween(p.version.startsOn, c.today) / 7) + 1, versionNumber: p.version.versionNumber, versionName: p.version.name,
+      startedOn: p.version.startsOn, authorName: userName.get(p.version.authorId) ?? "Your trainer",
       newPlan: p.version.versionNumber > 1 && daysBetween(p.version.startsOn, c.today) <= 14, logStatus: todaysLog?.status,
     };
   }
@@ -153,7 +159,7 @@ export async function getToday(session: Session | null): Promise<TodayData> {
     firstName: member.name.split(" ")[0] ?? member.name, gymName: tenant?.name ?? "Your gym", today: c.today, nowIso: c.nowIso,
     trainerName: trainerId ? userName.get(trainerId) : undefined, membership, plan,
     week: { planned: thisWeek?.planned ?? 0, done: thisWeek?.done ?? 0 },
-    streakWeeks: streakWeeks(stats, policy.streakThresholdPercent, monday), streakPaused: !!thisWeek?.frozen || membership?.status === "frozen",
+    streakWeeks: streakWeeks(stats, policy.streakThresholdPercent, monday), streakThresholdPercent: policy.streakThresholdPercent, streakPaused: !!thisWeek?.frozen || membership?.status === "frozen",
     credits: creditBalance(ledger),
     nextBooking: upcoming ? { id: upcoming.id, startsAt: upcoming.startsAt, endsAt: upcoming.endsAt, trainerName: upcoming.trainerId ? userName.get(upcoming.trainerId) ?? "Your trainer" : "Your trainer", branchName: branches.find((b) => b.id === upcoming.branchId)?.name ?? "", freeUntil: cancellationDeadline(upcoming.startsAt, policy.cancellationCutoffHours), lateConsumesCredit: policy.lateCancelConsumesCredit } : undefined,
     newReview: newest ? { id: newest.id, trainerName: userName.get(newest.authorId) ?? "Your trainer", excerpt: firstSentence(newest.body), createdAt: newest.createdAt } : undefined,

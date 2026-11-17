@@ -77,6 +77,11 @@ for (const route of routes) {
     notes.push(`FAIL: over ${budget} KB budget`);
     failed = true;
   }
+  if (!route.marketing) {
+    // A return visit: the demo gym already exists in this browser, so the seed generator is not downloaded.
+    const seed = files.filter((f) => f.url.includes("/seed-")).reduce((n, f) => n + f.gz, 0);
+    notes.push(`return visit ${((total - seed) / 1024).toFixed(1)} KB`);
+  }
   console.log(`${route.path.padEnd(10)} ${(total / 1024).toFixed(1).padStart(6)} KB ${String(files.length).padStart(5)}  ${notes.join(", ") || (route.marketing ? "no app code" : "")}`);
   await ctx.close();
 }

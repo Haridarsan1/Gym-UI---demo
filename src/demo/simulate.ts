@@ -12,15 +12,15 @@ const KEY = "ember.demo.simulation";
 const DEFAULTS: Simulation = { minMs: 60, maxMs: 180, failureRate: 0 };
 let current: Simulation | null = null;
 
+/** Read each time, so changing the setting (from the demo controls or a test) takes effect on the next call. */
 export function getSimulation(): Simulation {
-  if (current) return current;
   try {
     const raw = typeof localStorage === "undefined" ? null : localStorage.getItem(KEY);
-    current = raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Simulation>) } : { ...DEFAULTS };
+    if (raw) return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Simulation>) };
   } catch {
-    current = { ...DEFAULTS };
+    /* Fall through to the in-memory setting. */
   }
-  return current;
+  return current ?? { ...DEFAULTS };
 }
 
 export function configureSimulation(next: Partial<Simulation>): Simulation {

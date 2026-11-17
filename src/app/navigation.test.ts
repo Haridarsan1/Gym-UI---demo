@@ -64,7 +64,8 @@ describe("member and trainer apps", () => {
   });
 
   it("starts today’s workout when there is one, and opens the check-in pass when there is not", () => {
-    expect(raisedAction("member", "day-3")).toEqual({ label: "Start today’s workout", to: "/m/workout/day-3" });
+    expect(raisedAction("member", { date: "2026-11-17", resume: false })).toEqual({ label: "Start today’s workout", to: "/m/workout/2026-11-17" });
+    expect(raisedAction("member", { date: "2026-11-17", resume: true })).toEqual({ label: "Continue today’s workout", to: "/m/workout/2026-11-17" });
     expect(raisedAction("member")).toEqual({ label: "Check-in pass", to: "/m/pass" });
     expect(raisedAction("trainer")).toEqual({ label: "Log session", to: "/t/log" });
   });

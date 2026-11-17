@@ -31,7 +31,7 @@ describe("Today: Arjun Kumar (a workout today)", () => {
   it("shows today’s workout from the new plan, with a streak, a ring and credits", async () => {
     const t = await getToday(as("u_member_arjun"));
     expect(t).toMatchObject({ firstName: "Arjun", gymName: "Pulse Fitness", today: "2026-11-17", trainerName: "Meera Joshi" });
-    expect(t.plan).toMatchObject({ state: "workout", title: "Upper body and core", versionNumber: 2, versionName: "Strength and size block", newPlan: true, weekNumber: 2, exerciseCount: 5 });
+    expect(t.plan).toMatchObject({ state: "workout", title: "Upper body and core", versionNumber: 2, versionName: "Strength and size block", startedOn: "2026-11-04", authorName: "Meera Joshi", newPlan: true, weekNumber: 2, exerciseCount: 5 });
     expect(t.plan.state === "workout" && t.plan.logStatus).toBeUndefined();
     expect(t.plan.state === "workout" && t.plan.minutes).toBeGreaterThanOrEqual(25);
     expect(t.streakWeeks).toBeGreaterThanOrEqual(5);
