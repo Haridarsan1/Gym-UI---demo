@@ -49,8 +49,9 @@ export default function WorkoutComplete() {
  */
 function Celebration({ s, celebrate }: { s: WorkoutSummary; celebrate: boolean }) {
   const reduced = usePrefersReducedMotion();
-  const instant = reduced || !celebrate;
   const skipped = s.status === "skipped";
+  // A skipped day has nothing to celebrate, so there is no sequence to wait for.
+  const instant = reduced || !celebrate || skipped;
   const stages = useMemo(() => planStages({ hasVolume: s.volumeKg > 0, records: s.records.length, showWeek: !skipped, badges: s.badges.length }), [s, skipped]);
   const { step, done, active, advance, skipAll } = useReveal(stages, instant);
 
@@ -105,7 +106,7 @@ function Celebration({ s, celebrate }: { s: WorkoutSummary; celebrate: boolean }
             <Button3DLink to="/m" size="lg" className="flex-1">
               Done
             </Button3DLink>
-            <ShareButton text={text} />
+            {!skipped && <ShareButton text={text} />}
           </div>
           <p className="text-center">
             <Link to="/m/program" className="inline-flex min-h-[2.75rem] items-center font-semibold underline underline-offset-4">

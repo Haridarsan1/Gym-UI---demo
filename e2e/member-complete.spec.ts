@@ -164,6 +164,17 @@ test.describe("Workout complete", () => {
     expect((await page.getByRole("link", { name: "Done" }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   });
 
+  test("a skipped day gets a calm note, with no sequence, feedback or Share", async ({ page }) => {
+    await page.addInitScript(() => Object.defineProperty(navigator, "share", { configurable: true, value: () => Promise.resolve() }));
+    await doWorkout(page, { exercises: 0 });
+    await finishSheet(page).getByRole("button", { name: "Skip workout" }).click();
+    await expect(page.getByRole("heading", { name: "Skipped today" })).toBeVisible();
+    await expect(done(page)).toBeVisible({ timeout: 1000 });
+    await expect(page.getByRole("button", { name: "Share" })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "How did it feel?" })).toHaveCount(0);
+    await expect(page.locator("main")).not.toContainText(/fail|missed/i);
+  });
+
   test("a day with no finished workout says so", async ({ page }) => {
     await doWorkout(page, { exercises: 1 });
     await page.goto("/m/workout/2026-01-05/complete");

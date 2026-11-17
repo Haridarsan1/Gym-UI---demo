@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Award, Check, Trophy } from "lucide-react";
+import { Award, Check, Moon, Trophy } from "lucide-react";
 import type { WorkoutSummary } from "@/api";
 import { Ring } from "@/design/Ring";
 import { StreakFlame } from "@/design/StreakFlame";
@@ -16,7 +16,7 @@ function Part({ label, tone = "white", pop, buzz, children }: { label: string; t
     if (pop && buzz) haptic(buzz);
   }, [pop, buzz]);
   return (
-    <section aria-label={label} className={cn("scroll-mb-32 p-5", tone === "mint" ? "clay-mint" : tone === "lilac" ? "clay-lilac" : "clay", pop && "pop-in")}>
+    <section aria-label={label} className={cn("scroll-mb-32 p-5", tone === "mint" ? "clay-mint rounded-[1.75rem]" : tone === "lilac" ? "clay !bg-lilac-100 text-clay-ink ring-2 ring-lilac-300" : "clay", pop && "pop-in")}>
       {children}
     </section>
   );
@@ -37,7 +37,7 @@ export function ResultPart({ s, pop }: { s: WorkoutSummary; pop: boolean }) {
   return (
     <Part label="Result" tone={s.status === "completed" ? "mint" : "white"} pop={pop} buzz={s.status === "skipped" ? undefined : [30, 40, 30]}>
       <span className="grid h-12 w-12 place-items-center rounded-full bg-white/70" aria-hidden="true">
-        <Check className="h-7 w-7" />
+        {s.status === "skipped" ? <Moon className="h-7 w-7" /> : <Check className="h-7 w-7" />}
       </span>
       <h2 className="mt-3 text-[1.7rem] font-bold leading-tight tracking-tight">{words.title}</h2>
       <p className="mt-1">{words.line}</p>

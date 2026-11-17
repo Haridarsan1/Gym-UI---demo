@@ -9,7 +9,7 @@ const eyebrow = "text-xs font-semibold uppercase tracking-wide text-clay-muted";
 
 function Card({ labelledBy, tone = "white", children }: { labelledBy: string; tone?: "white" | "mint" | "plain"; children: ReactNode }) {
   return (
-    <section aria-labelledby={labelledBy} className={tone === "mint" ? "clay-mint p-6" : "clay p-6"}>
+    <section aria-labelledby={labelledBy} className={tone === "mint" ? "clay-mint rounded-[1.75rem] p-6" : "clay p-6"}>
       {children}
     </section>
   );
