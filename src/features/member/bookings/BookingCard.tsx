@@ -18,7 +18,7 @@ function Pill({ kind }: { kind: keyof typeof PILL }) {
   return <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${p.className}`}>{p.label}</span>;
 }
 
-const when = (b: BookingView) => `${formatWeekdayDate(istDateOf(b.startsAt))}, ${formatTime(b.startsAt)} to ${formatTime(b.endsAt)}`;
+const when = (b: BookingView) => `${formatTime(b.startsAt)} to ${formatTime(b.endsAt)}`;
 const coach = (name: string) => `Coach ${name.split(" ")[0]}`;
 
 /** An upcoming session: when, who, the exact free-cancellation time and the late terms, and what can be done with it. */
@@ -46,8 +46,8 @@ export function UpcomingCard({ b, policy, nowIso, onReschedule, onCancel }: { b:
               Reschedule
             </Button3D>
           ) : null}
-          <Button3D variant="white" className="flex-1" onClick={onCancel}>
-            Cancel session
+          <Button3D variant="white" className="flex-1" aria-label="Cancel session" onClick={onCancel}>
+            Cancel
           </Button3D>
         </div>
       ) : (
