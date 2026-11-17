@@ -7,7 +7,7 @@ import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonCard } from "@/design/Skeleton";
 import { EmptyState } from "@/design/States";
 import { planStages, shareText } from "@/domain/celebration";
-import { BadgePart, RecordPart, ResultPart, VolumePart, WeekPart } from "@/features/member/complete/Parts";
+import { BadgePart, GoalPart, RecordPart, ResultPart, VolumePart, WeekPart } from "@/features/member/complete/Parts";
 import { Feedback } from "@/features/member/complete/Feedback";
 import { ShareButton } from "@/features/member/complete/ShareButton";
 import { useReveal } from "@/features/member/complete/useReveal";
@@ -52,7 +52,7 @@ function Celebration({ s, celebrate }: { s: WorkoutSummary; celebrate: boolean }
   const skipped = s.status === "skipped";
   // A skipped day has nothing to celebrate, so there is no sequence to wait for.
   const instant = reduced || !celebrate || skipped;
-  const stages = useMemo(() => planStages({ hasVolume: s.volumeKg > 0, records: s.records.length, showWeek: !skipped, badges: s.badges.length }), [s, skipped]);
+  const stages = useMemo(() => planStages({ hasVolume: s.volumeKg > 0, records: s.records.length, goals: s.targetsReached.length, showWeek: !skipped, badges: s.badges.length }), [s, skipped]);
   const { step, done, active, advance, skipAll } = useReveal(stages, instant);
 
   const shown = (kind: string) => stages.slice(0, step).filter((x) => x.kind === kind).length;
@@ -82,6 +82,9 @@ function Celebration({ s, celebrate }: { s: WorkoutSummary; celebrate: boolean }
         {s.volumeKg > 0 && (!volumeStage || step > stages.indexOf(volumeStage)) && <VolumePart kg={s.volumeKg} pop={pop} running={running("volume")} ms={volumeStage?.ms ?? 0} />}
         {s.records.slice(0, records).map((r) => (
           <RecordPart key={r.exerciseId} r={r} pop={pop} />
+        ))}
+        {s.targetsReached.slice(0, done ? s.targetsReached.length : shown("goal")).map((g) => (
+          <GoalPart key={g.id} g={g} pop={pop} />
         ))}
         {!skipped && shown("week") + (done ? 1 : 0) > 0 && <WeekPart s={s} pop={pop} running={running("week")} />}
         {s.badges.slice(0, badges).map((b) => (

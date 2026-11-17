@@ -6,13 +6,16 @@ describe("celebration order", () => {
     const kinds = planStages({ hasVolume: true, records: 2, showWeek: true, badges: 1 }).map((s) => `${s.kind}${s.kind === "record" ? s.index : ""}`);
     expect(kinds).toEqual(["result", "volume", "record0", "record1", "week", "badge"]);
   });
+  it("puts a goal whose target was reached after the records and before the week", () => {
+    expect(planStages({ hasVolume: true, records: 1, goals: 2, showWeek: true, badges: 1 }).map((s) => s.kind)).toEqual(["result", "volume", "record", "goal", "week", "badge"]);
+  });
   it("leaves out what there is nothing to show for", () => {
     expect(planStages({ hasVolume: false, records: 0, showWeek: true, badges: 0 }).map((s) => s.kind)).toEqual(["result", "week"]);
     expect(planStages({ hasVolume: false, records: 0, showWeek: false, badges: 0 }).map((s) => s.kind)).toEqual(["result"]);
   });
   it("lasts under four seconds in every case", () => {
-    for (const records of [0, 1, 3, 8]) for (const badges of [0, 1, 4]) for (const hasVolume of [true, false]) {
-      const total = totalMs(planStages({ hasVolume, records, showWeek: true, badges }));
+    for (const records of [0, 1, 3, 8]) for (const badges of [0, 1, 4]) for (const hasVolume of [true, false]) for (const goals of [0, 1]) {
+      const total = totalMs(planStages({ hasVolume, records, goals, showWeek: true, badges }));
       expect(total, `${records} records, ${badges} badges`).toBeLessThan(4000);
       expect(total).toBeLessThanOrEqual(CELEBRATION_BUDGET_MS);
     }

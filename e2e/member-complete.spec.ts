@@ -117,6 +117,33 @@ test.describe("Workout complete", () => {
     expect(requests).toHaveLength(0);
   });
 
+  test("a workout that reaches a goal’s target shows Target reached with confetti, and the goal stays Active", async ({ page }) => {
+    const requests: string[] = [];
+    page.on("request", (r) => r.url().includes("confetti") && requests.push(r.url()));
+    await doWorkout(page, {
+      exercises: 2,
+      prepare: (p) => p.evaluate(() => new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open("ember-demo");
+        open.onsuccess = () => {
+          const tx = open.result.transaction("goals", "readwrite");
+          tx.objectStore("goals").put({ id: "goal_x_bench", tenantId: "t_pulse", memberId: "mem_arjun", title: "Bench press 55 kg", metric: "bench_press", unit: "kg", baseline: 40, target: 55, targetDate: "2027-03-01", reviewEveryDays: 28, status: "active", history: [], createdBy: "u_trainer_meera", createdAt: "2026-11-01T00:00:00.000Z" });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+      })),
+    });
+    await finishSheet(page).getByRole("button", { name: "Save partly done workout" }).click();
+    await expect(done(page)).toBeVisible({ timeout: 6000 });
+    const reached = page.getByRole("region", { name: "Target reached" });
+    await expect(reached).toContainText("Bench press 55 kg");
+    await expect(reached).toContainText("Your trainer will confirm it at your next review.");
+    expect(requests.length).toBeGreaterThan(0);
+    await page.goto("/m/progress");
+    const goal = page.getByRole("region", { name: "Goals" }).getByRole("listitem").filter({ hasText: "Bench press 55 kg" });
+    await expect(goal).toContainText("Active");
+    await expect(goal).toContainText(/Target reached on/);
+  });
+
   test("with reduced motion everything appears at once, with no animation", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await doWorkout(page, { heavyBench: true });

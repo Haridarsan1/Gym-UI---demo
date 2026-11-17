@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Award, Check, Moon, Trophy } from "lucide-react";
+import { Award, Check, Flag, Moon, Trophy } from "lucide-react";
 import type { WorkoutSummary } from "@/api";
 import { Ring } from "@/design/Ring";
 import { StreakFlame } from "@/design/StreakFlame";
@@ -73,6 +73,24 @@ export function RecordPart({ r, pop }: { r: WorkoutSummary["records"][number]; p
           <p>
             <span className="font-display text-3xl font-extrabold tabular-nums">{r.loadKg}</span> kg, up from {r.previousKg} kg
           </p>
+        </div>
+      </div>
+    </Part>
+  );
+}
+
+/** A goal’s target was reached by this workout. The goal stays Active; the trainer confirms Achieved (T06). */
+export function GoalPart({ g, pop }: { g: WorkoutSummary["targetsReached"][number]; pop: boolean }) {
+  return (
+    <Part label="Target reached" tone="mint" pop={pop} effect="goal">
+      <div className="flex items-center gap-4">
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white/70" aria-hidden="true">
+          <Flag className="h-7 w-7" />
+        </span>
+        <div>
+          <p className={eyebrow}>Target reached</p>
+          <p className="text-xl font-bold">{g.title}</p>
+          <p className="text-sm">Your trainer will confirm it at your next review.</p>
         </div>
       </div>
     </Part>

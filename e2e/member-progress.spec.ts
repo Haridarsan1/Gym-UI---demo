@@ -6,6 +6,12 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR
 
 const card = (page: Page, name: string | RegExp) => page.getByRole("region", { name });
 
+/** Opens the collapsed “More charts” section, where the charts that don’t belong to an active goal wait. */
+const openMore = async (page: Page) => {
+  const summary = page.locator("summary", { hasText: /^More charts/ });
+  if (!(await summary.evaluate((el) => (el.parentElement as HTMLDetailsElement).open))) await summary.click();
+};
+
 const clearMeasurements = (page: Page, memberId: string) =>
   page.evaluate((id) => new Promise<void>((resolve, reject) => {
     const open = indexedDB.open("ember-demo");
@@ -54,6 +60,7 @@ test.describe("Progress: Arjun", () => {
   });
 
   test("has the Progress and Reviews tabs, the date range row, and every chart", async ({ page }) => {
+    await openMore(page);
     await expect(page.getByRole("navigation", { name: "Section" }).getByRole("link")).toHaveText(["Progress", "Reviews"]);
     const range = page.getByRole("radiogroup", { name: "Date range" });
     await expect(range.getByRole("radio")).toHaveText(["4 weeks", "12 weeks", "6 months", "All time"]);
@@ -62,6 +69,7 @@ test.describe("Progress: Arjun", () => {
   });
 
   test("each chart shows baseline, latest and change", async ({ page }) => {
+    await openMore(page);
     for (const name of ["Weight", "Measurements", "Strength", "Weekly volume", "Attendance", "Workout completion"]) {
       const c = card(page, name);
       for (const label of ["Baseline", "Latest", "Change"]) await expect(c.getByText(label, { exact: true })).toBeVisible();
@@ -83,6 +91,7 @@ test.describe("Progress: Arjun", () => {
   });
 
   test("a week with no data is a gap, and the readout says so instead of showing zero", async ({ page }) => {
+    await openMore(page);
     const volume = card(page, "Weekly volume");
     const chart = volume.getByRole("group", { name: /^Weekly volume, all exercises/ });
     await chart.focus();
@@ -122,6 +131,7 @@ test.describe("Progress: Arjun", () => {
   });
 
   test("measurements switch between kinds, and strength between exercises", async ({ page }) => {
+    await openMore(page);
     const m = card(page, "Measurements");
     await expect(m.getByRole("radio")).toHaveText(["Waist", "Body fat"]);
     await m.getByRole("radio", { name: "Body fat" }).click();
@@ -168,6 +178,90 @@ test.describe("Progress: Arjun", () => {
   });
 });
 
+test.describe("Progress layout", () => {
+  test("key stats come first, then the chart of the weight goal, then completion, then More charts collapsed", async ({ page }) => {
+    await signInAs(page, "u_member_arjun", "/m/progress");
+    await expect(card(page, "Weight")).toBeVisible();
+    const order = await page.evaluate(() => {
+      const top = (el: Element | null) => el?.getBoundingClientRect().top ?? Infinity;
+      const region = (name: string) => [...document.querySelectorAll("section")].find((s) => s.getAttribute("aria-label") === name || s.querySelector("h2")?.textContent === name) ?? null;
+      return { stats: top(region("Key stats")), weight: top(region("Weight")), completion: top(region("Workout completion")), more: top([...document.querySelectorAll("summary")].find((x) => x.textContent?.startsWith("More charts")) ?? null), records: top(region("Personal records")) };
+    });
+    expect(order.stats).toBeLessThan(order.weight);
+    expect(order.weight).toBeLessThan(order.completion);
+    expect(order.completion).toBeLessThan(order.more);
+    expect(order.more).toBeLessThan(order.records);
+    const stats = card(page, "Key stats");
+    for (const label of ["Weight", "Workouts completed", "Visits", "Personal records"]) await expect(stats.getByText(label, { exact: true })).toBeVisible();
+    await expect(stats.getByText(/^(Down|Up) [\d.]+ kg in this range$/)).toBeVisible();
+    await expect(stats.getByText(/^\d+ of \d+ scheduled$/)).toBeVisible();
+  });
+
+  test("the charts that are not linked to an active goal wait under More charts, collapsed", async ({ page }) => {
+    await signInAs(page, "u_member_arjun", "/m/progress");
+    await expect(card(page, "Weight")).toBeVisible();
+    for (const name of ["Measurements", "Strength", "Weekly volume", "Attendance"]) await expect(card(page, name)).toBeHidden();
+    await openMore(page);
+    for (const name of ["Measurements", "Strength", "Weekly volume", "Attendance"]) await expect(card(page, name)).toBeVisible();
+    await expect(page.locator("summary", { hasText: "More charts" }).locator("span")).toHaveText("4");
+  });
+
+  test("More charts is remembered for each member on this device", async ({ page }) => {
+    await signInAs(page, "u_member_arjun", "/m/progress");
+    await expect(card(page, "Weight")).toBeVisible();
+    await openMore(page);
+    await expect(card(page, "Attendance")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("ember.progress.moreCharts.u_member_arjun"))).toBe("1");
+    await page.reload();
+    await expect(card(page, "Attendance")).toBeVisible(); // still open for Arjun
+    await signInAs(page, "u_member_priya", "/m/progress");
+    await expect(card(page, "Workout completion")).toBeVisible();
+    await expect(card(page, "Attendance")).toBeVisible(); // her goal is sessions a week, so attendance comes first
+    await expect(card(page, "Strength")).toBeHidden(); // and she has not opened More charts
+    await signInAs(page, "u_member_arjun", "/m/progress");
+    await expect(card(page, "Attendance")).toBeVisible(); // and Arjun’s choice is still there
+    await page.locator("summary", { hasText: "More charts" }).click();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("ember.progress.moreCharts.u_member_arjun"))).toBe("0");
+    await page.reload();
+    await expect(card(page, "Weight")).toBeVisible();
+    await expect(card(page, "Attendance")).toBeHidden();
+  });
+
+  test("a member with no active goals sees every chart under More charts, after completion", async ({ page }) => {
+    await signInAs(page, "u_member_sneha", "/m/progress");
+    await expect(card(page, "Workout completion")).toBeVisible();
+    await expect(card(page, "Weight")).toBeHidden();
+    await openMore(page);
+    await expect(card(page, "Weight")).toBeVisible();
+    await expect(page.locator("summary", { hasText: "More charts" }).locator("span")).toHaveText("5");
+  });
+
+  test("a strength goal puts the strength chart first, opened on its exercise", async ({ page }) => {
+    await signInAs(page, "u_member_arjun", "/m/progress");
+    await page.evaluate(() => new Promise<void>((resolve, reject) => {
+      const open = indexedDB.open("ember-demo");
+      open.onsuccess = () => {
+        const tx = open.result.transaction("goals", "readwrite");
+        const st = tx.objectStore("goals");
+        st.openCursor().onsuccess = (e) => {
+          const c = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+          if (!c) return;
+          if (c.value.id === "goal_mem_arjun_1") c.delete(); // the weight goal goes
+          c.continue();
+        };
+        st.put({ id: "goal_x_squat", tenantId: "t_pulse", memberId: "mem_arjun", title: "Squat 90 kg", metric: "squat", unit: "kg", baseline: 60, target: 90, targetDate: "2027-03-01", reviewEveryDays: 28, status: "active", history: [], createdBy: "u_trainer_meera", createdAt: "2026-11-01T00:00:00.000Z" });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      };
+    }));
+    await page.reload();
+    const strength = card(page, "Strength");
+    await expect(strength).toBeVisible();
+    await expect(strength.getByLabel("Exercise")).toHaveValue("ex_back_squat");
+    await expect(card(page, "Weight")).toBeHidden();
+  });
+});
+
 test.describe("Log your weight and measurements", () => {
   test.beforeEach(async ({ page }) => {
     await signInAs(page, "u_member_arjun", "/m/progress");
@@ -211,12 +305,13 @@ test.describe("Log your weight and measurements", () => {
     await sheet.getByLabel("How it was measured (optional)").fill("Smart scale");
     await sheet.getByRole("button", { name: "Save body fat" }).click();
     await expect(page.getByText("Body fat saved")).toBeVisible();
+    await openMore(page);
     await card(page, "Measurements").getByRole("radio", { name: "Body fat" }).click();
     await card(page, "Measurements").getByText("View as table").click();
     await expect(card(page, "Measurements").getByRole("cell", { name: "Smart scale" })).toBeVisible();
   });
 
-  test("a reading that reaches a goal celebrates with confetti and marks the goal achieved", async ({ page }) => {
+  test("a reading that reaches a goal’s target celebrates with confetti, but the goal stays Active", async ({ page }) => {
     await page.evaluate(() => {
       const w = window as unknown as { __confetti: number };
       w.__confetti = 0;
@@ -226,20 +321,32 @@ test.describe("Log your weight and measurements", () => {
     const sheet = page.getByRole("dialog", { name: "Log a measurement" });
     await sheet.getByRole("textbox", { name: "Weight (kg)" }).fill("77.8");
     await sheet.getByRole("button", { name: "Save weight" }).click();
-    await expect(page.getByText("Goal reached")).toBeVisible();
+    await expect(page.getByText("Target reached", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Your trainer will confirm it at your next review\./).first()).toBeVisible();
     await expect.poll(() => page.evaluate(() => (window as unknown as { __confetti: number }).__confetti)).toBeGreaterThan(0);
     const goal = card(page, "Goals").getByRole("listitem").filter({ hasText: "Reach 78 kg" });
-    await expect(goal).toContainText("Achieved");
-    await expect(goal.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+    await expect(goal).toContainText("Active"); // only the trainer confirms Achieved
+    await expect(goal).not.toContainText("Achieved");
+    await expect(goal).toContainText(/Target reached on \d+ \w{3} \d{4}\. Your trainer will confirm it at your next review\./);
+    await goal.getByText("History").click();
+    await expect(goal).toContainText("Target reached with a logged weight of 77.8 kg.");
+    // Logging another reading past the target does not celebrate again.
+    await page.evaluate(() => ((window as unknown as { __confetti: number }).__confetti = 0));
+    await page.getByRole("button", { name: "Log your weight or a measurement" }).click();
+    await page.getByRole("dialog").getByRole("textbox", { name: "Weight (kg)" }).fill("77.5");
+    await page.getByRole("dialog").getByRole("button", { name: "Save weight" }).click();
+    await expect(page.getByText("Weight saved").last()).toBeVisible();
+    await page.waitForTimeout(400);
+    expect(await page.evaluate(() => (window as unknown as { __confetti: number }).__confetti)).toBe(0);
   });
 
-  test("with reduced motion a reached goal still shows, with no confetti", async ({ page }) => {
+  test("with reduced motion a reached target still shows, with no confetti", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.getByRole("button", { name: "Log your weight or a measurement" }).click();
     const sheet = page.getByRole("dialog", { name: "Log a measurement" });
     await sheet.getByRole("textbox", { name: "Weight (kg)" }).fill("77.8");
     await sheet.getByRole("button", { name: "Save weight" }).click();
-    await expect(page.getByText("Goal reached")).toBeVisible();
+    await expect(page.getByText("Target reached", { exact: true })).toBeVisible();
     await page.waitForTimeout(300);
     await expect(page.locator("canvas[data-confetti]")).toHaveCount(0);
   });
@@ -366,6 +473,7 @@ test.describe("Progress: empty and failing states", () => {
     await signInAs(page, "u_member_sneha", "/m/progress");
     await clearMeasurements(page, "mem_sneha");
     await page.reload();
+    await openMore(page);
     await expect(page.getByText(/No weight entries in this range/)).toBeVisible();
     await expect(card(page, "Measurements")).toContainText("No measurements yet");
     await expect(card(page, "Strength")).toContainText("Strength shows here once you log a workout with weights");

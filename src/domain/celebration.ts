@@ -5,7 +5,7 @@ export const CELEBRATION_BUDGET_MS = 3800;
 const MIN_STEP_MS = 350;
 const MAX_STEP_MS = 1100;
 
-export type StageKind = "result" | "volume" | "record" | "week" | "badge";
+export type StageKind = "result" | "volume" | "record" | "goal" | "week" | "badge";
 
 export interface Stage {
   kind: StageKind;
@@ -14,27 +14,36 @@ export interface Stage {
   ms: number;
 }
 
-const WEIGHT: Record<StageKind, number> = { result: 1, volume: 1.5, record: 1.2, week: 1.4, badge: 1.2 };
+const WEIGHT: Record<StageKind, number> = { result: 1, volume: 1.5, record: 1.2, goal: 1.2, week: 1.4, badge: 1.2 };
 
 /**
  * The order of the celebration and how long each part stays: the result, the volume counting up, each personal record one
- * by one, the week ring and streak, then each badge. Parts with nothing to show are left out. Time is shared out by weight
+ * by one, a goal whose target was reached, the week ring and streak, then each badge. Parts with nothing to show are left out. Time is shared out by weight
  * and never exceeds the budget; when there is a lot to show, the last records and badges are folded into the final summary.
  */
-export function planStages(input: { hasVolume: boolean; records: number; showWeek: boolean; badges: number }): Stage[] {
+export function planStages(input: { hasVolume: boolean; records: number; goals?: number; showWeek: boolean; badges: number }): Stage[] {
   const maxSteps = Math.floor(CELEBRATION_BUDGET_MS / MIN_STEP_MS);
   const wanted: Array<Pick<Stage, "kind" | "index">> = [{ kind: "result", index: 0 }];
   if (input.hasVolume) wanted.push({ kind: "volume", index: 0 });
-  const fixed = wanted.length + (input.showWeek ? 1 : 0);
+  const goals = Math.min(input.goals ?? 0, 1);
+  const fixed = wanted.length + goals + (input.showWeek ? 1 : 0);
   const room = Math.max(0, maxSteps - fixed);
   const records = Math.min(input.records, Math.min(3, room));
   const badges = Math.min(input.badges, Math.min(2, Math.max(0, room - records)));
   for (let i = 0; i < records; i++) wanted.push({ kind: "record", index: i });
+  if (goals) wanted.push({ kind: "goal", index: 0 });
   if (input.showWeek) wanted.push({ kind: "week", index: 0 });
   for (let i = 0; i < badges; i++) wanted.push({ kind: "badge", index: i });
   const totalWeight = wanted.reduce((n, s) => n + WEIGHT[s.kind], 0);
   const unit = Math.min(MAX_STEP_MS, CELEBRATION_BUDGET_MS / totalWeight);
-  return wanted.map((s) => ({ ...s, ms: Math.max(MIN_STEP_MS, Math.floor(unit * WEIGHT[s.kind])) }));
+  const stages = wanted.map((s) => ({ ...s, ms: Math.max(MIN_STEP_MS, Math.floor(unit * WEIGHT[s.kind])) }));
+  // Raising short parts to the minimum can push the total over the budget; take the excess back from the longest parts.
+  for (let over = totalMs(stages) - CELEBRATION_BUDGET_MS; over > 0; over--) {
+    const longest = stages.reduce((a, b) => (b.ms > a.ms ? b : a));
+    if (longest.ms <= MIN_STEP_MS) break;
+    longest.ms -= 1;
+  }
+  return stages;
 }
 
 export const totalMs = (stages: Stage[]): number => stages.reduce((n, s) => n + s.ms, 0);

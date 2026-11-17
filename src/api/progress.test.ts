@@ -93,7 +93,7 @@ describe("the Progress data", () => {
   it("shows goals with a bar towards the target, the target date, and the status", async () => {
     const p = await getProgress(arjun);
     const weight = p.goals.find((g) => g.title === "Reach 78 kg")!;
-    expect(weight).toMatchObject({ status: "active", baseline: 82.4, target: 78, unit: "kg", targetDate: "2027-01-05", daysLeft: 49, reached: false });
+    expect(weight).toMatchObject({ status: "active", baseline: 82.4, target: 78, unit: "kg", targetDate: "2027-01-05", daysLeft: 49, targetReachedOn: undefined, metric: "weight" });
     expect(weight.fraction).toBeGreaterThan(0.3);
     expect(weight.fraction).toBeLessThan(1);
     const bench = p.goals.find((g) => g.status === "achieved")!;
@@ -156,16 +156,28 @@ describe("logging a weight or measurement (P01)", () => {
     expect(await code(logMeasurement(as("u_trainer_meera"), { kind: "weight", value: 80 }))).toBe("forbidden");
   });
 
-  it("marks a goal achieved when a reading reaches the target, and keeps a note of how", async () => {
+  it("records Target reached when a reading reaches the target, and leaves the goal Active for the trainer to confirm", async () => {
+    const badgesBefore = await db.badgeAwards.where("memberId").equals("mem_arjun").count();
     const r = await logMeasurement(arjun, { kind: "weight", value: 77.9 });
     expect(r.reachedGoals).toEqual([{ id: "goal_mem_arjun_1", title: "Reach 78 kg" }]);
     const goal = (await db.goals.get("goal_mem_arjun_1"))!;
-    expect(goal.status).toBe("achieved");
-    expect(goal.history.at(-1)).toMatchObject({ by: "u_member_arjun", note: "Reached with a logged weight of 77.9 kg." });
+    expect(goal.status).toBe("active");
+    expect(goal.history.at(-1)).toMatchObject({ by: "u_member_arjun", note: "Target reached with a logged weight of 77.9 kg." });
     const view = (await getProgress(arjun)).goals.find((g) => g.id === "goal_mem_arjun_1")!;
-    expect(view).toMatchObject({ status: "achieved", fraction: 1, achievedOn: "2026-11-17" });
-    // Logging it again reaches nothing new.
-    expect((await logMeasurement(arjun, { kind: "weight", value: 77.9 })).reachedGoals).toEqual([]);
+    expect(view).toMatchObject({ status: "active", fraction: 1, targetReachedOn: "2026-11-17", achievedOn: undefined, metric: "weight" });
+    // Logging another reading at or past the target adds nothing: it is recorded once, and no badge is awarded.
+    const again = await logMeasurement(arjun, { kind: "weight", value: 77.5 });
+    expect(again.reachedGoals).toEqual([]);
+    expect((await db.goals.get("goal_mem_arjun_1"))!.history).toHaveLength(goal.history.length);
+    expect(await db.badgeAwards.where("memberId").equals("mem_arjun").count()).toBe(badgesBefore);
+  });
+
+  it("does not touch goals on other metrics, or goals already achieved", async () => {
+    await db.goals.add({ id: "goal_test_waist", tenantId: "t_pulse", memberId: "mem_arjun", title: "Waist 80 cm", metric: "waist", unit: "cm", baseline: 90, target: 80, targetDate: "2027-02-01", reviewEveryDays: 28, status: "active", history: [], createdBy: "u_trainer_meera", createdAt: "2026-11-01T00:00:00.000Z" });
+    await logMeasurement(arjun, { kind: "weight", value: 77.4 });
+    expect((await db.goals.get("goal_test_waist"))!.history).toEqual([]);
+    expect((await db.goals.get("goal_mem_arjun_2"))!.history).toHaveLength(2);
+    expect((await db.goals.get("goal_mem_arjun_2"))!.status).toBe("achieved");
   });
 });
 

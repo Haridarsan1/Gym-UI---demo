@@ -4,11 +4,10 @@ import { assertCan } from "@/api/context";
 import { ApiError } from "@/api/errors";
 import { openMember } from "@/api/member";
 import { viewSensitive } from "@/api/sensitive";
-import { awardBadges } from "@/api/workoutSummary";
-import { BADGES, type BadgeKey } from "@/domain/badges";
+import { currentFor, recordTargetsReached } from "@/api/goals";
 import { addDays, daysBetween, istDateOf, weekStart } from "@/domain/dates";
 import {
-  MEMBER_MEASUREMENTS, effectiveMeasurements, goalProgress, loadedExercises, measurementError, measurementInfo, recordTimeline, strengthSeries, weekList, weeklyAttendance, weeklyCompletion,
+  MEMBER_MEASUREMENTS, effectiveMeasurements, goalProgress, loadedExercises, targetReachedAt, measurementError, measurementInfo, recordTimeline, strengthSeries, weekList, weeklyAttendance, weeklyCompletion,
   weeklyVolume, type MemberMeasurementKind, type StrengthPoint, type WeekCompletion,
 } from "@/domain/progress";
 import type { Goal, Measurement, TrainerReview } from "@/domain/types";
@@ -23,8 +22,6 @@ import type { Session } from "@/app/session";
 const MAX_WEEKS = 104;
 const finished = (l: { status: string }) => l.status === "completed" || l.status === "partial";
 
-/** Which exercises a strength goal is measured on. */
-const STRENGTH_METRICS: Record<string, string[]> = { bench_press: ["ex_bench_press", "ex_db_bench"], squat: ["ex_back_squat"], deadlift: ["ex_deadlift"], overhead_press: ["ex_ohp", "ex_db_ohp"] };
 const MEASURED = new Set<string>(MEMBER_MEASUREMENTS.map((m) => m.kind));
 
 export interface ProgressMeasurement {
@@ -51,8 +48,10 @@ export interface GoalView {
   daysLeft: number;
   current?: number;
   fraction: number | null;
-  /** The reading meets the target but the goal is still marked active; the trainer confirms. */
-  reached: boolean;
+  /** The metric the goal is measured on, so Progress can show its chart first. */
+  metric: string;
+  /** When a reading or workout first reached the target. The goal stays Active until the trainer confirms Achieved. */
+  targetReachedOn?: string;
   achievedOn?: string;
   history: Array<{ date: string; note: string }>;
 }
@@ -130,29 +129,14 @@ export async function getProgress(session: Session | null): Promise<ProgressData
 
 const rank = (s: Goal["status"]) => ({ active: 0, achieved: 1, revised: 2, closed: 3 })[s];
 
-function currentFor(metric: string, readings: Measurement[], logs: Parameters<typeof strengthSeries>[0], today: string): number | undefined {
-  if (MEASURED.has(metric)) return readings.filter((r) => r.kind === metric && r.value !== undefined && r.measuredOn <= today).sort((a, b) => a.measuredOn.localeCompare(b.measuredOn)).at(-1)?.value;
-  const ids = STRENGTH_METRICS[metric];
-  if (ids) {
-    const loads = [...ids.flatMap((id) => strengthSeries(logs, id).map((p) => p.value)), ...readings.filter((r) => r.kind === "strength_benchmark" && ids.includes(r.exerciseId ?? "")).map((r) => r.value ?? 0)];
-    return loads.length ? Math.max(...loads) : undefined;
-  }
-  if (metric === "sessions_per_week") {
-    const thisWeek = weekStart(today);
-    const from = addDays(thisWeek, -28);
-    const n = (logs as Array<{ status: string; scheduledOn: string }>).filter((l) => finished(l) && l.scheduledOn >= from && l.scheduledOn < thisWeek).length;
-    return Math.round((n / 4) * 10) / 10;
-  }
-  return undefined;
-}
-
 function goalView(g: Goal, today: string, readings: Measurement[], logs: Parameters<typeof strengthSeries>[0]): GoalView {
   const current = currentFor(g.metric, readings, logs, today);
   const p = goalProgress(g, current);
   const last = g.history.at(-1);
+  const reachedAt = g.status === "active" ? targetReachedAt(g.history) : undefined;
   return {
-    id: g.id, title: g.title, status: g.status, unit: g.unit, baseline: g.baseline, target: g.target, targetDate: g.targetDate, daysLeft: daysBetween(today, g.targetDate), current,
-    fraction: g.status === "achieved" ? 1 : p.fraction, reached: g.status === "active" && p.reached,
+    id: g.id, title: g.title, metric: g.metric, status: g.status, unit: g.unit, baseline: g.baseline, target: g.target, targetDate: g.targetDate, daysLeft: daysBetween(today, g.targetDate), current,
+    fraction: g.status === "achieved" ? 1 : p.fraction, targetReachedOn: reachedAt ? istDateOf(reachedAt) : undefined,
     achievedOn: g.status === "achieved" && last ? istDateOf(last.at) : undefined, history: g.history.map((h) => ({ date: istDateOf(h.at), note: h.note })),
   };
 }
@@ -165,9 +149,8 @@ export type MeasurementInput = z.input<typeof MeasurementInput>;
 
 export interface LoggedMeasurement {
   id: string;
-  /** Goals this reading reached; they are now marked achieved. */
+  /** Goals whose target this reading reached for the first time. They stay Active; the trainer confirms Achieved. */
   reachedGoals: Array<{ id: string; title: string }>;
-  badges: Array<{ key: BadgeKey; label: string }>;
   /** True when the same reading was already saved, so nothing was added. */
   repeated: boolean;
 }
@@ -191,11 +174,11 @@ export async function logMeasurement(session: Session | null, raw: MeasurementIn
   if (problem) throw new ApiError("invalid", problem);
   const value = Math.round(input.value * 10) / 10;
 
-  return db.transaction("rw", [db.measurements, db.goals, db.badgeAwards, db.workoutLogs, db.workoutPlanVersions, db.memberships, db.checkIns, db.gymPolicies], async () => {
+  return db.transaction("rw", [db.measurements, db.goals], async () => {
     const all = await db.measurements.where("memberId").equals(c.memberId).toArray();
     const sameDay = effectiveMeasurements(all.filter((m) => m.kind === input.kind && m.measuredOn === date));
     const existing = sameDay[0];
-    if (existing?.value === value) return { id: existing.id, reachedGoals: [], badges: [], repeated: true };
+    if (existing?.value === value) return { id: existing.id, reachedGoals: [], repeated: true };
     const row: Measurement = {
       id: `ms_${c.memberId}_${input.kind}_${date}${existing ? `_r${all.filter((m) => m.kind === input.kind && m.measuredOn === date).length}` : ""}`,
       tenantId: c.tenantId, memberId: c.memberId, kind: input.kind, value, unit: info.unit, measuredOn: date, method: input.kind === "body_fat" ? input.method?.trim() || undefined : undefined,
@@ -203,20 +186,12 @@ export async function logMeasurement(session: Session | null, raw: MeasurementIn
     };
     await db.measurements.add(row);
 
-    const reached: LoggedMeasurement["reachedGoals"] = [];
-    const goals = (await db.goals.where("memberId").equals(c.memberId).toArray()).filter((g) => g.status === "active" && g.metric === input.kind);
-    if (goals.length) {
-      const readings = effectiveMeasurements([...all, row].filter((m) => m.kind !== "progress_photo"));
-      const latest = currentFor(input.kind, readings, [], c.today);
-      for (const g of goals) {
-        if (!goalProgress(g, latest).reached) continue;
-        assertCan(c.principal, "goal.achieve", c.resource);
-        await db.goals.update(g.id, { status: "achieved", history: [...g.history, { at: c.nowIso, by: c.principal.userId, note: `Reached with a logged ${info.label.toLowerCase()} of ${value} ${info.unit}.` }] });
-        reached.push({ id: g.id, title: g.title });
-      }
-    }
-    const fresh = reached.length ? await awardBadges({ memberId: c.memberId, tenantId: c.tenantId, today: c.today, nowIso: c.nowIso }) : [];
-    return { id: row.id, reachedGoals: reached, badges: fresh.map((key) => ({ key, label: BADGES[key].label })), repeated: false };
+    const readings = effectiveMeasurements([...all, row].filter((m) => m.kind !== "progress_photo"));
+    const reached = await recordTargetsReached({
+      memberId: c.memberId, userId: c.principal.userId, nowIso: c.nowIso, today: c.today, readings, logs: [],
+      describe: (_g, current) => `with a logged ${info.label.toLowerCase()} of ${current} ${info.unit}.`, only: (g) => g.metric === input.kind,
+    });
+    return { id: row.id, reachedGoals: reached.map((g) => ({ id: g.id, title: g.title })), repeated: false };
   });
 }
 

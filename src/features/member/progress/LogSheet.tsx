@@ -16,8 +16,8 @@ const STEP: Record<MemberMeasurementKind, number> = { weight: 0.1, waist: 0.5, c
 
 /**
  * A quick form to log a weight or a measurement (P01). It opens with the last value filled in, so a small change is a tap or
- * two. The reading is recorded as entered by the member, and the trainer sees that. A reading that reaches a goal marks it
- * achieved and celebrates.
+ * two. The reading is recorded as entered by the member, and the trainer sees that. A reading that reaches a goal’s target
+ * celebrates; the goal stays Active until the trainer confirms it.
  */
 export function LogSheet({ open, initialKind, data, onClose }: { open: boolean; initialKind: MemberMeasurementKind; data: ProgressData; onClose: () => void }) {
   const save = useLogMeasurement();
@@ -57,9 +57,8 @@ export function LogSheet({ open, initialKind, data, onClose }: { open: boolean; 
       else toast({ title: `${info.label} saved`, description: `${n} ${info.unit}, ${formatDate(date)}. Recorded as entered by you.`, tone: "success" });
       if (r.reachedGoals.length) {
         celebrate("goal");
-        for (const g of r.reachedGoals) toast({ title: "Goal reached", description: g.title, tone: "success" });
+        for (const g of r.reachedGoals) toast({ title: "Target reached", description: `${g.title}. Your trainer will confirm it at your next review.`, tone: "success" });
       }
-      for (const b of r.badges) toast({ title: "Badge earned", description: b.label, tone: "success" });
       onClose();
     } catch (e) {
       setError(isApiError(e) ? e.message : "We couldn’t save that. Check your connection and try again.");

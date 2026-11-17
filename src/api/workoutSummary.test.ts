@@ -54,6 +54,8 @@ describe("the summary of a finished workout", () => {
 
   it("gives the result, the volume, a record, the week and the streak, and the badges earned once", async () => {
     await db.badgeAwards.where("memberId").equals("mem_arjun").delete();
+    // A strength goal Arjun has already passed: this workout is the first to notice.
+    await db.goals.add({ id: "goal_test_squat", tenantId: "t_pulse", memberId: "mem_arjun", title: "Squat 70 kg", metric: "squat", unit: "kg", baseline: 40, target: 70, targetDate: "2027-01-01", reviewEveryDays: 28, status: "active", history: [], createdBy: "u_trainer_meera", createdAt: "2026-11-01T00:00:00.000Z" });
     const before = await getWorkout(arjun, TODAY);
     const entries = allSets(before, true);
     const r = await submitWorkout(arjun, { date: TODAY, entries, idempotencyKey: before.idempotencyKey });
@@ -68,6 +70,17 @@ describe("the summary of a finished workout", () => {
     const keys = s.badges.map((b) => b.key);
     expect(keys).toEqual(expect.arrayContaining(["first_workout", "first_pr"]));
     expect(s.badges[0]).toMatchObject({ label: expect.any(String), description: expect.any(String) });
+  });
+
+  it("reports a goal whose target the workout reached, once, and leaves it Active", async () => {
+    const s = await getWorkoutSummary(arjun, TODAY);
+    expect(s.targetsReached).toEqual([{ id: "goal_test_squat", title: "Squat 70 kg" }]);
+    const goal = (await db.goals.get("goal_test_squat"))!;
+    expect(goal.status).toBe("active");
+    expect(goal.history.at(-1)!.note).toMatch(/^Target reached with [\d.]+ kg in a workout\.$/);
+    expect(goal.history).toHaveLength(1);
+    // A goal reached by an earlier workout does not celebrate again.
+    expect((await getWorkoutSummary(priya, (await getProgram(priya)).weeks.flatMap((w) => w.days).find((d) => d.state === "done")?.date ?? TODAY).catch(() => ({ targetsReached: [] }))).targetsReached).toEqual([]);
   });
 
   it("awards a badge once: repeating the submit adds none and the summary is unchanged", async () => {

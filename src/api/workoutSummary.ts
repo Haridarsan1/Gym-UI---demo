@@ -4,6 +4,7 @@ import { assertCan } from "@/api/context";
 import { ApiError } from "@/api/errors";
 import { openMember } from "@/api/member";
 import { BADGES, earnedBadges, type BadgeKey } from "@/domain/badges";
+import { TARGET_REACHED } from "@/domain/progress";
 import { weekStart } from "@/domain/dates";
 import { detectPRs, streakWeeks, volumeKg, weekStats } from "@/domain/metrics";
 import type { BadgeAward, WorkoutLog } from "@/domain/types";
@@ -66,6 +67,8 @@ export interface WorkoutSummary {
   week: { planned: number; before: number; after: number; paused: boolean };
   streak: { before: number; after: number };
   badges: Array<{ key: BadgeKey; label: string; description: string }>;
+  /** Goals whose target this workout reached. They stay Active until the trainer confirms Achieved. */
+  targetsReached: Array<{ id: string; title: string }>;
   effort?: number;
   recovery?: number;
 }
@@ -86,6 +89,7 @@ export async function getWorkoutSummary(session: Session | null, date: string): 
   const f = await loadFacts(c.memberId, c.tenantId, c.today);
   const names = new Map((await db.exercises.bulkGet([...new Set(log.entries.map((e) => e.exerciseId))])).filter((e): e is NonNullable<typeof e> => !!e).map((e) => [e.id, e.name]));
   const awards = (await db.badgeAwards.where("memberId").equals(c.memberId).toArray()).filter((b) => b.workoutLogId === log.id);
+  const goals = (await db.goals.where("memberId").equals(c.memberId).toArray()).filter((g) => g.history.some((h) => h.at === log.completedAt && h.note.startsWith(TARGET_REACHED)));
   const after = f.weekFor(done);
   const before = f.weekFor(others);
   return {
@@ -96,6 +100,7 @@ export async function getWorkoutSummary(session: Session | null, date: string): 
     week: { planned: after.planned, before: before.done, after: after.done, paused: after.paused },
     streak: { before: f.streakFor(others), after: f.streakFor(done) },
     badges: awards.map((a) => ({ key: a.badge, label: BADGES[a.badge].label, description: BADGES[a.badge].description })),
+    targetsReached: goals.map((g) => ({ id: g.id, title: g.title })),
     effort: log.effort, recovery: log.feedback?.recovery,
   };
 }

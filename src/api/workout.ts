@@ -4,6 +4,8 @@ import { assertCan } from "@/api/context";
 import { ApiError } from "@/api/errors";
 import { openMember, type MemberContext } from "@/api/member";
 import { awardBadges } from "@/api/workoutSummary";
+import { recordTargetsReached } from "@/api/goals";
+import { effectiveMeasurements } from "@/domain/progress";
 import { daysBetween, eachDay, weekStart, addDays } from "@/domain/dates";
 import { currentMembership } from "@/domain/membership";
 import { estimateMinutes, planFor, scheduledBetween } from "@/domain/metrics";
@@ -183,7 +185,7 @@ export interface SubmitResult {
 export async function submitWorkout(session: Session | null, raw: SubmitInput): Promise<SubmitResult> {
   const input = parse(SubmitInput, raw);
   const d = await loadDay(session, input.date, "write");
-  return db.transaction("rw", [db.workoutLogs, db.badgeAwards, db.workoutPlanVersions, db.memberships, db.goals, db.checkIns, db.gymPolicies], async () => {
+  return db.transaction("rw", [db.workoutLogs, db.badgeAwards, db.workoutPlanVersions, db.memberships, db.goals, db.checkIns, db.gymPolicies, db.measurements], async () => {
     const byKey = await db.workoutLogs.where("idempotencyKey").equals(input.idempotencyKey).first();
     if (byKey && byKey.memberId !== d.c.memberId) throw new ApiError("conflict", "That workout could not be saved. Reload the page and try again.");
     if (byKey && byKey.status !== "draft") return { logId: byKey.id, date: byKey.scheduledOn, status: byKey.status, progress: progress(d.day, byKey.entries), repeated: true };
@@ -210,6 +212,14 @@ export async function submitWorkout(session: Session | null, raw: SubmitInput): 
     }
     const saved = (await db.workoutLogs.get(logId))!;
     await awardBadges({ memberId: d.c.memberId, tenantId: d.c.tenantId, today: d.c.today, nowIso: d.c.nowIso, log: saved });
+    // A workout can reach a strength or sessions goal. The goal stays Active; the note is what the celebration reads.
+    if (status !== "skipped") {
+      const [allLogs, rows] = await Promise.all([db.workoutLogs.where("memberId").equals(d.c.memberId).toArray(), db.measurements.where("memberId").equals(d.c.memberId).toArray()]);
+      await recordTargetsReached({
+        memberId: d.c.memberId, userId: d.c.principal.userId, nowIso: d.c.nowIso, today: d.c.today, readings: effectiveMeasurements(rows.filter((m) => m.kind !== "progress_photo")), logs: allLogs,
+        describe: (g, current) => `with ${current} ${g.unit} in a workout.`,
+      });
+    }
     return { logId, date: input.date, status, progress: p, repeated: false };
   });
 }

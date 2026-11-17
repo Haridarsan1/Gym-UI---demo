@@ -37,8 +37,10 @@ export async function logRemainingSets(page: Page) {
  * workout is partly done). `heavyBench` lifts 200 kg on the first set of the bench press, which is a personal record.
  * Leaves the Finish sheet open.
  */
-export async function doWorkout(page: Page, opts: { exercises?: number; heavyBench?: boolean } = {}) {
+export async function doWorkout(page: Page, opts: { exercises?: number; heavyBench?: boolean; prepare?: (page: Page) => Promise<void> } = {}) {
   await signInAs(page, "u_member_arjun", "/m");
+  await opts.prepare?.(page);
+  if (opts.prepare) await page.reload();
   await page.getByRole("link", { name: "Start workout" }).click();
   await expect(page.getByRole("heading", { name: "Arm circles", level: 2 })).toBeVisible();
   const count = opts.exercises ?? 7;

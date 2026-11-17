@@ -42,9 +42,9 @@ export function WeightCard({ data, range, onLog }: { data: ProgressData; range: 
   );
 }
 
-export function MeasurementsCard({ data, range, onLog }: { data: ProgressData; range: Range; onLog: () => void }) {
+export function MeasurementsCard({ data, range, onLog, initialKind }: { data: ProgressData; range: Range; onLog: () => void; initialKind?: string }) {
   const kinds = MEMBER_MEASUREMENTS.filter((m) => m.kind !== "weight" && data.measurements.some((r) => r.kind === m.kind));
-  const [pick, setPick] = useState<string>();
+  const [pick, setPick] = useState<string | undefined>(initialKind);
   const kind = kinds.find((k) => k.kind === pick)?.kind ?? kinds[0]?.kind;
   const info = kind ? measurementInfo(kind)! : undefined;
   const points = kind ? pointsFor(data.measurements, kind, range.from, range.to) : [];
@@ -71,9 +71,9 @@ export function MeasurementsCard({ data, range, onLog }: { data: ProgressData; r
   );
 }
 
-export function StrengthCard({ data, range }: { data: ProgressData; range: Range }) {
+export function StrengthCard({ data, range, initialExerciseId }: { data: ProgressData; range: Range; initialExerciseId?: string }) {
   const options = data.strength.map((s) => ({ value: s.exerciseId, label: s.name }));
-  const [pick, setPick] = useState<string>();
+  const [pick, setPick] = useState<string | undefined>(initialExerciseId);
   const current = data.strength.find((s) => s.exerciseId === pick) ?? [...data.strength].sort((a, b) => (b.points.at(-1)?.date ?? "").localeCompare(a.points.at(-1)?.date ?? ""))[0];
   const points = current ? current.points.filter((p) => p.date >= range.from && p.date <= range.to) : [];
   return (

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WorkoutLog } from "@/domain/types";
-import { RANGES, completionTotals, effectiveMeasurements, goalProgress, loadedExercises, measurementError, pointsFor, rangeStart, recordTimeline, segments, strengthSeries, summarize, weekList, weeklyAttendance, weeklyVolume } from "@/domain/progress";
+import { RANGES, TARGET_REACHED, chartForGoal, planCharts, completionTotals, targetReachedAt, effectiveMeasurements, goalProgress, loadedExercises, measurementError, pointsFor, rangeStart, recordTimeline, segments, strengthSeries, summarize, weekList, weeklyAttendance, weeklyVolume } from "@/domain/progress";
 
 const log = (scheduledOn: string, entries: WorkoutLog["entries"], status: WorkoutLog["status"] = "completed"): WorkoutLog => ({
   id: `wl_${scheduledOn}`, tenantId: "t", memberId: "m", planVersionId: "v", weekIndex: 0, dayIndex: 0, scheduledOn, status, completedAt: `${scheduledOn}T08:00:00.000Z`, entries,
@@ -128,5 +128,55 @@ describe("goal progress", () => {
   it("has no bar, and is not reached, without a baseline or a reading", () => {
     expect(goalProgress({ baseline: undefined, target: 78 }, 80)).toEqual({ fraction: null, reached: false });
     expect(goalProgress({ baseline: 82, target: 78 }, undefined)).toEqual({ fraction: null, reached: false });
+  });
+});
+
+describe("goals and their charts", () => {
+  it("finds when the target was first reached from the goal’s history", () => {
+    const history = [{ at: "2026-11-01T10:00:00.000Z", note: "Goal set." }, { at: "2026-11-17T08:00:00.000Z", note: `${TARGET_REACHED} with a logged weight of 77.9 kg.` }];
+    expect(targetReachedAt(history)).toBe("2026-11-17T08:00:00.000Z");
+    expect(targetReachedAt([history[0]!])).toBeUndefined();
+    expect(targetReachedAt([])).toBeUndefined();
+  });
+  it("links each goal to its chart", () => {
+    expect(chartForGoal("weight", [])).toEqual({ chart: "weight" });
+    expect(chartForGoal("waist", [])).toEqual({ chart: "measurement", kind: "waist" });
+    expect(chartForGoal("body_fat", [])).toEqual({ chart: "measurement", kind: "body_fat" });
+    expect(chartForGoal("sessions_per_week", [])).toEqual({ chart: "attendance" });
+  });
+  it("sends a strength goal to the first of its exercises the member has data for", () => {
+    expect(chartForGoal("bench_press", ["ex_back_squat", "ex_db_bench"])).toEqual({ chart: "strength", exerciseId: "ex_db_bench" });
+    expect(chartForGoal("bench_press", ["ex_bench_press", "ex_db_bench"])).toEqual({ chart: "strength", exerciseId: "ex_bench_press" });
+    expect(chartForGoal("bench_press", ["ex_back_squat"])).toBeUndefined();
+  });
+  it("has no chart for a metric it does not know", () => {
+    expect(chartForGoal("handstand_seconds", ["ex_bench_press"])).toBeUndefined();
+  });
+});
+
+describe("the order of the charts", () => {
+  const strength = ["ex_back_squat", "ex_db_bench"];
+  it("puts the chart of a weight goal first, and the rest after", () => {
+    expect(planCharts([{ metric: "weight", status: "active" }], strength)).toEqual({ linked: [{ slot: "weight" }], rest: ["measurements", "strength", "volume", "attendance"] });
+  });
+  it("puts a strength goal’s chart first, opened on its exercise", () => {
+    const p = planCharts([{ metric: "bench_press", status: "active" }], strength);
+    expect(p.linked).toEqual([{ slot: "strength", exerciseId: "ex_db_bench" }]);
+    expect(p.rest).not.toContain("strength");
+  });
+  it("follows the order of the goals, once per chart", () => {
+    const p = planCharts([{ metric: "squat", status: "active" }, { metric: "weight", status: "active" }, { metric: "deadlift", status: "active" }, { metric: "waist", status: "active" }], [...strength, "ex_deadlift"]);
+    expect(p.linked.map((l) => l.slot)).toEqual(["strength", "weight", "measurements"]);
+    expect(p.linked[0]).toEqual({ slot: "strength", exerciseId: "ex_back_squat" });
+    expect(p.linked[2]).toEqual({ slot: "measurements", kind: "waist" });
+  });
+  it("ignores goals that are achieved, revised or closed, and goals it cannot chart", () => {
+    expect(planCharts([{ metric: "weight", status: "achieved" }, { metric: "squat", status: "closed" }, { metric: "juggling", status: "active" }], strength).linked).toEqual([]);
+  });
+  it("with no active goals every chart waits under More charts", () => {
+    expect(planCharts([], strength).rest).toEqual(["weight", "measurements", "strength", "volume", "attendance"]);
+  });
+  it("sends sessions a week to attendance", () => {
+    expect(planCharts([{ metric: "sessions_per_week", status: "active" }], []).linked).toEqual([{ slot: "attendance" }]);
   });
 });

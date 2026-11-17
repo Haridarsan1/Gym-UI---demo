@@ -216,3 +216,59 @@ export function goalProgress(goal: Pick<Goal, "baseline" | "target">, current: n
   if (span === 0) return { fraction: 1, reached: current === goal.target };
   return { fraction: Math.min(1, Math.max(0, (current - goal.baseline) / span)), reached: span > 0 ? current >= goal.target : current <= goal.target };
 }
+
+/** The note a goal’s history gets when a reading or workout first reaches its target. The goal stays Active until the trainer confirms it. */
+export const TARGET_REACHED = "Target reached";
+
+/** The first time the target was reached, from the goal’s history, or nothing. */
+export const targetReachedAt = (history: Array<{ at: string; note: string }>): string | undefined => history.find((h) => h.note.startsWith(TARGET_REACHED))?.at;
+
+/** Which exercises each strength goal is measured on. */
+export const STRENGTH_METRICS: Record<string, string[]> = { bench_press: ["ex_bench_press", "ex_db_bench"], squat: ["ex_back_squat"], deadlift: ["ex_deadlift"], overhead_press: ["ex_ohp", "ex_db_ohp"] };
+
+/** The chart a goal’s progress is read from, so Progress can show it first. */
+export type GoalChart = { chart: "weight" } | { chart: "measurement"; kind: MemberMeasurementKind } | { chart: "strength"; exerciseId: string } | { chart: "attendance" };
+
+/**
+ * Which chart belongs to a goal: weight goals to the weight chart, strength goals to the strength chart (on the first of their
+ * exercises the member has data for), other measurements to the measurements chart, and sessions a week to attendance.
+ */
+export function chartForGoal(metric: string, strengthExerciseIds: string[]): GoalChart | undefined {
+  if (metric === "weight") return { chart: "weight" };
+  if (MEMBER_MEASUREMENTS.some((m) => m.kind === metric)) return { chart: "measurement", kind: metric as MemberMeasurementKind };
+  const ids = STRENGTH_METRICS[metric];
+  if (ids) {
+    const exerciseId = ids.find((id) => strengthExerciseIds.includes(id));
+    return exerciseId ? { chart: "strength", exerciseId } : undefined;
+  }
+  if (metric === "sessions_per_week") return { chart: "attendance" };
+  return undefined;
+}
+
+export type ChartSlot = "weight" | "measurements" | "strength" | "volume" | "attendance";
+export interface PlannedChart {
+  slot: ChartSlot;
+  /** For the measurements chart: which measurement to open on. */
+  kind?: MemberMeasurementKind;
+  /** For the strength chart: which exercise to open on. */
+  exerciseId?: string;
+}
+
+const ALL_SLOTS: ChartSlot[] = ["weight", "measurements", "strength", "volume", "attendance"];
+
+/**
+ * The order of the charts on Progress: first the charts tied to the member’s active goals, in the order of the goals (a weight
+ * goal puts the weight chart first, a strength goal the strength chart on that exercise), then the rest. Completion is shown
+ * after the goal charts and is not part of this list. A chart appears once, however many goals point at it.
+ */
+export function planCharts(goals: Array<{ metric: string; status: string }>, strengthExerciseIds: string[]): { linked: PlannedChart[]; rest: ChartSlot[] } {
+  const linked: PlannedChart[] = [];
+  for (const g of goals.filter((x) => x.status === "active")) {
+    const c = chartForGoal(g.metric, strengthExerciseIds);
+    if (!c) continue;
+    const slot: ChartSlot = c.chart === "measurement" ? "measurements" : c.chart;
+    if (linked.some((l) => l.slot === slot)) continue;
+    linked.push({ slot, kind: c.chart === "measurement" ? c.kind : undefined, exerciseId: c.chart === "strength" ? c.exerciseId : undefined });
+  }
+  return { linked, rest: ALL_SLOTS.filter((s) => !linked.some((l) => l.slot === s)) };
+}

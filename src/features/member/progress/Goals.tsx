@@ -19,7 +19,7 @@ export function Goals({ goals }: { goals: GoalView[] }) {
   return (
     <section aria-labelledby="goals-title" className="clay p-5">
       <h2 id="goals-title" className="text-lg font-bold">Goals</h2>
-      <p className="text-sm text-clay-muted">Set with your trainer. Your readings and workouts move the bar.</p>
+      <p className="text-sm text-clay-muted">Set with your trainer. Your readings and workouts move the bar, and your trainer confirms when a goal is achieved.</p>
       {goals.length === 0 ? (
         <p className="mt-3 rounded-2xl bg-clay-lavender px-4 py-4 text-[0.95rem]">No goals yet. Your trainer sets goals with you at your assessment, and they appear here with a bar towards each target.</p>
       ) : (
@@ -48,7 +48,12 @@ export function Goals({ goals }: { goals: GoalView[] }) {
                     </p>
                   </>
                 )}
-                {g.reached && <p className="mt-1 text-sm font-semibold">You have reached this target. Your trainer will mark it achieved.</p>}
+                {g.targetReachedOn && (
+                  <p className="mt-2 flex items-start gap-2 rounded-xl bg-mint-100 px-3 py-2 text-sm font-semibold text-mint-700">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>Target reached on {formatDate(g.targetReachedOn)}. Your trainer will confirm it at your next review.</span>
+                  </p>
+                )}
                 <p className="mt-1 text-sm text-clay-muted">{dateLine(g)}</p>
                 {g.history.length > 1 && (
                   <details className="mt-1">

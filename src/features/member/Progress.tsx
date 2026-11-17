@@ -8,9 +8,12 @@ import { SCREENS } from "@/app/screens";
 import { Button3D } from "@/design/Button3D";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonCard } from "@/design/Skeleton";
-import { RANGES, measurementInfo, rangeStart, type MemberMeasurementKind, type RangeKey } from "@/domain/progress";
+import { useSession } from "@/app/SessionContext";
+import { RANGES, measurementInfo, planCharts, rangeStart, type ChartSlot, type MemberMeasurementKind, type PlannedChart, type RangeKey } from "@/domain/progress";
 import { AttendanceCard, CompletionCard, MeasurementsCard, StrengthCard, VolumeCard, WeightCard, type Range } from "@/features/member/progress/Charts";
 import { Goals } from "@/features/member/progress/Goals";
+import { KeyStats } from "@/features/member/progress/KeyStats";
+import { useRememberedFlag } from "@/features/member/progress/useRemembered";
 import { LogSheet } from "@/features/member/progress/LogSheet";
 import { Chips } from "@/features/member/progress/MetricCard";
 import { Photos } from "@/features/member/progress/Photos";
@@ -48,6 +51,19 @@ function ProgressContent({ data }: { data: ProgressData }) {
   const start = rangeStart(key, data.today, earliest);
   const from = start < earliest ? earliest : start;
   const range: Range = { from, to: data.today, firstWeek: Math.max(0, data.weeks.findIndex((w) => w >= from)) };
+  const { session } = useSession();
+  const [more, setMore] = useRememberedFlag(`ember.progress.moreCharts.${session?.userId ?? "anonymous"}`);
+  const plan = planCharts(data.goals, data.strength.map((x) => x.exerciseId));
+  const chart = (c: PlannedChart | { slot: ChartSlot }) => {
+    const planned = c as PlannedChart;
+    switch (c.slot) {
+      case "weight": return <WeightCard key="weight" data={data} range={range} onLog={() => open("weight")} />;
+      case "measurements": return <MeasurementsCard key="measurements" data={data} range={range} onLog={() => open("waist")} initialKind={planned.kind} />;
+      case "strength": return <StrengthCard key="strength" data={data} range={range} initialExerciseId={planned.exerciseId} />;
+      case "volume": return <VolumeCard key="volume" data={data} range={range} />;
+      case "attendance": return <AttendanceCard key="attendance" data={data} range={range} />;
+    }
+  };
   const open = (kind: MemberMeasurementKind) => {
     setLastKind(kind);
     setLogging(kind);
@@ -69,12 +85,18 @@ function ProgressContent({ data }: { data: ProgressData }) {
           Log your weight or a measurement
         </Button3D>
       </div>
-      <WeightCard data={data} range={range} onLog={() => open("weight")} />
-      <MeasurementsCard data={data} range={range} onLog={() => open("waist")} />
-      <StrengthCard data={data} range={range} />
-      <VolumeCard data={data} range={range} />
-      <AttendanceCard data={data} range={range} />
+      <KeyStats data={data} range={range} />
+      {plan.linked.map((c) => chart(c))}
       <CompletionCard data={data} range={range} />
+      {plan.rest.length > 0 && (
+        <details open={more} onToggle={(e) => setMore(e.currentTarget.open)} className="clay-flat px-5">
+          <summary className="flex min-h-[3.5rem] cursor-pointer items-center justify-between gap-3 text-lg font-bold">
+            More charts
+            <span className="text-sm font-semibold text-clay-muted">{plan.rest.length}</span>
+          </summary>
+          <div className="space-y-5 pb-5">{plan.rest.map((slot) => chart({ slot }))}</div>
+        </details>
+      )}
       <RecordsShelf data={data} />
       <Goals goals={data.goals} />
       <Photos />
