@@ -1,14 +1,17 @@
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
-import HomePage from "@/pages/home/HomePage";
 import { scrollToId } from "@/lib/scroll";
 import { AREAS, AREA_PATH } from "@/domain/roles";
 
+/** Lazy so /m, /login and /signup do not download it. See preloadHomeOnRoot in vite.config.ts. */
+const HomePage = lazy(() => import("@/pages/home/HomePage"));
 const TrialSignupPage = lazy(() => import("@/pages/signup/TrialSignupPage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const AppEntry = lazy(() => import("@/app/AppEntry"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+/** Design gallery. Only exists in development builds. */
+const DesignCheck = import.meta.env.DEV ? lazy(() => import("@/design/DesignCheck")) : null;
 
 /**
  * Scroll handling between pages.
@@ -71,6 +74,7 @@ export default function App() {
           {AREAS.map((a) => (
             <Route key={a} path={`${AREA_PATH[a]}/*`} element={<AppEntry area={a} />} />
           ))}
+          {DesignCheck && <Route path="/dev/design" element={<DesignCheck />} />}
           <Route path="/privacy" element={<LegalPage title="Privacy policy" />} />
           <Route path="/terms" element={<LegalPage title="Terms of service" />} />
           <Route path="/refunds" element={<LegalPage title="Refund policy" />} />

@@ -6,6 +6,8 @@ import { homePathFor } from "@/domain/roles";
 import { readSession } from "@/app/session";
 import { SessionProvider } from "@/app/SessionContext";
 import { RequireArea } from "@/app/guards";
+import { ToastProvider } from "@/design/Toast";
+import { DemoGate } from "@/design/DemoGate";
 
 /**
  * The only door into the app from the marketing site. App.tsx loads this file lazily, so React Query,
@@ -19,7 +21,8 @@ const areas = {
   admin: lazy(() => import("@/features/admin")),
 };
 
-const Devtools = import.meta.env.DEV
+/** Development only, and off while Playwright runs because its floating button covers the bottom bar. */
+const Devtools = import.meta.env.DEV && !import.meta.env.VITE_E2E
   ? lazy(() => import("@tanstack/react-query-devtools").then((m) => ({ default: m.ReactQueryDevtools })))
   : null;
 
@@ -38,15 +41,19 @@ export default function AppEntry({ area }: { area: Area | "index" }) {
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        <Suspense fallback={<div className="min-h-screen bg-clay-canvas" />}>
-          {area === "index" || !Area ? (
-            <AppIndex />
-          ) : (
-            <RequireArea area={area}>
-              <Area />
-            </RequireArea>
-          )}
-        </Suspense>
+        <ToastProvider>
+          <Suspense fallback={<div className="min-h-screen bg-clay-canvas" />}>
+            {area === "index" || !Area ? (
+              <AppIndex />
+            ) : (
+              <RequireArea area={area}>
+                <DemoGate>
+                  <Area />
+                </DemoGate>
+              </RequireArea>
+            )}
+          </Suspense>
+        </ToastProvider>
       </SessionProvider>
       {Devtools && (
         <Suspense fallback={null}>

@@ -169,4 +169,57 @@
     background: #fff;
     border: 3px solid #fc5200;
   }
+
+  /*
+   * Button3D: a solid face on a darker lip. Pressing moves the face down by the lip height and the lip disappears.
+   * Faces are light with plum-ink text so contrast stays above 4.5:1 (white on Ember orange is only about 3.4:1).
+   */
+  .btn3d {
+    --lip: 4px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 3rem;
+    padding: 0 1.5rem;
+    border-radius: 1rem;
+    font-weight: 700;
+    color: var(--btn-fg);
+    background: var(--btn-face);
+    box-shadow: 0 var(--lip) 0 var(--btn-lip);
+    transform: translateY(0);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    margin-bottom: var(--lip);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .btn3d:active:not(:disabled),
+  .btn3d[data-pressed="true"] {
+    transform: translateY(var(--lip));
+    box-shadow: 0 0 0 var(--btn-lip);
+  }
+  .btn3d:disabled,
+  .btn3d[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .btn3d[data-size="lg"] { min-height: 3.5rem; padding: 0 2rem; font-size: 1.0625rem; }
+  .btn3d[data-variant="ember"] { --btn-face: #fc5200; --btn-lip: #b53a00; --btn-fg: #1b1430; }
+  .btn3d[data-variant="mint"] { --btn-face: #6fcfa6; --btn-lip: #2e9e75; --btn-fg: #06301f; }
+  .btn3d[data-variant="lilac"] { --btn-face: #b9a7fb; --btn-lip: #7857ee; --btn-fg: #1b1430; }
+  .btn3d[data-variant="ink"] { --btn-face: #231c35; --btn-lip: #0c0818; --btn-fg: #ffffff; }
+  .btn3d[data-variant="white"] { --btn-face: #ffffff; --btn-lip: #d9d2e3; --btn-fg: #231c35; outline: 1.5px solid #ece6f1; outline-offset: -1.5px; }
+
+  /* Loading placeholder. The shimmer stops with reduced motion (see the global rule above). */
+  .skeleton {
+    background: linear-gradient(90deg, #efe9f3 0%, #f8f4fb 50%, #efe9f3 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 0.75rem;
+  }
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
 }

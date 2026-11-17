@@ -1,10 +1,6 @@
-import { Route, Routes } from "react-router-dom";
-import { AreaStub } from "@/app/AreaStub";
+import { AreaRoutes } from "@/app/AreaRoutes";
 
+/** Owner area. Screens built in this area’s milestone are added to `implemented`, keyed by screen id. */
 export default function OwnerArea() {
-  return (
-    <Routes>
-      <Route path="*" element={<AreaStub title="Owner" />} />
-    </Routes>
-  );
+  return <AreaRoutes area="owner" />;
 }

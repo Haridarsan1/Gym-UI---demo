@@ -66,6 +66,11 @@ for (const route of routes) {
       }
     }
   }
+  // The home page is loaded lazily and fetched only on "/". Every other route must not download it.
+  if (route.path !== "/" && files.some((f) => f.url.includes("/HomePage-"))) {
+    notes.push("FAIL: home page loaded");
+    failed = true;
+  }
   const budget = BUDGET_KB[route.path];
   if (budget && total / 1024 > budget) {
     notes.push(`FAIL: over ${budget} KB budget`);

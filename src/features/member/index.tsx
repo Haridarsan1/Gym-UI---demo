@@ -1,10 +1,6 @@
-import { Route, Routes } from "react-router-dom";
-import { AreaStub } from "@/app/AreaStub";
+import { AreaRoutes } from "@/app/AreaRoutes";
 
+/** Member area. Screens built in this area’s milestone are added to `implemented`, keyed by screen id. */
 export default function MemberArea() {
-  return (
-    <Routes>
-      <Route path="*" element={<AreaStub title="Member" />} />
-    </Routes>
-  );
+  return <AreaRoutes area="member" />;
 }

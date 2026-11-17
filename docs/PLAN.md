@@ -50,7 +50,7 @@ New pieces:
 
 | Piece | Description |
 |---|---|
-| **3D press button** (`Button3D`) | Duolingo-style: solid face plus a darker bottom lip (`box-shadow: 0 4px 0 <darker>`). On press the face moves down 4 px and the lip disappears. Variants: ember, mint, lilac, ink, white. Used for primary actions in member and trainer apps. |
+| **3D press button** (`Button3D`) | Duolingo-style: solid face plus a darker bottom lip (`box-shadow: 0 4px 0 <darker>`). On press the face moves down 4 px and the lip disappears. Variants: ember, mint, lilac, ink, white. Faces are light with plum-ink text (white on Ember orange is only about 3.4:1; plum-ink on it is 4.9:1), except ink. Used for primary actions in member and trainer apps. |
 | **Program path** | Vertical, gently zig-zagging path of workout nodes (like Duolingo’s lesson path). Done = ember with check, today = pulsing with a “Start” bubble, upcoming = clay grey, missed = outlined, skipped = dashed. Week headers as path milestones. |
 | **Celebration system** | `celebrate({ kind })` for: workout complete, personal record, goal achieved, streak extended, check-in success. Confetti in brand colours, XP and stat count-ups, badge pop. Short, skippable, off with reduced motion. One shared component, so it stays consistent. |
 | **Streak flame and weekly ring** | Streak counts *weeks in a row* the member hit their planned workouts (healthy for gyms; no daily guilt). Frozen membership pauses the streak instead of breaking it. |
@@ -188,7 +188,10 @@ src/
   pages/          marketing pages: home/, signup/, LoginPage, LegalPage, NotFound
   components/     ui/ (Button, Logo, Container, SectionHeader, StatusPill) and gym/ (marketing illustrations)
   config/ data/ hooks/ lib/   marketing brand, content, motion hooks, formatting and scroll helpers
-  app/            lazy entry (AppEntry), session (localStorage), SessionContext, guards (RequireArea, RequireCan, Can), demoAccounts (people who can log in; also read by the login page, so keep it tiny), area stub
+  app/            lazy entry (AppEntry), session (localStorage), SessionContext, guards (RequireArea, RequireCan, Can),
+                  screens.ts (registry of every PLAN §4 screen: path, requirement IDs, permission, place in navigation),
+                  navigation.ts (what each person sees, mobile bar, landing screen, raised action), AreaRoutes (routes built from the registry),
+                  ScreenStub (placeholder until a screen’s milestone), SubNav, demoAccounts (people who can log in; also read by the login page, so keep it tiny)
   api/            typed API functions and React Query hooks. context.ts re-resolves the caller from the database and checks permissions. Demo implementation now, HTTP later
   demo/           db.ts (Dexie, one table per S07 record), seed.ts (pure, deterministic generator), simulate.ts (latency and failures), index.ts (ensureSeeded, resetDemo, runOnce, writeAudit)
   domain/         pure business rules, no React
@@ -199,12 +202,13 @@ src/
     checkin.ts credits.ts billing.ts metrics.ts reports.ts   added in the milestone that needs each (membership.ts gains the lifecycle in M3)
   test/           Vitest setup (fake IndexedDB, in-memory localStorage, no simulated delay)
   features/       one folder per area: member/ trainer/ desk/ owner/ admin/ (finance lives in desk/)
-  design/         app-only pieces: Button3D, shells, toasts, skeletons, palette (planned)
+  design/         app-only pieces: Button3D, Skeleton, States (empty and error), StatusPills, Toast, Dialog, Avatar, DemoGate, DesignCheck (dev only)
+    shells/         PlayShell (member and trainer), StaffShell (desk, owner, admin), AvatarMenu, BranchSwitcher and BranchContext, CommandPalette
 e2e/              Playwright tests: marketing.spec.ts is the regression suite for the marketing site
 scripts/          bundle-report.mjs
 ```
 
-**Bundle rule:** `App.tsx` loads `src/app/AppEntry.tsx` lazily and nothing else from the app. React Query, Dexie, Zod, the seed generator and the shells must not appear in the bundles for `/`, `/signup` or `/login`. `npm run bundle-report` (after `npm run build`) fails if they do.
+**Bundle rule:** `App.tsx` loads `src/app/AppEntry.tsx` lazily and nothing else from the app. The home page is lazy too, so `/m`, `/login` and `/signup` don’t download it; `vite.config.ts` preloads it (with everything it imports) on `/` only, so `/` is not slowed down (measured: LCP 1744 ms vs 1728 ms before, Slow-4G profile with 4× CPU slowdown). React Query, Dexie, Zod, the seed generator and the shells must not appear in the bundles for `/`, `/signup` or `/login`. `npm run bundle-report` (after `npm run build`) fails if they do.
 
 **Dependencies are pinned** to exact versions, each at least two weeks old when added. Vitest is on 3.x because Vitest 4 and later need Vite 6 or newer and the project is on Vite 5.
 
@@ -239,7 +243,10 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - [x] Demo database (Dexie), seed generator, reset control (`resetDemo()`; the button comes with the shells), latency and failure simulation
   - Seed in M0: Pulse Fitness, 3 branches, 14 logins (6 trainers), plan catalogue, 150 members in every membership state, trainer assignments (incl. transfers), consents, PT credits. Invoices, bookings, workouts, check-ins and exercises are seeded in the milestone that first shows them.
 - [x] Permission map and route guards (`member.list` is separate from `member.read`, so members cannot browse the member list)
-- [ ] Design additions: `Button3D`, shells (member/trainer bottom tabs, staff sidebar), skeletons, toasts, empty states, status pills, ⌘K palette
+- [x] Design additions: `Button3D`, shells (member/trainer bottom tabs, staff sidebar), skeletons, toasts, empty states, status pills, ⌘K palette
+  - Navigation: member tabs Today · Program · (raised: Start today’s workout, or Check-in pass when there is no workout) · Progress · Bookings; Me behind the avatar (membership and receipts, check-in pass, reviews and check-ins, profile/consent/preferences). Trainer tabs Today · Clients · (raised: Log session) · Schedule · Library (exercises, templates, programs); Me behind the avatar. Staff: sidebar on desktop, four tabs plus More on phones. Every screen in §4 has a route and a place; the registry is checked against this file by a test.
+  - Finance staff work in `/desk` and land on Invoices and payments, because they cannot open Check-in.
+  - Left for the login step: role switcher in demo mode. The PWA step adds the “New version available” toast (the toast component already supports staying until dismissed).
 - [ ] Login: members with phone number + OTP **or** email + password (both offered); staff with email + password; demo accepts any 6-digit OTP and any password, plus a “Try as…” role picker and a role switcher in demo mode
 - [ ] PWA setup
 - **Done when:** each role lands on its own empty home inside its shell, on phone and desktop, with the correct navigation.

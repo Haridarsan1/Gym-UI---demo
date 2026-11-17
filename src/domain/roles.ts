@@ -26,3 +26,13 @@ const ROLE_AREA: Record<Role, Area> = {
 
 export const areaFor = (role: Role): Area => ROLE_AREA[role];
 export const homePathFor = (role: Role): string => AREA_PATH[areaFor(role)];
+
+export const ROLE_LABEL: Record<Role, string> = {
+  platform_admin: "Platform admin",
+  owner: "Owner",
+  branch_manager: "Branch manager",
+  front_desk: "Front desk",
+  finance: "Finance",
+  trainer: "Trainer",
+  member: "Member",
+};

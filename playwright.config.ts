@@ -14,7 +14,7 @@ export default defineConfig({
     { name: "phone", use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } } },
   ],
   webServer: {
-    command: `npm run dev -- --port ${PORT} --strictPort`,
+    command: `VITE_E2E=1 npm run dev -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
