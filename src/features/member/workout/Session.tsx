@@ -91,7 +91,7 @@ export function Session({ view }: { view: WorkoutView }) {
 
   const last = step === total - 1;
   return (
-    <div className={rest ? "pb-24" : ""}>
+    <div className={rest ? "pb-52" : "pb-24"}>
       <div className="sticky top-16 z-20 -mx-4 border-b border-clay-line bg-clay-canvas/95 px-4 pb-3 pt-2 backdrop-blur">
         <div className="flex items-center justify-between gap-2">
           <Link to="/m" aria-label="Leave workout. Your sets are saved." className="-ml-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-clay-muted hover:bg-clay-lavender">

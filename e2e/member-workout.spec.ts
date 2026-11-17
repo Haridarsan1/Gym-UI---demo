@@ -86,6 +86,20 @@ test.describe("Workout session: Arjun", () => {
     await expect(bench).toContainText(/Did: 10 × [\d.]+ kg, 10 × [\d.]+ kg, 8 × [\d.]+ kg/);
   });
 
+  test("the next set stays clear of the rest timer and the bottom bar", async ({ page }) => {
+    await logRemainingSets(page);
+    await next(page);
+    await page.getByRole("form", { name: "Set 1" }).getByRole("button", { name: "Log set" }).click();
+    const timer = page.getByRole("region", { name: "Rest timer" });
+    await expect(timer).toBeVisible();
+    const logButton = page.getByRole("form", { name: "Set 2" }).getByRole("button", { name: "Log set" });
+    await expect(async () => {
+      const t = (await timer.boundingBox())!;
+      const b = (await logButton.boundingBox())!;
+      expect(b.y + b.height).toBeLessThanOrEqual(t.y + 1);
+    }).toPass();
+  });
+
   test("saves a draft: after a reload the sets are still there and Today offers Continue", async ({ page }) => {
     await logRemainingSets(page);
     await next(page);

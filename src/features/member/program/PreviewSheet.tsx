@@ -15,7 +15,7 @@ const SECTION = { warmup: "Warm-up", main: "Main", cooldown: "Cool-down" } as co
 /** A day of the plan as the trainer wrote it, with what the member did next to it once there is a log (W03, T06). */
 export function PreviewSheet({ date, onClose }: { date: string | null; onClose: () => void }) {
   return (
-    <Dialog open={date !== null} onClose={onClose} label="Workout preview" placement="bottom" className="p-5">
+    <Dialog open={date !== null} onClose={onClose} label="Workout preview" placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       {date && <PreviewBody date={date} onClose={onClose} />}
     </Dialog>
   );

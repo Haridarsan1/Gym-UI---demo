@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Repeat } from "lucide-react";
 import type { WorkoutExercise } from "@/api";
 import type { LoggedExercise, LoggedSet } from "@/domain/types";
@@ -24,6 +24,8 @@ export function ExerciseStep({ x, entry, actions }: { x: WorkoutExercise; entry:
   const p = x.prescription;
   const [chosen, setChosen] = useState<number | null>(null);
   const [swapping, setSwapping] = useState(false);
+  // After a set is logged the next form opens lower down the page, possibly behind the rest timer, so it is scrolled into view.
+  const afterLogging = useRef(false);
   const logged = (n: number) => entry.sets.find((s) => s.setNumber === n);
   const sets = Array.from({ length: p.sets }, (_, i) => i + 1);
   const firstOpen = sets.find((n) => !logged(n));
@@ -63,11 +65,14 @@ export function ExerciseStep({ x, entry, actions }: { x: WorkoutExercise; entry:
                   p={p}
                   setNumber={n}
                   initial={s}
+                  scrollIntoView={afterLogging.current}
                   onLog={(set) => {
+                    afterLogging.current = true;
                     setChosen(null);
                     actions.onLog(set);
                   }}
                   onSkip={() => {
+                    afterLogging.current = true;
                     setChosen(null);
                     actions.onSkip(n);
                   }}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LoggedSet, Prescription } from "@/domain/types";
 import { Button3D } from "@/design/Button3D";
 import { asPrescribed, fieldsFor, targetReps } from "@/domain/workout";
@@ -12,7 +12,11 @@ const loadStep = (kg: string) => (Number(kg || 0) >= 20 ? 2.5 : 1);
  * Logging one set. Everything is pre-filled with the target, so a set done as prescribed is one tap (W03). Change a number
  * if it went differently. “Skip set” records that it was not done, calmly.
  */
-export function SetForm({ p, setNumber, initial, onLog, onSkip, onCancel }: { p: Prescription; setNumber: number; initial?: LoggedSet; onLog: (s: LoggedSet) => void; onSkip: () => void; onCancel?: () => void }) {
+export function SetForm({ p, setNumber, initial, scrollIntoView, onLog, onSkip, onCancel }: { p: Prescription; setNumber: number; initial?: LoggedSet; /** Bring the form into view, clear of the bottom bar, when it opens after a set was logged. */ scrollIntoView?: boolean; onLog: (s: LoggedSet) => void; onSkip: () => void; onCancel?: () => void }) {
+  const form = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (scrollIntoView) form.current?.scrollIntoView({ block: "nearest" });
+  }, [scrollIntoView]);
   const fields = fieldsFor(p);
   const from = initial && !initial.skipped ? initial : undefined;
   const [reps, setReps] = useState(text(from ? from.reps : targetReps(p)));
@@ -46,12 +50,13 @@ export function SetForm({ p, setNumber, initial, onLog, onSkip, onCancel }: { p:
 
   return (
     <form
+      ref={form}
       aria-label={`Set ${setNumber}`}
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
-      className="rounded-2xl bg-clay-lavender p-4"
+      className="scroll-mb-56 rounded-2xl bg-clay-lavender p-4"
     >
       <p className="font-bold">Set {setNumber} of {p.sets}</p>
       <div className="mt-3 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">

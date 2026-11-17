@@ -25,7 +25,7 @@ export function FinishSheet({ open, progress, pending, error, onSubmit, onClose 
   const words = WORDS[status];
   const parts = [`${progress.done} of ${progress.total} sets done`, progress.skipped ? `${progress.skipped} skipped` : "", progress.open ? `${progress.open} not logged` : ""].filter(Boolean);
   return (
-    <Dialog open={open} onClose={pending ? () => undefined : onClose} label="Finish workout" placement="bottom" className="p-5">
+    <Dialog open={open} onClose={pending ? () => undefined : onClose} label="Finish workout" placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       <h2 className="text-xl font-bold">{words.title}</h2>
       <p className="mt-1 font-semibold">{parts.join(" · ")}</p>
       <p className="mt-1 text-clay-muted">{words.lead}</p>

@@ -2,11 +2,13 @@ import { X } from "lucide-react";
 import type { ExerciseInfo } from "@/api";
 import { Dialog } from "@/design/Dialog";
 
+const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /** Choose a different exercise for the one prescribed (W03). The choice is saved against the original, so the trainer sees both. */
 export function SwapSheet({ open, original, current, alternatives, hasLoggedSets, onPick, onClose }: { open: boolean; original: ExerciseInfo; current: string; alternatives: ExerciseInfo[]; hasLoggedSets: boolean; onPick: (id: string) => void; onClose: () => void }) {
   const choices = [original, ...alternatives];
   return (
-    <Dialog open={open} onClose={onClose} label="Swap exercise" placement="bottom" className="p-5">
+    <Dialog open={open} onClose={onClose} label="Swap exercise" placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold">Swap exercise</h2>
@@ -33,7 +35,7 @@ export function SwapSheet({ open, original, current, alternatives, hasLoggedSets
                   {c.id === original.id ? " (prescribed)" : ""}
                   {selected ? " · selected" : ""}
                 </span>
-                <span className="text-sm capitalize text-clay-muted">{c.muscleGroups.join(", ")}{c.equipment.length ? ` · ${c.equipment.join(", ")}` : " · no equipment"}</span>
+                <span className="text-sm text-clay-muted">{sentence(`${c.muscleGroups.join(", ")}${c.equipment.length ? ` · ${c.equipment.join(", ")}` : " · no equipment"}`)}</span>
               </button>
             </li>
           );
