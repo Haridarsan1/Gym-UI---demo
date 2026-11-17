@@ -292,7 +292,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
       };
       booking("1", addDays(today, -20), "07:00", "08:00", "attended");
       booking("2", addDays(today, -6), "18:00", "19:00", "attended");
-      booking("3", addDays(today, 1), "19:00", "20:00", "booked");
+      booking("3", addDays(today, 2), "18:00", "19:00", "booked");
     }
     if (persona.memberId === "mem_sneha") invoiceFor(current, "10-visit pass", 300_000, 1, current.startsOn, addDays(current.startsOn, 3), { method: "upi" });
   }

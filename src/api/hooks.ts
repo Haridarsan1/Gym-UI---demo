@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getMe } from "@/api/me";
 import { listMembers, type MemberListParams } from "@/api/members";
+import { getToday } from "@/api/member";
 import { isRetryable } from "@/api/errors";
 import { useSession } from "@/app/SessionContext";
 
@@ -24,4 +25,10 @@ export function useMembers(params: MemberListParams = {}) {
     retry,
     placeholderData: keepPreviousData,
   });
+}
+
+/** The member’s Today screen: workout or rest day, week, streak, sessions, and anything needing attention. */
+export function useToday() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["member", session?.userId, "today"], queryFn: () => getToday(session), enabled: !!session, retry, staleTime: 15_000 });
 }

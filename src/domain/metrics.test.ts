@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays, daysBetween, eachDay, weekStart } from "@/domain/dates";
-import { adherence, detectPRs, nextWorkout, planFor, scheduledBetween, streakWeeks, volumeKg, weekStats, type WeekStat } from "@/domain/metrics";
+import { adherence, detectPRs, estimateMinutes, nextWorkout, planFor, scheduledBetween, streakWeeks, volumeKg, weekStats, type WeekStat } from "@/domain/metrics";
 import type { PlanDay, WorkoutLog, WorkoutPlanVersion } from "@/domain/types";
 
 const day = (dayOffset: number, canceled = false): PlanDay => ({ dayOffset, weekIndex: Math.floor(dayOffset / 7), dayIndex: 0, title: `Day ${dayOffset}`, canceled, prescriptions: [] });
@@ -149,5 +149,14 @@ describe("streak (weeks in a row at 75% or more)", () => {
     const stats = weekStats([v], logs, [{ from: "2026-11-09", to: "2026-11-12", reason: "Travel" }], "2026-11-02", "2026-11-17");
     expect(stats.map((s) => [s.weekStart, s.planned, s.done, s.frozen])).toEqual([["2026-11-02", 3, 2, false], ["2026-11-09", 3, 1, true], ["2026-11-16", 0, 0, false]]);
     expect(streakWeeks(stats, 75, "2026-11-16")).toBe(0); // 2/3 is 67%, so week one breaks it; the other weeks pause
+  });
+});
+
+describe("estimateMinutes", () => {
+  it("adds work and rest and rounds to five minutes", () => {
+    const rx = (sets: number, restSec?: number, durationSec?: number) => ({ exerciseId: "e", order: 0, section: "main" as const, sets, restSec, durationSec });
+    expect(estimateMinutes({ prescriptions: [rx(3, 90), rx(3, 90), rx(3, 60), rx(3, 60), rx(3, 60)] })).toBe(20); // 22 minutes, to the nearest five
+    expect(estimateMinutes({ prescriptions: [rx(1, undefined, 600)] })).toBe(10);
+    expect(estimateMinutes({ prescriptions: [] })).toBe(5);
   });
 });

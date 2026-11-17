@@ -242,7 +242,7 @@ Also added to existing records: `Invoice.placeOfSupply` (GST state code, decides
 
 | Member | Login | Shows |
 |---|---|---|
-| Arjun Kumar | `u_member_arjun`, phone 98200 22002 | A workout today (new plan from 13 days ago), 12 weeks of logs, a streak, 8 training credits (5 free, 1 held, 2 used), a booking tomorrow at 7 pm, one unread review, badges, a GST invoice for each month. |
+| Arjun Kumar | `u_member_arjun`, phone 98200 22002 | A workout today (new plan from 13 days ago), 12 weeks of logs, a streak, 8 training credits (5 free, 1 held, 2 used), a booking in two days at 6 pm (free cancellation open until 6 am tomorrow), one unread review, badges, a GST invoice for each month. |
 | Priya Sharma | phone 98200 22003 | A rest day, and a renewal invoice of ₹2,950 overdue by four days. |
 | Rahul Mehta | phone 98200 22004 | A frozen membership (streak paused), an IGST invoice (Karnataka). |
 | Sneha Patil | phone 98200 22005 | A trainer but no plan yet, a 10-visit pass with 4 visits left. |

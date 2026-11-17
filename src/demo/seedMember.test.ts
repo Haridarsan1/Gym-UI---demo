@@ -113,17 +113,17 @@ describe("Arjun Kumar: a workout today, 12 weeks of history", () => {
     expect(adherence(versions("mem_arjun"), logs("mem_arjun"), addDays(TODAY, -84), TODAY, TODAY).completionRate).toBeGreaterThan(0.6);
   });
 
-  it("has a credit balance of five free, one held for tomorrow’s session and two used", () => {
+  it("has a credit balance of five free, one held for the upcoming session and two used", () => {
     expect(creditBalance(seed.creditLedger.filter((c) => c.memberId === "mem_arjun"))).toEqual({ available: 5, reserved: 1, consumed: 2 });
   });
 
-  it("has tomorrow’s session booked with Coach Meera at 7 pm, plus two attended", () => {
+  it("has a session booked in two days with Coach Meera at 6 pm, plus two attended", () => {
     const b = seed.bookings.filter((x) => x.memberId === "mem_arjun");
     expect(b.map((x) => x.status).sort()).toEqual(["attended", "attended", "booked"]);
     const next = b.find((x) => x.status === "booked")!;
     expect(next.trainerId).toBe("u_trainer_meera");
-    expect(next.startsAt).toBe("2026-11-18T13:30:00.000Z"); // 19:00 in India
-    expect(next.slotKey).toBe("u_trainer_meera|2026-11-18T19:00");
+    expect(next.startsAt).toBe("2026-11-19T12:30:00.000Z"); // 18:00 in India
+    expect(next.slotKey).toBe("u_trainer_meera|2026-11-19T18:00");
   });
 
   it("has one unread shared review, one read, a private note and his own check-in", () => {

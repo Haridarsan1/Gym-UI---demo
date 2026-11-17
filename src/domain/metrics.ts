@@ -146,3 +146,13 @@ export function streakWeeks(weeks: WeekStat[], thresholdPercent: number, current
   }
   return streak;
 }
+
+/**
+ * A rough length for a workout, to help a member decide when to start: time under load plus rest between sets, to the
+ * nearest five minutes. Sets without a duration are taken as about 40 seconds of work.
+ */
+export function estimateMinutes(day: Pick<PlanDay, "prescriptions">): number {
+  let seconds = 0;
+  for (const p of day.prescriptions) seconds += p.sets * (p.durationSec ?? 40) + Math.max(0, p.sets - 1) * (p.restSec ?? 60);
+  return Math.max(5, Math.round(seconds / 60 / 5) * 5);
+}
