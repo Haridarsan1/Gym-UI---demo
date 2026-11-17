@@ -64,13 +64,14 @@
     border-radius: 1rem;
     box-shadow: inset 0 2px 5px rgba(35, 28, 53, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.9);
   }
+  /* White text on this gradient is 4.7:1 at its lightest point and higher below (a test checks it stays at 4.5:1 or more). */
   .clay-ember {
-    background: linear-gradient(150deg, #ffa778 0%, #ff7a3d 45%, #fc5200 100%);
+    background: linear-gradient(150deg, #d14000 0%, #c23c00 50%, #ae3600 100%);
     color: #fff;
     box-shadow:
-      inset 0 2px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -6px 0 rgba(122, 39, 0, 0.18),
-      0 22px 40px -18px rgba(252, 82, 0, 0.6);
+      inset 0 2px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -6px 0 rgba(70, 20, 0, 0.22),
+      0 22px 40px -18px rgba(209, 64, 0, 0.6);
   }
   .clay-lilac {
     background: linear-gradient(150deg, #c4b5fd 0%, #8b6cf6 100%);
@@ -172,7 +173,7 @@
 
   /*
    * Button3D: a solid face on a darker lip. Pressing moves the face down by the lip height and the lip disappears.
-   * Faces are light with plum-ink text so contrast stays above 4.5:1 (white on Ember orange is only about 3.4:1).
+   * Ember is dark enough for white text (4.7:1). Mint and lilac are light faces with dark text (7.7:1 and 8.4:1).
    */
   .btn3d {
     --lip: 4px;
@@ -205,7 +206,7 @@
     cursor: not-allowed;
   }
   .btn3d[data-size="lg"] { min-height: 3.5rem; padding: 0 2rem; font-size: 1.0625rem; }
-  .btn3d[data-variant="ember"] { --btn-face: #fc5200; --btn-lip: #b53a00; --btn-fg: #1b1430; }
+  .btn3d[data-variant="ember"] { --btn-face: #d14000; --btn-lip: #8f2b00; --btn-fg: #ffffff; }
   .btn3d[data-variant="mint"] { --btn-face: #6fcfa6; --btn-lip: #2e9e75; --btn-fg: #06301f; }
   .btn3d[data-variant="lilac"] { --btn-face: #b9a7fb; --btn-lip: #7857ee; --btn-fg: #1b1430; }
   .btn3d[data-variant="ink"] { --btn-face: #231c35; --btn-lip: #0c0818; --btn-fg: #ffffff; }

@@ -48,13 +48,19 @@ describe("member and trainer apps", () => {
   it("shows the member tabs Today, Program, Progress, Bookings, with Me behind the avatar", () => {
     const can = canFor("u_member_arjun");
     expect(titles(tabsFor("member", can))).toEqual(["Today", "Program", "Progress", "Bookings"]);
-    expect(titles(menuFor("member", can))).toEqual(["Membership and receipts", "Check-in pass", "Reviews and check-ins", "Profile, consent and preferences"]);
+    expect(titles(menuFor("member", can))).toEqual(["Membership and receipts", "Check-in pass", "Profile, consent and preferences"]);
   });
 
   it("shows the trainer tabs Today, Clients, Schedule, Library, with Me behind the avatar", () => {
     const can = canFor("u_trainer_meera");
     expect(titles(tabsFor("trainer", can))).toEqual(["Today", "Clients", "Schedule", "Exercises"]);
     expect(titles(menuFor("trainer", can))).toEqual(["Profile and preferences"]);
+  });
+
+  it("keeps Reviews inside Progress, not in the avatar menu", () => {
+    const can = canFor("u_member_arjun");
+    expect(visibleScreens("member", can).filter((s) => s.parent === "progress").map((s) => s.title)).toEqual(["Reviews and check-ins"]);
+    expect(screenPath("member", SCREENS.member.find((s) => s.id === "reviews")!)).toBe("/m/progress/reviews");
   });
 
   it("starts today’s workout when there is one, and opens the check-in pass when there is not", () => {

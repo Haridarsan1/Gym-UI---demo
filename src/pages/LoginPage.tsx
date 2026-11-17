@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
@@ -34,6 +34,9 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
   const [otpSentTo, setOtpSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Set when the email or phone number is not one of the sample accounts. Draws attention to the picker. */
+  const [pointToPicker, setPointToPicker] = useState(false);
+  const picker = useRef<HTMLElement>(null);
   const existing = readSession();
 
   useEffect(() => {
@@ -48,25 +51,37 @@ export default function LoginPage() {
     navigate(from && (from === area || from.startsWith(`${area}/`)) ? from : homePathFor(role), { replace: true });
   };
 
+  /** Not a sample account: say so kindly and point to the picker, instead of showing an error. */
+  const unknownAccount = () => {
+    setError(null);
+    setPointToPicker(true);
+    picker.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+    picker.current?.focus({ preventScroll: true });
+  };
+
   const onEmailSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setPointToPicker(false);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return setError("Enter the email you signed up with.");
     if (password.length < 1) return setError("Enter your password.");
     const account = findAccountByEmail(email);
-    if (!account) return setError("We couldn’t find an account with this email. In this demo, use one of the people under “Try the demo as”.");
+    if (!account) return unknownAccount();
     setError(null);
+    setPointToPicker(false);
     enter(account.userId, account.role);
   };
 
   const onPhoneSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setPointToPicker(false);
     const digits = phone.replace(/\s/g, "");
     if (!otpSentTo) {
       if (!/^[6-9]\d{9}$/.test(digits)) return setError("Enter a 10-digit mobile number.");
       const account = findAccountByPhone(digits);
-      if (!account) return setError("We couldn’t find a member with this number. Check it, or ask your front desk.");
+      if (!account) return unknownAccount();
       if (account.role !== "member") return setError("Staff log in with email and password.");
       setError(null);
+      setPointToPicker(false);
       setOtp("");
       return setOtpSentTo(digits);
     }
@@ -80,6 +95,7 @@ export default function LoginPage() {
   const switchMethod = (m: Method) => {
     setMethod(m);
     setError(null);
+    setPointToPicker(false);
     setOtpSentTo(null);
   };
 
@@ -163,12 +179,24 @@ export default function LoginPage() {
             </form>
           )}
 
+          {pointToPicker && (
+            <p role="status" className="mt-5 rounded-2xl bg-ember-50 px-4 py-3 text-sm font-semibold text-ember-800">
+              This demo uses sample accounts. Pick one below to explore.
+            </p>
+          )}
+
           <p className="mt-5 text-center text-sm text-clay-muted">
             New here? <Link to="/signup" className="font-semibold text-clay-ink underline decoration-ember-500/70 decoration-2 underline-offset-4">Start a free trial</Link>
           </p>
         </div>
 
-        <section aria-labelledby="try-as" className="mt-8">
+        <section
+          ref={picker}
+          tabIndex={-1}
+          aria-labelledby="try-as"
+          data-highlighted={pointToPicker || undefined}
+          className={cn("-mx-3 mt-8 rounded-3xl p-3 transition-shadow focus:outline-none", pointToPicker && "bg-ember-50/70 ring-[3px] ring-ember-500")}
+        >
           <h2 id="try-as" className="text-sm font-semibold text-clay-muted">Try the demo as</h2>
           <p className="mt-1 text-sm text-clay-muted">One tap signs you in to Pulse Fitness, a sample gym with 3 branches.</p>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">

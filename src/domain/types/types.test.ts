@@ -10,6 +10,7 @@ import {
   Prescription,
   Refund,
   S07_RECORDS,
+  StaffRole,
   WorkoutLog,
 } from "@/domain/types";
 
@@ -29,6 +30,25 @@ describe("S07 records", () => {
     const shared = InvoiceStatus.options.filter((s) => (MembershipStatus.options as readonly string[]).includes(s));
     expect(shared).toEqual([]);
     expect(MembershipStatus.options).toEqual(["pending", "scheduled", "active", "frozen", "expired", "canceled"]);
+  });
+});
+
+describe("StaffRole health access", () => {
+  const row = (role: string, canViewClientHealth?: boolean) => ({
+    id: "sr1", tenantId: "t1", userId: "u1", role, branchIds: ["b1"],
+    limits: { refundLimitPaise: 0, canOverrideCheckIn: false, maxDiscountBp: 0, ...(canViewClientHealth === undefined ? {} : { canViewClientHealth }) },
+  });
+  it("is off unless someone turns it on", () => {
+    expect(StaffRole.parse(row("owner")).limits.canViewClientHealth).toBe(false);
+  });
+  it("can be on for owners and branch managers only", () => {
+    expect(StaffRole.safeParse(row("owner", true)).success).toBe(true);
+    expect(StaffRole.safeParse(row("branch_manager", true)).success).toBe(true);
+    for (const role of ["front_desk", "finance", "trainer"]) {
+      const res = StaffRole.safeParse(row(role, true));
+      expect(res.success, role).toBe(false);
+      expect(res.error?.issues[0]?.message).toBe("Only an owner or a branch manager can be given access to client health data.");
+    }
   });
 });
 

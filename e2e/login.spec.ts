@@ -44,11 +44,35 @@ test.describe("email and password", () => {
     await page.getByLabel("Email").fill("owner@pulsefitness.in");
     await submit.click();
     await expect(page.getByRole("alert")).toHaveText("Enter your password.");
+  });
+
+  test("an email that is not in the sample gym points to the sample accounts instead of showing an error", async ({ page }) => {
+    await page.goto("/login");
+    const picker = page.locator("section[aria-labelledby=try-as]");
+    await expect(picker).not.toHaveAttribute("data-highlighted", /.*/);
     await page.getByLabel("Email").fill("nobody@pulsefitness.in");
     await page.getByLabel("Password").fill("x");
-    await submit.click();
-    await expect(page.getByRole("alert")).toContainText("We couldn’t find an account with this email");
+    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await expect(page.getByText("This demo uses sample accounts. Pick one below to explore.")).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(picker).toHaveAttribute("data-highlighted", "true");
+    await expect(picker).toBeFocused();
+    await expect(picker.getByRole("button", { name: /^Owner/ })).toBeInViewport();
     expect(await page.evaluate(() => localStorage.getItem("ember.session"))).toBeNull();
+    // Picking a sample account carries on as normal.
+    await picker.getByRole("button", { name: /^Owner/ }).click();
+    await expect(page).toHaveURL(/\/owner$/);
+  });
+
+  test("the highlight goes away when you change how you log in", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByLabel("Email").fill("nobody@pulsefitness.in");
+    await page.getByLabel("Password").fill("x");
+    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await expect(page.getByText("This demo uses sample accounts.")).toBeVisible();
+    await page.getByRole("button", { name: "Phone and code" }).click();
+    await expect(page.getByText("This demo uses sample accounts.")).toHaveCount(0);
+    await expect(page.locator("section[aria-labelledby=try-as]")).not.toHaveAttribute("data-highlighted", /.*/);
   });
 });
 
@@ -80,10 +104,13 @@ test.describe("phone and code", () => {
     await expect(page.getByRole("alert")).toHaveText("Enter a 10-digit mobile number.");
     await page.getByLabel("Mobile number").fill("9111111111");
     await page.getByRole("button", { name: "Send code" }).click();
-    await expect(page.getByRole("alert")).toContainText("We couldn’t find a member with this number");
+    await expect(page.getByText("This demo uses sample accounts. Pick one below to explore.")).toBeVisible();
+    await expect(page.locator("section[aria-labelledby=try-as]")).toHaveAttribute("data-highlighted", "true");
+    await expect(page.getByLabel("6-digit code")).toHaveCount(0);
     await page.getByLabel("Mobile number").fill("9820011003");
     await page.getByRole("button", { name: "Send code" }).click();
     await expect(page.getByRole("alert")).toHaveText("Staff log in with email and password.");
+    await expect(page.getByText("This demo uses sample accounts.")).toHaveCount(0);
     await page.getByLabel("Mobile number").fill("9820022002");
     await page.getByRole("button", { name: "Send code" }).click();
     await page.getByLabel("6-digit code").fill("12345");

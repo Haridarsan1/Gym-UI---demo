@@ -3,6 +3,7 @@ import { DEMO_ACCOUNTS, type DemoAccount } from "@/app/demoAccounts";
 import type { Session } from "@/app/session";
 import { getMe } from "@/api/me";
 import { getMember, listMembers } from "@/api/members";
+import { viewSensitive } from "@/api/sensitive";
 import { isApiError } from "@/api/errors";
 import { db } from "@/demo/db";
 import { ensureSeeded, resetDemo, runOnce, writeAudit } from "@/demo";
@@ -182,5 +183,100 @@ describe("network simulation", () => {
     expect(await rejects(listMembers(as("u_owner")))).toBe("network");
     configureSimulation({ failureRate: 0 });
     expect((await listMembers(as("u_owner"))).total).toBe(150);
+  });
+});
+
+describe("client health data: assessments and progress photos (S04, A05)", () => {
+  const photoFor = (memberId: string, id = `ph_${memberId}`) =>
+    db.measurements.put({ id, tenantId: "t_pulse", memberId, kind: "progress_photo", measuredOn: "2026-11-01", mediaRef: "blob:x", source: "member", recordedBy: "u_member_arjun", createdAt: "2026-11-01T04:30:00.000Z" });
+  const setHealth = (userId: string, on: boolean) =>
+    db.staffRoles.where("userId").equals(userId).modify((r) => void (r.limits.canViewClientHealth = on));
+  const events = () => db.auditEvents.where("action").anyOf("assessment.view", "photo.view").toArray();
+
+  beforeAll(async () => {
+    await resetDemo();
+  });
+
+  it("starts with the switch off for every staff role in the sample gym", async () => {
+    expect((await db.staffRoles.toArray()).every((r) => r.limits.canViewClientHealth === false)).toBe(true);
+  });
+
+  it("refuses an owner by default and writes no audit event for the refusal", async () => {
+    await photoFor("mem_arjun");
+    const before = (await events()).length;
+    expect(await rejects(viewSensitive(as("u_owner"), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" }))).toBe("forbidden");
+    expect(await rejects(viewSensitive(as("u_owner"), { kind: "photo", memberId: "mem_arjun", entityId: "ph_mem_arjun" }))).toBe("forbidden");
+    expect((await events()).length).toBe(before);
+  });
+
+  it("lets an owner view once the switch is on, and logs every view, repeats included", async () => {
+    await setHealth("u_owner", true);
+    const before = (await events()).length;
+    await viewSensitive(as("u_owner"), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" });
+    await viewSensitive(as("u_owner"), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" });
+    await viewSensitive(as("u_owner"), { kind: "photo", memberId: "mem_arjun", entityId: "ph_mem_arjun" });
+    const all = await events();
+    expect(all.length).toBe(before + 3);
+    const mine = all.filter((e) => e.actorId === "u_owner");
+    expect(mine.filter((e) => e.action === "assessment.view" && e.entityId === "asm_1")).toHaveLength(2);
+    expect(mine.filter((e) => e.action === "photo.view")).toHaveLength(1);
+    expect(mine[0]).toMatchObject({ actorRole: "owner", tenantId: "t_pulse", memberId: "mem_arjun" });
+    expect(mine.every((e) => !Number.isNaN(Date.parse(e.at)))).toBe(true);
+    expect(mine.find((e) => e.action === "photo.view")).toMatchObject({ entityId: "ph_mem_arjun", entityType: "photo" });
+    await setHealth("u_owner", false);
+    expect(await rejects(viewSensitive(as("u_owner"), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" }))).toBe("forbidden");
+  });
+
+  it("keeps a branch manager to their branch even with the switch on", async () => {
+    await setHealth("u_bm_bandra", true);
+    expect(await rejects(viewSensitive(as("u_bm_bandra"), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" }))).toBe("forbidden"); // Andheri
+    const bandra = (await db.members.where("homeBranchId").equals("br_bandra").first())!;
+    await viewSensitive(as("u_bm_bandra"), { kind: "assessment", memberId: bandra.id, entityId: "asm_2" });
+    await setHealth("u_bm_bandra", false);
+  });
+
+  it("still needs photo consent for an owner’s photo view", async () => {
+    await setHealth("u_owner", true);
+    const noConsent = (await db.members.toArray()).find((m) => m.id !== "mem_arjun" && !m.id.endsWith("x"))!;
+    await db.consents.where("memberId").equals(noConsent.id).filter((c) => c.scope === "photos").delete();
+    await photoFor(noConsent.id);
+    expect(await rejects(viewSensitive(as("u_owner"), { kind: "photo", memberId: noConsent.id, entityId: `ph_${noConsent.id}` }))).toBe("forbidden");
+    await viewSensitive(as("u_owner"), { kind: "assessment", memberId: noConsent.id, entityId: "asm_3" }); // assessments need no photo consent
+    await setHealth("u_owner", false);
+  });
+
+  it("never lets front desk or finance in, even if the switch is forced on in the database", async () => {
+    for (const userId of ["u_desk_andheri", "u_finance"]) await setHealth(userId, true);
+    const before = (await events()).length;
+    for (const userId of ["u_desk_andheri", "u_finance"]) {
+      expect(await rejects(viewSensitive(as(userId), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" })), userId).toBe("forbidden");
+      expect(await rejects(viewSensitive(as(userId), { kind: "photo", memberId: "mem_arjun", entityId: "ph_mem_arjun" })), userId).toBe("forbidden");
+    }
+    // A platform admin has no gym, so a gym’s members do not exist for them.
+    expect(await rejects(viewSensitive(as("u_admin"), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" }))).toBe("not_found");
+    expect((await events()).length).toBe(before);
+    for (const userId of ["u_desk_andheri", "u_finance"]) await setHealth(userId, false);
+  });
+
+  it("lets the assigned trainer and the member view, and logs both", async () => {
+    const before = (await events()).length;
+    await viewSensitive(as("u_trainer_meera"), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" });
+    await viewSensitive(as("u_member_arjun"), { kind: "photo", memberId: "mem_arjun", entityId: "ph_mem_arjun" });
+    const all = await events();
+    expect(all.length).toBe(before + 2);
+    expect(all.filter((e) => e.actorId === "u_trainer_meera").map((e) => e.action)).toEqual(["assessment.view"]);
+    expect(all.filter((e) => e.actorId === "u_member_arjun").map((e) => [e.action, e.actorRole])).toEqual([["photo.view", "member"]]);
+  });
+
+  it("refuses a trainer who does not train the member, and a member looking at someone else", async () => {
+    expect(await rejects(viewSensitive(as("u_trainer_aditya"), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" }))).toBe("forbidden");
+    expect(await rejects(viewSensitive(as("u_member_arjun"), { kind: "assessment", memberId: "mem_005", entityId: "asm_9" }))).toBe("forbidden");
+  });
+
+  it("treats another gym’s member and a missing photo as not found", async () => {
+    await db.members.add({ id: "mem_other2", tenantId: "t_other", name: "Someone Else", phone: "9000000002", homeBranchId: "br_x", joinedOn: "2026-01-01", qrToken: "qr-other2-123456" });
+    expect(await rejects(viewSensitive(as("u_owner"), { kind: "assessment", memberId: "mem_other2", entityId: "asm_1" }))).toBe("not_found");
+    expect(await rejects(viewSensitive(as("u_trainer_meera"), { kind: "photo", memberId: "mem_arjun", entityId: "ph_missing" }))).toBe("not_found");
+    await db.members.delete("mem_other2");
   });
 });

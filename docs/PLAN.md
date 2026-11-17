@@ -50,7 +50,7 @@ New pieces:
 
 | Piece | Description |
 |---|---|
-| **3D press button** (`Button3D`) | Duolingo-style: solid face plus a darker bottom lip (`box-shadow: 0 4px 0 <darker>`). On press the face moves down 4 px and the lip disappears. Variants: ember, mint, lilac, ink, white. Faces are light with plum-ink text (white on Ember orange is only about 3.4:1; plum-ink on it is 4.9:1), except ink. Used for primary actions in member and trainer apps. |
+| **3D press button** (`Button3D`) | Duolingo-style: solid face plus a darker bottom lip (`box-shadow: 0 4px 0 <darker>`). On press the face moves down 4 px and the lip disappears. Variants: ember, mint, lilac, ink, white. Ember is dark enough for white text (4.7:1); mint and lilac are light faces with dark text (7.7:1 and 8.4:1). A test keeps every pair at 4.5:1 or more. Used for primary actions in member and trainer apps. |
 | **Program path** | Vertical, gently zig-zagging path of workout nodes (like Duolingo’s lesson path). Done = ember with check, today = pulsing with a “Start” bubble, upcoming = clay grey, missed = outlined, skipped = dashed. Week headers as path milestones. |
 | **Celebration system** | `celebrate({ kind })` for: workout complete, personal record, goal achieved, streak extended, check-in success. Confetti in brand colours, XP and stat count-ups, badge pop. Short, skippable, off with reduced motion. One shared component, so it stays consistent. |
 | **Streak flame and weekly ring** | Streak counts *weeks in a row* the member hit their planned workouts (healthy for gyms; no daily guilt). Frozen membership pauses the streak instead of breaking it. |
@@ -71,15 +71,15 @@ Release labels follow the requirements: **R1** = proposed first release, **R2** 
 
 | Screen | What it does | Requirements | Delight |
 |---|---|---|---|
-| **Today** | Today’s workout, next booking, weekly ring, streak, sessions left, renewal date | T07 | Streak flame, ring fills, greeting by time of day |
+| **Today** | Today’s workout, next booking, weekly ring, streak, sessions left, renewal date; a card when the trainer shares a new review | T07 | Streak flame, ring fills, greeting by time of day |
 | **Program path** | Current plan version as a path; tap a node to preview; see past weeks | T03, T06 | Duolingo-style path, “Start” bubble on today |
 | **Workout session** | Exercise by exercise: instructions, alternatives, prescribed vs actual, pre-filled targets, one-tap “Done as prescribed”, rest timer, substitutions, skip set, notes, effort (RPE) | W03, T05, W01 | 3D buttons, rest timer ring, haptics, PR detection |
 | **Workout complete** | Summary: completed/partial/skipped, volume (load × reps), PRs, effort and feedback | W03, P02, P04 | Celebration, XP and volume count-up, badges |
-| **Progress** | Charts by metric and date range: weight, measurements, strength, volume, attendance, completion; baseline, latest, change; PR list; goals | P01–P04 | Self-drawing charts, goal trophies |
+| **Progress** | Charts by metric and date range: weight, measurements, strength, volume, attendance, completion; baseline, latest, change; PR list; goals; a **Reviews** section (shared trainer reviews) | P01–P04 | Self-drawing charts, goal trophies |
 | **Bookings** | Book PT sessions against trainer availability and credits; reschedule/cancel with policy shown before confirming; upcoming and past | T04, O01, M06 | Slot picker with clear credit cost |
 | **Membership** | Plan, status, validity, visits left, freeze info, renew/upgrade, auto-renew opt-in, invoices, receipts (download), payment history | M01–M04 | One-tap renew with confirmation stamp |
 | **Check-in pass** | Personal QR code, brightness boost, last check-ins | M05 | Pass flips when scanned (polling in demo) |
-| **Reviews and check-ins** | Shared trainer reviews, submit feedback on effort, recovery and obstacles | P04, T06 | — |
+| **Reviews and check-ins** | A section inside Progress (Progress → Reviews, not in the avatar menu): shared trainer reviews, submit feedback on effort, recovery and obstacles | P04, T06 | — |
 | **Me** | Profile, consent (photos, assessments, marketing), notification preferences, data export request, log out | S04, O04 | — |
 
 ### 4.2 Trainer app `/t` (R04)
@@ -127,13 +127,13 @@ Restrictions (R03): no access to assessments or progress photos anywhere in `/de
 | **Reports** | Memberships, renewals (cohort definition), leads and conversions, check-ins and peak hours, classes and no-shows, trainer utilisation, PT credits, invoices, collections, dues, refunds; filter by branch and date; CSV | O06, O07 |
 | **Members** | Full list with filters and bulk actions | M02 |
 | **Plans and pricing** | Trial, time-based and visit-based plans; prices, effective dates, branch coverage, visits, class entitlements, training credits; taxes and discounts | M01, M03 |
-| **Staff and roles** | Invite staff, assign roles and branches, permission limits | R02, S03 |
+| **Staff and roles** | Invite staff, assign roles and branches, permission limits, including “Can view client health and progress photos” (off by default; owners and branch managers only) | R02, S03 |
 | **Branches** | Hours, rooms, capacity, locale | O01 |
 | **Policies** | Check-in window, freeze rules, grace periods, cancellation cutoffs, no-show rules, proration, partial payments | M02, M05, T04, O02 |
 | **Communications** | Templates, delivery log, retry status, consent-aware sending (email first) | O04 |
 | **Import members** | CSV upload, preview, row-level errors, idempotent retry | S01 |
 | **Subscription** | Ember plan, limits usage, features, billing dates, software invoices (separate from member billing) | S02 |
-| **Audit log** | Membership changes, refunds, credit adjustments, permission changes, sensitive edits, support access | S05 |
+| **Audit log** | Membership changes, refunds, credit adjustments, permission changes, sensitive edits, every view of an assessment or progress photo, support access | S05 |
 | **Settings** | Gym profile, logo (white-label), GSTIN, currency, time zone | Operating assumptions |
 
 ### 4.6 Platform admin `/admin` (R01)
@@ -218,6 +218,8 @@ scripts/          bundle-report.mjs, make-icons.mjs, serve-dist.mjs
 
 One permission map in `domain/permissions.ts` (role × action × scope: own, assigned, branch, organisation, platform). It drives routes, navigation, buttons and API checks in demo mode. Cross-tenant and cross-branch access is denied by default and covered by tests (S03, A05).
 
+**Client health data.** Assessments and progress photos are open to the assigned trainer and to the member. Owners and branch managers are denied by default and can be given “Can view client health and progress photos” (a per-person switch in `StaffLimits`, set by an owner, never for front desk or finance). Even then, photos need the member’s photo consent, branch managers stay within their branches, and private trainer notes stay trainer-only. Owners and branch managers can always see that an assessment exists and each goal’s status. Every view goes through `src/api/sensitive.ts` and writes an audit event (`assessment.view`, `photo.view`), including repeat views and the member’s own.
+
 ---
 
 ## 6. Performance and quality budgets
@@ -245,7 +247,7 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
   - Seed in M0: Pulse Fitness, 3 branches, 14 logins (6 trainers), plan catalogue, 150 members in every membership state, trainer assignments (incl. transfers), consents, PT credits. Invoices, bookings, workouts, check-ins and exercises are seeded in the milestone that first shows them.
 - [x] Permission map and route guards (`member.list` is separate from `member.read`, so members cannot browse the member list)
 - [x] Design additions: `Button3D`, shells (member/trainer bottom tabs, staff sidebar), skeletons, toasts, empty states, status pills, ⌘K palette
-  - Navigation: member tabs Today · Program · (raised: Start today’s workout, or Check-in pass when there is no workout) · Progress · Bookings; Me behind the avatar (membership and receipts, check-in pass, reviews and check-ins, profile/consent/preferences). Trainer tabs Today · Clients · (raised: Log session) · Schedule · Library (exercises, templates, programs); Me behind the avatar. Staff: sidebar on desktop, four tabs plus More on phones. Every screen in §4 has a route and a place; the registry is checked against this file by a test.
+  - Navigation: member tabs Today · Program · (raised: Start today’s workout, or Check-in pass when there is no workout) · Progress · Bookings; Me behind the avatar (membership and receipts, check-in pass, profile/consent/preferences). Reviews are a section of Progress. Trainer tabs Today · Clients · (raised: Log session) · Schedule · Library (exercises, templates, programs); Me behind the avatar. Staff: sidebar on desktop, four tabs plus More on phones. Every screen in §4 has a route and a place; the registry is checked against this file by a test.
   - Finance staff work in `/desk` and land on Invoices and payments, because they cannot open Check-in.
   - Left for the login step: role switcher in demo mode. The PWA step adds the “New version available” toast (the toast component already supports staying until dismissed).
 - [x] Login: members with phone number + OTP **or** email + password (both offered); staff with email + password; demo accepts any 6-digit OTP and any password, plus a “Try as…” role picker and a role switcher in demo mode
@@ -307,6 +309,7 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - **Done when:** support access expires automatically and every action is in the audit log.
 
 ### M6 · Hardening and release
+- [ ] Upgrade to Vite 6 and Vitest 4 (Vitest 4 needs Vite 6; clears the remaining development-tool advisories)
 - [ ] Acceptance suite A01–A05 green
 - [ ] Performance budgets met, Lighthouse report saved
 - [ ] Accessibility pass (keyboard, screen reader, contrast)
@@ -329,6 +332,17 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 | Mascot | No mascot; use effects only (3D buttons, path, celebrations, streaks, haptics) |
 | Message channels | Email only |
 
+**Confirmed after M0**
+
+| Decision | Choice |
+|---|---|
+| Owner access to assessments and progress photos | Denied by default. An owner can switch on “Can view client health and progress photos” for an owner or branch manager (never front desk or finance). Every view of an assessment or photo is written to the audit log. Owners always see that an assessment exists and each goal’s status. |
+| React Router | Stay on 6.x, upgraded from 6.28.0 to 6.30.6 (exact pin). The two moderate advisories that remain affect all of 6.x through 7.17 and need the v7 jump: they concern server-side rendering, which we do not use, and open redirects via `<Link>`/`navigate`, where we only navigate to our own paths (the login return address is checked against the person’s own area). |
+| Reviews and check-ins | A Reviews section inside Progress, not in the avatar menu. Today shows a card when a trainer shares a new review. |
+| Button colours | Coloured faces stay. Ember is `#D14000` (white text 4.7:1). Mint and lilac keep dark text. The marketing site’s orange (`.clay-ember`) uses the same shade family. |
+| Unknown email or phone at login | No error. “This demo uses sample accounts. Pick one below to explore.” and the “Try the demo as” picker is highlighted. |
+| Vite 6 and Vitest 4 | Done in M6. |
+
 **Still to confirm (defaults in use)**
 
 | Decision | Default |
@@ -343,10 +357,6 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 
 | Question | Default in use |
 |---|---|
-| Member menu: where do “Reviews and check-ins” live? The brief listed membership, receipts, check-in pass, consent and preferences behind the avatar. | Added to the avatar menu so every §4 screen has a place. Could move into Progress. |
 | Finance staff work in `/desk` but cannot check members in. Where do they land? | On Invoices and payments. |
-| Owners cannot read assessments, progress photos or private trainer notes (only the assigned trainer and the member can). The requirements restrict desk and finance explicitly but are silent on owners. | Denied by default. Say if owners should see assessments. |
 | Platform administrators see no gym records, not even in support mode yet. | Support access (M5) adds a time-limited, reasoned, audited grant. |
-| `react-router-dom` 6.28.0 has a published advisory (`@remix-run/router`). It was in the project before M0. Vite 5’s dev server has one for esbuild (development only). | Not upgraded. Upgrading React Router to a patched 6.x is small; Vite 6 is a larger change and would let Vitest move to 4. |
-| Button faces: white text on Ember orange is about 3.4:1 (needs 4.5:1). | `Button3D` uses light faces with plum-ink text. The marketing buttons are unchanged. |
 | Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6. Bundle budget for `/m` is met: 129 KB of 170 KB. |

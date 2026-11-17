@@ -58,7 +58,7 @@ test.describe("member app navigation", () => {
     for (const tab of ["Today", "Program", "Progress", "Bookings"]) await expect(main(page).getByRole("link", { name: tab })).toBeVisible();
     await expect(main(page).getByRole("link", { name: "Check-in pass" })).toBeVisible();
     await page.getByRole("button", { name: /Account menu/ }).click();
-    for (const item of ["Membership and receipts", "Check-in pass", "Reviews and check-ins", "Profile, consent and preferences", "Sign out"]) {
+    for (const item of ["Membership and receipts", "Check-in pass", "Profile, consent and preferences", "Sign out"]) {
       await expect(page.getByRole("button", { name: item }).or(page.getByRole("link", { name: item })).first()).toBeVisible();
     }
   });
@@ -73,13 +73,30 @@ test.describe("member app navigation", () => {
     await expect(page).toHaveURL(/\/m\/pass$/);
   });
 
-  test("the avatar menu reaches membership, pass, reviews and profile", async ({ page }) => {
+  test("the avatar menu reaches membership, pass and profile, and no longer lists reviews", async ({ page }) => {
     await signInAs(page, "u_member_arjun", "/m");
-    for (const [link, heading] of [["Membership and receipts", "Membership"], ["Check-in pass", "Check-in pass"], ["Reviews and check-ins", "Reviews and check-ins"], ["Profile, consent and preferences", "Me"]] as const) {
+    await page.getByRole("button", { name: /Account menu/ }).click();
+    await expect(page.getByRole("banner").getByRole("link", { name: /Reviews/ })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    for (const [link, heading] of [["Membership and receipts", "Membership"], ["Check-in pass", "Check-in pass"], ["Profile, consent and preferences", "Me"]] as const) {
       await page.getByRole("button", { name: /Account menu/ }).click();
       await page.getByRole("banner").getByRole("link", { name: link }).click();
       await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
     }
+  });
+});
+
+test.describe("reviews live inside Progress", () => {
+  test("Progress has a Reviews section, reachable by tab, and Progress stays the active tab", async ({ page }) => {
+    await signInAs(page, "u_member_arjun", "/m/progress");
+    const section = page.getByRole("navigation", { name: "Section" });
+    await expect(section.getByRole("link")).toHaveText(["Progress", "Reviews"]);
+    await section.getByRole("link", { name: "Reviews" }).click();
+    await expect(page).toHaveURL(/\/m\/progress\/reviews$/);
+    await expect(page.getByRole("heading", { name: "Reviews and check-ins", level: 1 })).toBeVisible();
+    await expect(main(page).getByRole("link", { name: "Progress" })).toHaveAttribute("aria-current", "page");
+    await section.getByRole("link", { name: "Progress" }).click();
+    await expect(page.getByRole("heading", { name: "Progress", level: 1 })).toBeVisible();
   });
 });
 

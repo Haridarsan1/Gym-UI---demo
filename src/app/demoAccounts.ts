@@ -26,11 +26,11 @@ export interface DemoAccount {
   blurb: string;
 }
 
-const owner: StaffLimits = { refundLimitPaise: null, canOverrideCheckIn: true, maxDiscountBp: 2000 };
-const manager: StaffLimits = { refundLimitPaise: 5_000_000, canOverrideCheckIn: true, maxDiscountBp: 1000 };
-const desk: StaffLimits = { refundLimitPaise: 0, canOverrideCheckIn: true, maxDiscountBp: 500 };
-const finance: StaffLimits = { refundLimitPaise: 2_500_000, canOverrideCheckIn: false, maxDiscountBp: 500 };
-const trainer: StaffLimits = { refundLimitPaise: 0, canOverrideCheckIn: false, maxDiscountBp: 0 };
+const owner: StaffLimits = { refundLimitPaise: null, canOverrideCheckIn: true, maxDiscountBp: 2000, canViewClientHealth: false };
+const manager: StaffLimits = { refundLimitPaise: 5_000_000, canOverrideCheckIn: true, maxDiscountBp: 1000, canViewClientHealth: false };
+const desk: StaffLimits = { refundLimitPaise: 0, canOverrideCheckIn: true, maxDiscountBp: 500, canViewClientHealth: false };
+const finance: StaffLimits = { refundLimitPaise: 2_500_000, canOverrideCheckIn: false, maxDiscountBp: 500, canViewClientHealth: false };
+const trainer: StaffLimits = { refundLimitPaise: 0, canOverrideCheckIn: false, maxDiscountBp: 0, canViewClientHealth: false };
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   { userId: "u_admin", name: "Ember Admin", role: "platform_admin", tenantId: null, branchIds: [], email: "admin@ember.example", featured: true, blurb: "Tenants, plans and support access" },

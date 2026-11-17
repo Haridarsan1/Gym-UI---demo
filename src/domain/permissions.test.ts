@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ACTIONS, can, canRefund, scopeFor, type Action, type Principal, type StaffLimits } from "@/domain/permissions";
+import { ACTIONS, HEALTH_GRANTABLE_ROLES, can, canRefund, scopeFor, type Action, type Principal, type StaffLimits } from "@/domain/permissions";
 import { ROLES, type Role } from "@/domain/roles";
 
-const limits: StaffLimits = { refundLimitPaise: 500000, canOverrideCheckIn: true, maxDiscountBp: 1000 };
+const limits: StaffLimits = { refundLimitPaise: 500000, canOverrideCheckIn: true, maxDiscountBp: 1000, canViewClientHealth: false };
+const withHealth: StaffLimits = { ...limits, canViewClientHealth: true };
 
 const person = (role: Role, extra: Partial<Principal> = {}): Principal => ({
   userId: `u_${role}`,
@@ -111,12 +112,57 @@ describe("assigned and own scope", () => {
 });
 
 describe("sensitive data (R03, S04)", () => {
-  const sensitive = ACTIONS.filter((a) => a.startsWith("assessment.") || a.startsWith("photo.") || a === "note.private");
+  const sensitive = ACTIONS.filter((a) => a.startsWith("assessment.read") || a.startsWith("photo.") || a === "note.private" || a === "assessment.write");
+  const record = { tenantId: "t1", branchId: "b1", memberId: "m1", assignedTrainerId: "u_trainer_1", photoConsent: true };
 
-  it("never gives front desk, finance, owners, branch managers or platform admins assessments, photos or private notes", () => {
-    expect(sensitive.length).toBeGreaterThan(0);
-    for (const p of [desk, finance, owner, manager, admin]) {
-      for (const a of sensitive) expect(can(p, a), `${p.role} ${a}`).toBe(false);
+  it("denies owners and branch managers assessments and photos by default", () => {
+    for (const p of [owner, manager]) {
+      for (const a of ["assessment.read", "photo.read"] as const) expect(can(p, a, { ...record, branchId: "b2" }), `${p.role} ${a}`).toBe(false);
+    }
+  });
+
+  it("lets an owner or branch manager see them once “Can view client health and progress photos” is on", () => {
+    const ownerOn = { ...owner, limits: withHealth };
+    const managerOn = { ...manager, limits: withHealth };
+    expect(can(ownerOn, "assessment.read", record)).toBe(true);
+    expect(can(ownerOn, "photo.read", record)).toBe(true);
+    expect(can(managerOn, "assessment.read", { ...record, branchId: "b2" })).toBe(true);
+    expect(can(managerOn, "assessment.read", { ...record, branchId: "b1" })).toBe(false); // still limited to their branches
+  });
+
+  it("still needs the member’s photo consent for photos, even with the switch on", () => {
+    const ownerOn = { ...owner, limits: withHealth };
+    expect(can(ownerOn, "photo.read", { ...record, photoConsent: false })).toBe(false);
+    expect(can(ownerOn, "assessment.read", { ...record, photoConsent: false })).toBe(true);
+  });
+
+  it("never gives front desk, finance or platform admins assessments, photos or private notes, whatever their limits say", () => {
+    for (const base of [desk, finance, admin]) {
+      for (const p of [base, { ...base, limits: withHealth }]) {
+        for (const a of sensitive) expect(can(p, a), `${p.role} ${a}`).toBe(false);
+        for (const a of ["assessment.read", "photo.read"] as const) expect(can(p, a, record), `${p.role} ${a} with record`).toBe(false);
+      }
+    }
+  });
+
+  it("never lets owners or managers read private trainer notes or write assessments, even with the switch on", () => {
+    for (const p of [{ ...owner, limits: withHealth }, { ...manager, limits: withHealth }]) {
+      expect(can(p, "note.private")).toBe(false);
+      expect(can(p, "assessment.write")).toBe(false);
+    }
+  });
+
+  it("can only be given to owners and branch managers", () => {
+    expect(HEALTH_GRANTABLE_ROLES).toEqual(["owner", "branch_manager"]);
+  });
+
+  it("lets owners and branch managers see that an assessment exists and each goal’s status, but not front desk or finance", () => {
+    expect(can(owner, "assessment.exists", { tenantId: "t1", branchId: "b3" })).toBe(true);
+    expect(can(manager, "goal.status", { tenantId: "t1", branchId: "b2" })).toBe(true);
+    expect(can(manager, "goal.status", { tenantId: "t1", branchId: "b1" })).toBe(false);
+    for (const p of [desk, finance, admin]) {
+      expect(can(p, "assessment.exists"), p.role).toBe(false);
+      expect(can(p, "goal.status"), p.role).toBe(false);
     }
   });
 

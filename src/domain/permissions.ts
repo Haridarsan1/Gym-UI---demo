@@ -54,10 +54,15 @@ const GRANTS = {
   "booking.manage": { owner: O, branch_manager: B, front_desk: B, trainer: W, member: W },
   "schedule.manage": { owner: O, branch_manager: B, trainer: W },
 
-  // Training. Front desk, finance, owners and branch managers get none of the sensitive items (R03).
-  "assessment.read": { trainer: A, member: W },
+  // Training. Front desk and finance never get assessments or progress photos (R03). Owners and branch managers don’t
+  // either, unless an owner turns on “Can view client health and progress photos” for that person (see StaffLimits).
+  "assessment.read": { trainer: A, member: W, owner: O, branch_manager: B },
+  /** Seeing that an assessment exists and its date, without its contents. */
+  "assessment.exists": { owner: O, branch_manager: B },
+  /** Seeing goals and whether each is active, achieved, revised or closed, without notes or measurements. */
+  "goal.status": { owner: O, branch_manager: B },
   "assessment.write": { trainer: A },
-  "photo.read": { trainer: A, member: W },
+  "photo.read": { trainer: A, member: W, owner: O, branch_manager: B },
   "photo.write": { trainer: A, member: W },
   "goal.read": { trainer: A, member: W },
   "goal.write": { trainer: A },
@@ -114,7 +119,18 @@ export interface StaffLimits {
   refundLimitPaise: number | null;
   canOverrideCheckIn: boolean;
   maxDiscountBp: number;
+  /**
+   * “Can view client health and progress photos”. Off by default. Only an owner can turn it on, and only for an owner or
+   * a branch manager. It never applies to front desk or finance. Every view is written to the audit log.
+   */
+  canViewClientHealth: boolean;
 }
+
+/** Staff roles that can be given access to client health data. Front desk and finance never can. */
+export const HEALTH_GRANTABLE_ROLES: readonly Role[] = ["owner", "branch_manager"];
+
+/** Actions that open a client’s health information. Trainers get them by assignment and members for themselves. */
+export const HEALTH_ACTIONS: readonly Action[] = ["assessment.read", "photo.read"];
 
 /** The signed-in person as the permission checks see them. */
 export interface Principal {
@@ -159,6 +175,8 @@ function withinScope(p: Principal, scope: Scope, r: Resource): boolean {
 
 function limitsAllow(p: Principal, action: Action): boolean {
   if (action === "checkin.override") return p.limits?.canOverrideCheckIn === true;
+  // Owners and branch managers need the switch. It is ignored for every other role.
+  if (HEALTH_ACTIONS.includes(action) && HEALTH_GRANTABLE_ROLES.includes(p.role)) return p.limits?.canViewClientHealth === true;
   return true;
 }
 

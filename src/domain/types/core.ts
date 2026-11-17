@@ -70,19 +70,26 @@ export type User = z.infer<typeof User>;
 export const StaffRoleName = z.enum(["owner", "branch_manager", "front_desk", "finance", "trainer"]);
 
 /** What a staff user may do, and where (R02, S03). Branch managers and desk staff only act in `branchIds`. */
-export const StaffRole = z.object({
-  id,
-  tenantId: id,
-  userId: id,
-  role: StaffRoleName,
-  branchIds: z.array(id),
-  limits: z.object({
-    /** Largest refund this person can approve alone. Null means no limit. */
-    refundLimitPaise: z.number().int().nonnegative().nullable(),
-    canOverrideCheckIn: z.boolean(),
-    maxDiscountBp: basisPoints,
-  }),
-});
+export const StaffRole = z
+  .object({
+    id,
+    tenantId: id,
+    userId: id,
+    role: StaffRoleName,
+    branchIds: z.array(id),
+    limits: z.object({
+      /** Largest refund this person can approve alone. Null means no limit. */
+      refundLimitPaise: z.number().int().nonnegative().nullable(),
+      canOverrideCheckIn: z.boolean(),
+      maxDiscountBp: basisPoints,
+      /** “Can view client health and progress photos”. Off by default. See permissions.ts. */
+      canViewClientHealth: z.boolean().default(false),
+    }),
+  })
+  .refine((r) => !r.limits.canViewClientHealth || r.role === "owner" || r.role === "branch_manager", {
+    message: "Only an owner or a branch manager can be given access to client health data.",
+    path: ["limits", "canViewClientHealth"],
+  });
 export type StaffRole = z.infer<typeof StaffRole>;
 
 export const Member = z.object({
@@ -148,6 +155,8 @@ export const AuditAction = z.enum([
   "checkin.override",
   "support.access.start",
   "support.access.end",
+  "assessment.view",
+  "photo.view",
   "record.edit",
   "export.create",
   "import.run",
