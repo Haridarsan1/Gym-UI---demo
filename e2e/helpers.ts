@@ -52,3 +52,39 @@ export async function doWorkout(page: Page, opts: { exercises?: number; heavyBen
   }
   await page.getByRole("button", { name: "Finish", exact: true }).click();
 }
+
+/** Every row of one table in the demo database (IndexedDB), for checking what was really written. */
+export const readStore = (page: Page, store: string) =>
+  page.evaluate(
+    (name) => new Promise<Array<Record<string, unknown>>>((resolve, reject) => {
+      const open = indexedDB.open("ember-demo");
+      open.onsuccess = () => {
+        const all = open.result.transaction(name).objectStore(name).getAll();
+        all.onsuccess = () => resolve(all.result);
+        all.onerror = () => reject(all.error);
+      };
+    }),
+    store,
+  );
+
+/** Changes rows in one table: `change` is the source of a function that gets a row and returns the new row, `null` to delete, or `false` to leave it. */
+export const changeStore = (page: Page, store: string, change: string) =>
+  page.evaluate(
+    ([name, src]) => new Promise<void>((resolve, reject) => {
+      const open = indexedDB.open("ember-demo");
+      open.onsuccess = () => {
+        const tx = open.result.transaction(name!, "readwrite");
+        tx.objectStore(name!).openCursor().onsuccess = (e) => {
+          const c = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+          if (!c) return;
+          const out = new Function("v", `return (${src})(v)`)(c.value);
+          if (out === null) c.delete();
+          else if (out) c.update(out);
+          c.continue();
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      };
+    }),
+    [store, change],
+  );

@@ -34,6 +34,11 @@ export function dayWord(date: string, today: string): string {
   return formatWeekdayDate(date);
 }
 
+/** “6:00 am Wed 18 Nov”: the exact moment, always with its date, for deadlines the member plans around. */
+export function exactWhen(iso: string): string {
+  return `${formatTime(iso)} ${formatWeekdayDate(istDateOf(iso))}`;
+}
+
 /** “6:00 am tomorrow”, “7:00 pm today”, “6:00 pm Fri 20 Nov”. */
 export function whenText(iso: string, nowIso: string): string {
   return `${formatTime(iso)} ${dayWord(istDateOf(iso), istDateOf(nowIso))}`;
@@ -44,8 +49,8 @@ export function whenText(iso: string, nowIso: string): string {
  * After the deadline it says so and what cancelling does to the credit.
  */
 export function freeCancellationText(deadlineIso: string, nowIso: string, lateConsumesCredit: boolean): string {
-  if (Date.parse(nowIso) <= Date.parse(deadlineIso)) return `Free cancellation until ${whenText(deadlineIso, nowIso)}`;
-  return `Free cancellation ended at ${whenText(deadlineIso, nowIso)}. ${lateConsumesCredit ? "Cancelling now uses your credit." : "You can still cancel."}`;
+  if (Date.parse(nowIso) <= Date.parse(deadlineIso)) return `Free cancellation until ${exactWhen(deadlineIso)}`;
+  return `Free cancellation ended ${exactWhen(deadlineIso)}. ${lateConsumesCredit ? "Cancelling now uses your credit." : "You can still cancel."}`;
 }
 
 /** Good morning, afternoon or evening, by India time. */
@@ -68,8 +73,8 @@ type Outcome = "released" | "consumed" | "kept" | "too_late";
  * What cancelling does to the session credit at this moment, in plain words, shown before the member confirms. It always names
  * the exact free-cancellation time.
  */
-export function cancelNowText(outcome: Outcome, deadlineIso: string, nowIso: string): string {
-  const when = whenText(deadlineIso, nowIso);
+export function cancelNowText(outcome: Outcome, deadlineIso: string, _nowIso: string): string {
+  const when = exactWhen(deadlineIso);
   switch (outcome) {
     case "released": return `Cancelling now is free. Your session credit goes back to your balance. Free cancellation ends ${when}.`;
     case "consumed": return `Free cancellation ended ${when}. If you cancel now, this session credit is used and does not come back.`;
@@ -79,8 +84,8 @@ export function cancelNowText(outcome: Outcome, deadlineIso: string, nowIso: str
 }
 
 /** The late-cancellation and no-show terms for a session, in two plain sentences or fewer. Shown before booking and on each booking. */
-export function lateTermsText(deadlineIso: string, nowIso: string, lateConsumes: boolean, noShowConsumes: boolean): string {
-  const when = whenText(deadlineIso, nowIso);
+export function lateTermsText(deadlineIso: string, _nowIso: string, lateConsumes: boolean, noShowConsumes: boolean): string {
+  const when = exactWhen(deadlineIso);
   if (lateConsumes && noShowConsumes) return `After ${when}, cancelling or not turning up uses this session credit.`;
   if (lateConsumes) return `After ${when}, cancelling uses this session credit. If you do not turn up, the credit goes back to you.`;
   if (noShowConsumes) return `You can cancel for free at any time before the session. If you do not turn up, this session credit is used.`;

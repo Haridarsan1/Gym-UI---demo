@@ -100,7 +100,7 @@ describe("booking reserves one credit (M06)", () => {
     expect(mail).toHaveLength(1);
     expect(mail[0]).toMatchObject({ template: "booking_confirmed", status: "sent", to: "arjun.kumar@example.in", subject: "Session booked: 6:00 pm tomorrow", memberId: "mem_arjun" });
     expect(mail[0]!.body).toContain("Coach Meera");
-    expect(mail[0]!.body).toContain("Free cancellation ends 6:00 am tomorrow");
+    expect(mail[0]!.body).toContain("Free cancellation ends 6:00 am Wed 18 Nov");
     expect(mail[0]!.body).toContain("cancelling or not turning up uses this session credit");
   });
 
@@ -273,7 +273,7 @@ describe("rescheduling keeps one reserved credit", () => {
     setNow(new Date("2026-11-18T01:30:00.000Z"));
     const e = await failure(rescheduleBooking(arjun, { bookingId: r.bookingId, trainerId: MEERA, startsAt: FRI_5PM, idempotencyKey: "move-key-0003" }));
     expect(e.code).toBe("forbidden");
-    expect(e.message).toMatch(/Moving a session is free until 6:00 am today, and that time has passed/);
+    expect(e.message).toMatch(/Moving a session is free until 6:00 am Wed 18 Nov, and that time has passed/);
     expect((await db.bookings.get(r.bookingId))!.startsAt).toBe(WED_6PM);
   });
 

@@ -5,6 +5,7 @@ import { getToday } from "@/api/member";
 import type { DraftInput, SubmitInput } from "@/api/workout";
 import type { FeedbackInput } from "@/api/workoutSummary";
 import type { CheckInInput, MeasurementInput, PhotoInput } from "@/api/progress";
+import type { BookInput, CancelInput, RescheduleInput } from "@/api/bookings";
 import { isRetryable } from "@/api/errors";
 import { useSession } from "@/app/SessionContext";
 
@@ -19,6 +20,7 @@ import { useSession } from "@/app/SessionContext";
 const workoutApi = () => import("@/api/workout");
 const summaryApi = () => import("@/api/workoutSummary");
 const progressApi = () => import("@/api/progress");
+const bookingsApi = () => import("@/api/bookings");
 
 const retry = (count: number, error: unknown) => count < 2 && isRetryable(error);
 
@@ -171,3 +173,42 @@ export function useSubmitCheckIn() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId, "reviews"] }),
   });
 }
+
+/** Upcoming and past sessions, the credit balance and the gym’s booking rules. Read fresh each visit: credits and slots change. */
+export function useBookings() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["member", session?.userId, "bookings"], queryFn: async () => (await bookingsApi()).getBookings(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+/** Trainers the member can book, their own first. Only fetched while the booking sheet is open. */
+export function useTrainerOptions(enabled: boolean) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["member", session?.userId, "trainers"], queryFn: async () => (await bookingsApi()).getTrainerOptions(session), enabled: !!session && enabled, retry, staleTime: 0, gcTime: 0 });
+}
+
+/** One trainer’s days and slots. Never kept: a slot can be taken at any moment. */
+export function useTrainerSchedule(trainerId: string | undefined, excludeBookingId?: string) {
+  const { session } = useSession();
+  return useQuery({
+    queryKey: ["member", session?.userId, "schedule", trainerId, excludeBookingId],
+    queryFn: async () => (await bookingsApi()).getTrainerSchedule(session, trainerId!, excludeBookingId),
+    enabled: !!session && !!trainerId,
+    retry,
+    staleTime: 0,
+    gcTime: 0,
+  });
+}
+
+function useBookingMutation<I, O>(fn: (api: typeof import("@/api/bookings"), session: ReturnType<typeof useSession>["session"], input: I) => Promise<O>) {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: I) => fn(await bookingsApi(), session, input),
+    // A failed booking can leave the slots or terms changed, so everything the member sees is read again either way.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId] }),
+  });
+}
+
+export const useBookSession = () => useBookingMutation((api, session, input: BookInput) => api.bookSession(session, input));
+export const useCancelBooking = () => useBookingMutation((api, session, input: CancelInput) => api.cancelBooking(session, input));
+export const useRescheduleBooking = () => useBookingMutation((api, session, input: RescheduleInput) => api.rescheduleBooking(session, input));

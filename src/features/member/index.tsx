@@ -7,6 +7,7 @@ const implemented = {
   today: lazy(() => import("@/features/member/Today")),
   program: lazy(() => import("@/features/member/Program")),
   workout: lazy(() => import("@/features/member/Workout")),
+  bookings: lazy(() => import("@/features/member/Bookings")),
   progress: lazy(() => import("@/features/member/Progress")),
   reviews: lazy(() => import("@/features/member/Reviews")),
   "workout-complete": lazy(() => import("@/features/member/WorkoutComplete")),

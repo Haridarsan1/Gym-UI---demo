@@ -40,12 +40,12 @@ describe("words for days and greetings", () => {
 describe("free cancellation line (T04)", () => {
   const deadline = "2026-11-18T00:30:00.000Z"; // 6:00 am on 18 Nov
   it("names the exact deadline while it is free", () => {
-    expect(freeCancellationText(deadline, "2026-11-17T06:30:00.000Z", true)).toBe("Free cancellation until 6:00 am tomorrow");
-    expect(freeCancellationText("2026-11-17T13:30:00.000Z", "2026-11-17T06:30:00.000Z", true)).toBe("Free cancellation until 7:00 pm today");
+    expect(freeCancellationText(deadline, "2026-11-17T06:30:00.000Z", true)).toBe("Free cancellation until 6:00 am Wed 18 Nov");
+    expect(freeCancellationText("2026-11-17T13:30:00.000Z", "2026-11-17T06:30:00.000Z", true)).toBe("Free cancellation until 7:00 pm Tue 17 Nov");
   });
   it("says it ended, and what cancelling does, after the deadline", () => {
-    expect(freeCancellationText(deadline, "2026-11-18T03:00:00.000Z", true)).toBe("Free cancellation ended at 6:00 am today. Cancelling now uses your credit.");
-    expect(freeCancellationText(deadline, "2026-11-18T03:00:00.000Z", false)).toBe("Free cancellation ended at 6:00 am today. You can still cancel.");
+    expect(freeCancellationText(deadline, "2026-11-18T03:00:00.000Z", true)).toBe("Free cancellation ended 6:00 am Wed 18 Nov. Cancelling now uses your credit.");
+    expect(freeCancellationText(deadline, "2026-11-18T03:00:00.000Z", false)).toBe("Free cancellation ended 6:00 am Wed 18 Nov. You can still cancel.");
   });
 });
 
@@ -57,7 +57,7 @@ describe("cancellation and no-show words", () => {
     expect(cancelNowText("released", deadline, early)).toBe("Cancelling now is free. Your session credit goes back to your balance. Free cancellation ends 6:00 am Thu 19 Nov.");
   });
   it("says a late cancellation uses the credit, and does not hide it", () => {
-    expect(cancelNowText("consumed", deadline, late)).toBe("Free cancellation ended 6:00 am today. If you cancel now, this session credit is used and does not come back.");
+    expect(cancelNowText("consumed", deadline, late)).toBe("Free cancellation ended 6:00 am Thu 19 Nov. If you cancel now, this session credit is used and does not come back.");
   });
   it("says so when the gym does not charge for a late cancellation, and when it is too late to cancel", () => {
     expect(cancelNowText("kept", deadline, late)).toMatch(/does not take a credit for a late cancellation\. Your session credit goes back/);

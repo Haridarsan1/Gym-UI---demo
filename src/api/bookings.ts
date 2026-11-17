@@ -8,7 +8,7 @@ import { canReserve, creditBalance, type CreditBalance } from "@/domain/credits"
 import { assignmentOn, currentMembership } from "@/domain/membership";
 import { nextFree, slotKeyFor, slotsForHorizon, type Slot } from "@/domain/slots";
 import type { Booking, CreditLedgerEntry, EmailLogEntry, GymPolicies, Member } from "@/domain/types";
-import { lateTermsText, whenText } from "@/lib/when";
+import { exactWhen, lateTermsText, whenText } from "@/lib/when";
 import type { Session } from "@/app/session";
 
 /**
@@ -258,7 +258,7 @@ export async function bookSession(session: Session | null, raw: BookInput): Prom
     const deadline = cancellationDeadline(slot.startsAt, policy.cancellationCutoffHours);
     await logEmail(env, booking, "booking_confirmed", {
       subject: `Session booked: ${whenText(slot.startsAt, c.nowIso)}`,
-      lines: [`Your training session with ${coach(user.name)} is booked for ${whenText(slot.startsAt, c.nowIso)} at ${branch?.name ?? "your branch"}.`, `One session credit is held for it. Free cancellation ends ${whenText(deadline, c.nowIso)}.`, lateTermsText(deadline, c.nowIso, policy.lateCancelConsumesCredit, policy.noShowConsumesCredit)],
+      lines: [`Your training session with ${coach(user.name)} is booked for ${whenText(slot.startsAt, c.nowIso)} at ${branch?.name ?? "your branch"}.`, `One session credit is held for it. Free cancellation ends ${exactWhen(deadline)}.`, lateTermsText(deadline, c.nowIso, policy.lateCancelConsumesCredit, policy.noShowConsumesCredit)],
     });
     return { bookingId, credits: creditBalance([...ledger, entry]), repeated: false };
   });
@@ -317,7 +317,7 @@ export async function rescheduleBooking(session: Session | null, raw: Reschedule
     if (b.status !== "booked") throw new ApiError("conflict", "Only a booked session can be moved.");
     const deadline = cancellationDeadline(b.startsAt, policy.cancellationCutoffHours);
     if (!canReschedule(b.startsAt, policy.cancellationCutoffHours, c.nowIso)) {
-      throw new ApiError("forbidden", `Moving a session is free until ${whenText(deadline, c.nowIso)}, and that time has passed. You can keep this session or cancel it under the late terms.`);
+      throw new ApiError("forbidden", `Moving a session is free until ${exactWhen(deadline)}, and that time has passed. You can keep this session or cancel it under the late terms.`);
     }
     const user = await db.users.get(input.trainerId);
     const { days, branch, hasAvailability } = await scheduleFor(env, input.trainerId, b.id);
@@ -338,7 +338,7 @@ export async function rescheduleBooking(session: Session | null, raw: Reschedule
     const nextDeadline = cancellationDeadline(slot.startsAt, policy.cancellationCutoffHours);
     await logEmail(env, { id: b.id, startsAt: slot.startsAt }, "booking_rescheduled", {
       subject: `Session moved: ${whenText(slot.startsAt, c.nowIso)}`,
-      lines: [`Your training session with ${coach(user.name)} moved from ${whenText(from, c.nowIso)} to ${whenText(slot.startsAt, c.nowIso)} at ${branch?.name ?? "your branch"}.`, `Your one session credit moved with it. Free cancellation now ends ${whenText(nextDeadline, c.nowIso)}.`],
+      lines: [`Your training session with ${coach(user.name)} moved from ${whenText(from, c.nowIso)} to ${whenText(slot.startsAt, c.nowIso)} at ${branch?.name ?? "your branch"}.`, `Your one session credit moved with it. Free cancellation now ends ${exactWhen(nextDeadline)}.`],
     });
     return { bookingId: b.id, credits: creditBalance(ledger), repeated: false };
   });
