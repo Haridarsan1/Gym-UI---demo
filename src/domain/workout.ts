@@ -170,8 +170,8 @@ export interface LastTime {
   set: LoggedSet;
 }
 
-/** Heaviest load first; at equal load, the most reps; then the longest time. */
-const better = (a: LoggedSet, b: LoggedSet): boolean =>
+/** Is set `a` better than `b`? Heaviest load first; at equal load, the most reps; then the longest time. */
+export const betterSet = (a: LoggedSet, b: LoggedSet): boolean =>
   (a.loadKg ?? 0) !== (b.loadKg ?? 0) ? (a.loadKg ?? 0) > (b.loadKg ?? 0) : (a.reps ?? 0) !== (b.reps ?? 0) ? (a.reps ?? 0) > (b.reps ?? 0) : (a.durationSec ?? 0) > (b.durationSec ?? 0);
 
 /**
@@ -183,7 +183,7 @@ export function lastTimeFor(logs: Array<Pick<WorkoutLog, "status" | "scheduledOn
   const finished = logs.filter((l) => l.status !== "draft" && l.status !== "skipped" && l.scheduledOn < before).sort((a, b) => b.scheduledOn.localeCompare(a.scheduledOn));
   for (const log of finished) {
     const sets = log.entries.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets).filter((s) => !s.skipped && (s.reps !== undefined || s.loadKg !== undefined || s.durationSec !== undefined));
-    const set = sets.reduce<LoggedSet | undefined>((best, s) => (!best || better(s, best) ? s : best), undefined);
+    const set = sets.reduce<LoggedSet | undefined>((best, s) => (!best || betterSet(s, best) ? s : best), undefined);
     if (set) return { date: log.scheduledOn, set };
   }
   return undefined;
@@ -207,3 +207,6 @@ export function prefillFor(p: Pick<Prescription, "reps" | "loadKg">, last?: Last
 
 /** “Best last time: 10 × 22.5 kg”. */
 export const lastTimeText = (last: LastTime): string => `Best last time: ${describeSet(last.set)}`;
+
+/** The best set of a list: the heaviest load, then the most reps. Skipped sets are ignored. */
+export const bestSet = (sets: LoggedSet[]): LoggedSet | undefined => sets.filter((s) => !s.skipped).reduce<LoggedSet | undefined>((best, s) => (!best || betterSet(s, best) ? s : best), undefined);

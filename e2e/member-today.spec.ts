@@ -72,6 +72,20 @@ test.describe("Today: other states", () => {
     const due = page.getByLabel("Payment due");
     await expect(due).toContainText("of ₹2,950 was due 4 days ago.");
     await expect(due.getByRole("link", { name: "Pay ₹2,950" })).toHaveAttribute("href", /^\/m\/membership\?pay=inv_/);
+    // Pay is the only button; the renewal waits until it is paid.
+    await expect(page.getByRole("complementary", { name: "Membership ending soon" })).toHaveCount(0);
+    await expect(page.getByText(/^Your membership ends on \d{1,2} \w{3}\. You can renew once this is paid\.$/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Renew" })).toHaveCount(0);
+    // The three rest-day actions are full width on a phone, in this order.
+    const actions = hero.getByRole("link");
+    await expect(actions).toHaveText(["Open check-in pass", "Log your weight", "Book a session"]);
+    const box = (await hero.boundingBox())!;
+    const phone = (page.viewportSize()?.width ?? 1440) < 640;
+    for (let i = 0; i < 3; i++) {
+      const b = (await actions.nth(i).boundingBox())!;
+      if (phone) expect(b.width, `button ${i}`).toBeGreaterThan(box.width - 60);
+      expect(b.height).toBeGreaterThanOrEqual(44);
+    }
     await expect(hero.getByRole("link", { name: "Log your weight" })).toHaveAttribute("href", "/m/progress?log=weight");
     await expect(hero.getByRole("link", { name: "Book a session" })).toHaveAttribute("href", "/m/bookings");
     // Money is never shown in red.

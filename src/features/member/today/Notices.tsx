@@ -1,12 +1,14 @@
 import { CalendarClock, Receipt, Snowflake } from "lucide-react";
 import type { TodayData } from "@/api/member";
 import { Button3DLink } from "@/design/Button3D";
-import { formatDate, formatRupees } from "@/lib/when";
+import { formatDate, formatDayMonth, formatRupees } from "@/lib/when";
 
 /** Things that need attention before anything else, each with the action to take. Calm: money and access are never shown in red. */
 export function Notices({ t }: { t: TodayData }) {
   const m = t.membership;
-  const ending = m?.status === "active" && m.daysLeft !== undefined && m.daysLeft >= 0 && m.daysLeft <= 7 && !t.dues;
+  const endsSoon = m?.status === "active" && m.daysLeft !== undefined && m.daysLeft >= 0 && m.daysLeft <= 7;
+  // With money owed, Pay is the only button; the renewal comes after it is paid.
+  const ending = endsSoon && !t.dues;
   return (
     <div className="space-y-3 empty:hidden">
       {t.dues && (
@@ -23,6 +25,9 @@ export function Notices({ t }: { t: TodayData }) {
             Pay {formatRupees(t.dues.invoiceDuePaise)}
           </Button3DLink>
         </aside>
+      )}
+      {endsSoon && t.dues && m && (
+        <p className="px-1 text-[0.95rem] text-clay-muted">Your membership ends on {formatDayMonth(m.endsOn!)}. You can renew once this is paid.</p>
       )}
       {ending && m && (
         <aside aria-label="Membership ending soon" className="rounded-2xl bg-status-pending-bg px-4 py-4 text-status-pending-fg">

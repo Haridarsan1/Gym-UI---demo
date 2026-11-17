@@ -91,13 +91,13 @@ export function WorkoutCard({ t }: { t: TodayData }) {
           {p.next ? `Your next workout is ${formatWeekdayDate(p.next.date)}: ${p.next.title}.` : "Nothing is planned for the next few weeks."} Rest is part of the plan.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Button3DLink to="/m/pass" variant="white">
+          <Button3DLink to="/m/pass" variant="white" className="w-full sm:w-auto">
             Open check-in pass
           </Button3DLink>
-          <Button3DLink to="/m/progress?log=weight" variant="white">
+          <Button3DLink to="/m/progress?log=weight" variant="white" className="w-full sm:w-auto">
             Log your weight
           </Button3DLink>
-          <Button3DLink to="/m/bookings" variant="white">
+          <Button3DLink to="/m/bookings" variant="white" className="w-full sm:w-auto">
             Book a session
           </Button3DLink>
         </div>

@@ -66,6 +66,8 @@ const GRANTS = {
   "photo.write": { trainer: A, member: W },
   "goal.read": { trainer: A, member: W },
   "goal.write": { trainer: A },
+  /** Marking a goal achieved when a reading the member logged reaches its target. Anything else about a goal is the trainer’s. */
+  "goal.achieve": { trainer: A, member: W },
   "measurement.read": { trainer: A, member: W },
   "measurement.write": { trainer: A, member: W },
   "workoutplan.read": { trainer: A, member: W },

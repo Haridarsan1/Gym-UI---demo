@@ -42,16 +42,16 @@ async function loadFacts(memberId: string, tenantId: string, today: string) {
  * Awards the badges this workout earned. Run inside the submit transaction: a badge is awarded once, so a repeated submit
  * finds it already there and awards nothing. Badges are never taken away.
  */
-export async function awardBadges(args: { memberId: string; tenantId: string; today: string; nowIso: string; log: WorkoutLog }): Promise<BadgeKey[]> {
+export async function awardBadges(args: { memberId: string; tenantId: string; today: string; nowIso: string; log?: WorkoutLog }): Promise<BadgeKey[]> {
   const { memberId, tenantId, today, nowIso, log } = args;
-  if (log.status === "skipped") return [];
+  if (log?.status === "skipped") return [];
   const logs = (await db.workoutLogs.where("memberId").equals(memberId).toArray()).filter(finished);
   const f = await loadFacts(memberId, tenantId, today);
   const have = new Set((await db.badgeAwards.where("memberId").equals(memberId).toArray()).map((b) => b.badge));
   const fresh = earnedBadges({
     completedWorkouts: logs.filter((l) => l.status === "completed").length, personalRecords: f.recordsIn(logs), streakWeeks: f.streakFor(logs), goalsAchieved: f.goalsAchieved, checkIns: f.checkIns,
   }).filter((b) => !have.has(b));
-  const rows: BadgeAward[] = fresh.map((badge) => ({ id: `bd_${memberId}_${badge}`, tenantId, memberId, badge, awardedAt: nowIso, workoutLogId: log.id }));
+  const rows: BadgeAward[] = fresh.map((badge) => ({ id: `bd_${memberId}_${badge}`, tenantId, memberId, badge, awardedAt: nowIso, workoutLogId: log?.id }));
   if (rows.length) await db.badgeAwards.bulkPut(rows);
   return fresh;
 }
