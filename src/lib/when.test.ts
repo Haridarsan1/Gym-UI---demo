@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayWord, formatDate, formatDayMonth, formatRupees, formatTime, formatWeekdayDate, freeCancellationText, greeting, whenText } from "@/lib/when";
+import { cancelNowText, dayWord, lateTermsText, formatDate, formatDayMonth, formatRupees, formatTime, formatWeekdayDate, freeCancellationText, greeting, whenText } from "@/lib/when";
 
 describe("India formats", () => {
   it("shows times as 6:30 am and 7:00 pm in India time", () => {
@@ -46,5 +46,27 @@ describe("free cancellation line (T04)", () => {
   it("says it ended, and what cancelling does, after the deadline", () => {
     expect(freeCancellationText(deadline, "2026-11-18T03:00:00.000Z", true)).toBe("Free cancellation ended at 6:00 am today. Cancelling now uses your credit.");
     expect(freeCancellationText(deadline, "2026-11-18T03:00:00.000Z", false)).toBe("Free cancellation ended at 6:00 am today. You can still cancel.");
+  });
+});
+
+describe("cancellation and no-show words", () => {
+  const deadline = "2026-11-19T00:30:00.000Z"; // 6:00 am in India
+  const early = "2026-11-17T06:30:00.000Z";
+  const late = "2026-11-19T05:00:00.000Z";
+  it("says cancelling is free, and when free cancellation ends", () => {
+    expect(cancelNowText("released", deadline, early)).toBe("Cancelling now is free. Your session credit goes back to your balance. Free cancellation ends 6:00 am Thu 19 Nov.");
+  });
+  it("says a late cancellation uses the credit, and does not hide it", () => {
+    expect(cancelNowText("consumed", deadline, late)).toBe("Free cancellation ended 6:00 am today. If you cancel now, this session credit is used and does not come back.");
+  });
+  it("says so when the gym does not charge for a late cancellation, and when it is too late to cancel", () => {
+    expect(cancelNowText("kept", deadline, late)).toMatch(/does not take a credit for a late cancellation\. Your session credit goes back/);
+    expect(cancelNowText("too_late", deadline, late)).toBe("This session has already started, so it can’t be canceled.");
+  });
+  it("states the late and no-show terms for each policy", () => {
+    expect(lateTermsText(deadline, early, true, true)).toBe("After 6:00 am Thu 19 Nov, cancelling or not turning up uses this session credit.");
+    expect(lateTermsText(deadline, early, true, false)).toBe("After 6:00 am Thu 19 Nov, cancelling uses this session credit. If you do not turn up, the credit goes back to you.");
+    expect(lateTermsText(deadline, early, false, true)).toBe("You can cancel for free at any time before the session. If you do not turn up, this session credit is used.");
+    expect(lateTermsText(deadline, early, false, false)).toBe("Cancelling late or not turning up does not use your session credit.");
   });
 });

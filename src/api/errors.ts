@@ -5,6 +5,8 @@ export class ApiError extends Error {
   constructor(
     readonly code: ApiErrorCode,
     message: string,
+    /** Extra facts a screen can use, such as the next free slots when one was just taken. */
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = "ApiError";

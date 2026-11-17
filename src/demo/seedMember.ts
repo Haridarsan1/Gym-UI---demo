@@ -287,13 +287,18 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
         const reservation = `cr_arjun_res_${id}`;
         out.bookings.push({
           id: `bk_arjun_${id}`, tenantId: TENANT_ID, memberId: "mem_arjun", branchId: BRANCH.andheri, kind: "pt_session", trainerId: "u_trainer_meera", startsAt: at(date, start), endsAt: at(date, end), status,
-          creditEntryId: reservation, slotKey: `u_trainer_meera|${date}T${start}`, createdBy: memberUser, createdAt: at(addDays(date, -3), "09:00"), idempotencyKey: `seed-booking-arjun-${id}`,
+          creditEntryId: reservation, createdBy: memberUser, createdAt: at(addDays(date, -3), "09:00"), idempotencyKey: `seed-booking-arjun-${id}`,
+          // A canceled booking gives its slot back, so it has no slot key.
+          ...(status === "canceled" ? { canceledAt: at(addDays(date, -1), "09:00"), cancelReason: "Canceled by member" } : { slotKey: `u_trainer_meera|${date}T${start}` }),
         });
         entry(`res_${id}`, "reservation", addDays(date, -3), { bookingId: `bk_arjun_${id}` });
-        if (status === "attended") entry(`con_${id}`, "consumption", date, { bookingId: `bk_arjun_${id}`, refEntryId: reservation, createdBy: "u_trainer_meera" });
+        // Attended and no-show sessions both use the credit. A cancellation in time gives it back.
+        if (status === "attended" || status === "no_show") entry(`con_${id}`, "consumption", date, { bookingId: `bk_arjun_${id}`, refEntryId: reservation, createdBy: "u_trainer_meera" });
+        if (status === "canceled") entry(`rel_${id}`, "release", addDays(date, -1), { bookingId: `bk_arjun_${id}`, refEntryId: reservation, createdBy: memberUser });
       };
       booking("1", addDays(today, -20), "07:00", "08:00", "attended");
-      booking("2", addDays(today, -6), "18:00", "19:00", "attended");
+      booking("4", addDays(today, -10), "07:00", "08:00", "canceled");
+      booking("2", addDays(today, -6), "18:00", "19:00", "no_show");
       booking("3", addDays(today, 2), "18:00", "19:00", "booked");
     }
     if (persona.memberId === "mem_sneha") invoiceFor(current, "10-visit pass", 300_000, 1, current.startsOn, addDays(current.startsOn, 3), { method: "upi" });

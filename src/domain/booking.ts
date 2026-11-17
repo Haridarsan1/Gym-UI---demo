@@ -15,3 +15,24 @@ export function cancellationOutcome(startsAtIso: string, cutoffHours: number, la
   if (isFreeCancellation(startsAtIso, cutoffHours, nowIso)) return "released";
   return lateConsumesCredit ? "consumed" : "kept";
 }
+
+/** A personal-training session costs one credit (M06). */
+export const PT_CREDIT_COST = 1;
+
+/** What happens to the reserved credit when a booking ends. */
+export type Settlement = "release" | "consume";
+
+/** A cancellation: in time gives the credit back; late uses it when the gym’s policy says so. */
+export function cancellationSettlement(outcome: ReturnType<typeof cancellationOutcome>): Settlement | null {
+  if (outcome === "too_late") return null;
+  return outcome === "consumed" ? "consume" : "release";
+}
+
+/** A no-show uses the credit, or gives it back, by the gym’s policy. */
+export const noShowSettlement = (noShowConsumesCredit: boolean): Settlement => (noShowConsumesCredit ? "consume" : "release");
+
+/**
+ * Moving a booking keeps its one reserved credit and costs nothing, but only while cancelling would still be free. After
+ * that the member can keep the session or cancel it under the late terms.
+ */
+export const canReschedule = (startsAtIso: string, cutoffHours: number, nowIso: string): boolean => isFreeCancellation(startsAtIso, cutoffHours, nowIso);

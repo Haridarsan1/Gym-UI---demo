@@ -117,9 +117,10 @@ describe("Arjun Kumar: a workout today, 12 weeks of history", () => {
     expect(creditBalance(seed.creditLedger.filter((c) => c.memberId === "mem_arjun"))).toEqual({ available: 5, reserved: 1, consumed: 2 });
   });
 
-  it("has a session booked in two days with Coach Meera at 6 pm, plus two attended", () => {
+  it("has a session booked in two days with Coach Meera at 6 pm, plus one attended, one no-show and one cancelled", () => {
     const b = seed.bookings.filter((x) => x.memberId === "mem_arjun");
-    expect(b.map((x) => x.status).sort()).toEqual(["attended", "attended", "booked"]);
+    expect(b.map((x) => x.status).sort()).toEqual(["attended", "booked", "canceled", "no_show"]);
+    expect(b.filter((x) => x.status === "canceled").every((x) => x.slotKey === undefined)).toBe(true); // a canceled booking frees its slot
     const next = b.find((x) => x.status === "booked")!;
     expect(next.trainerId).toBe("u_trainer_meera");
     expect(next.startsAt).toBe("2026-11-19T12:30:00.000Z"); // 18:00 in India

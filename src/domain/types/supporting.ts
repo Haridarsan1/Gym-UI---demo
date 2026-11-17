@@ -46,6 +46,29 @@ export const MemberSettings = z.object({
 });
 export type MemberSettings = z.infer<typeof MemberSettings>;
 
+export const EmailTemplate = z.enum(["booking_confirmed", "booking_canceled", "booking_rescheduled"]);
+
+/**
+ * Why: O04 says every message the gym sends is logged with its outcome, and messages are email only (confirmed decision). The
+ * log is what the owner console shows later. In demo mode nothing is really sent, so `status` is "sent" with the text that
+ * would have gone, or "skipped" with the reason, such as no email address on file.
+ */
+export const EmailLogEntry = z.object({
+  id,
+  tenantId: id,
+  memberId: id,
+  bookingId: id.optional(),
+  template: EmailTemplate,
+  /** The address it went to, if the member has one. */
+  to: z.string().optional(),
+  subject: z.string(),
+  body: z.string(),
+  status: z.enum(["sent", "skipped"]),
+  detail: z.string().optional(),
+  sentAt: isoDateTime,
+});
+export type EmailLogEntry = z.infer<typeof EmailLogEntry>;
+
 /**
  * Why: a celebration should happen once, when a badge is first earned. Storing the award is how the app knows it is new
  * and keeps the date. Which badges exist and how they are earned is in domain/badges.ts.

@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 import type {
-  AuditEvent, BadgeAward, Booking, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
+  AuditEvent, BadgeAward, Booking, EmailLogEntry, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
   MembershipPlan, MemberSettings, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerReview, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
 } from "@/domain/types";
 
@@ -47,6 +47,7 @@ export class EmberDB extends Dexie {
   badgeAwards!: EntityTable<BadgeAward, "id">;
   trainerAvailability!: EntityTable<TrainerAvailability, "id">;
   gymPolicies!: EntityTable<GymPolicies, "id">;
+  emailLog!: EntityTable<EmailLogEntry, "id">;
   meta!: EntityTable<MetaRow, "key">;
   idempotency!: EntityTable<IdempotencyRow, "key">;
 
@@ -87,6 +88,12 @@ export class EmberDB extends Dexie {
       badgeAwards: "id, tenantId, memberId, badge",
       trainerAvailability: "id, tenantId, trainerId, weekday",
       gymPolicies: "id, tenantId",
+    });
+    // Version 3 (M1, Bookings): the email delivery log (O04), and a unique slot key, so the database itself refuses a second
+    // active booking of the same trainer and time (A03). A canceled booking drops its slot key, which frees the slot.
+    this.version(3).stores({
+      bookings: "id, tenantId, memberId, trainerId, startsAt, &slotKey, &idempotencyKey",
+      emailLog: "id, tenantId, memberId, template, sentAt",
     });
   }
 }
