@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import { Suspense, type ComponentType, type ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { landingScreen, screenPath } from "@/app/navigation";
 import { useCan } from "@/app/SessionContext";
@@ -6,6 +6,7 @@ import { ScreenStub } from "@/app/ScreenStub";
 import { RequireCan } from "@/app/guards";
 import { SCREENS } from "@/app/screens";
 import { EmptyState } from "@/design/States";
+import { SkeletonCard } from "@/design/Skeleton";
 import { PlayShell } from "@/design/shells/PlayShell";
 import { StaffShell } from "@/design/shells/StaffShell";
 import type { Area } from "@/domain/roles";
@@ -29,7 +30,8 @@ export function AreaRoutes({ area, implemented = {} }: { area: Area; implemented
       <Route element={shell}>
         {SCREENS[area].map((screen) => {
           const Real = implemented[screen.id];
-          const element = Real ? <Real /> : <ScreenStub area={area} screen={screen} />;
+          // Real screens are loaded on demand, one file each, so opening the app does not download every screen.
+          const element = Real ? <Suspense fallback={<SkeletonCard label={`Loading ${screen.title}`} />}><Real /></Suspense> : <ScreenStub area={area} screen={screen} />;
           const guarded = screen.action ? <RequireCan action={screen.action}>{element}</RequireCan> : element;
           return <Route key={screen.id} index={screen.path === ""} path={screen.path || undefined} element={screen.path === "" ? <Landing area={area} homeId={screen.id}>{guarded}</Landing> : guarded} />;
         })}

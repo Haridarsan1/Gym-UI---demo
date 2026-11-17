@@ -1,5 +1,7 @@
 import { Button3D } from "@/design/Button3D";
 import { Skeleton, SkeletonCard, SkeletonRows } from "@/design/Skeleton";
+import { Ring } from "@/design/Ring";
+import { StreakFlame } from "@/design/StreakFlame";
 import { EmptyState, ErrorState } from "@/design/States";
 import { BookingStatusPill, InvoiceStatusPill, MembershipStatusPill, WorkoutStatusPill } from "@/design/StatusPills";
 import { ToastProvider, useToast } from "@/design/Toast";
@@ -54,6 +56,18 @@ function Gallery() {
           {(["booked", "canceled", "attended", "no_show"] as const).map((s) => (
             <BookingStatusPill key={s} status={s} />
           ))}
+        </div>
+      </section>
+
+      <section className={section} aria-labelledby="d-progress">
+        <h2 id="d-progress" className="text-lg font-bold">Ring and streak</h2>
+        <div className="mt-4 flex flex-wrap items-center gap-8">
+          <Ring value={0.5} label="2 of 4 workouts done this week"><span className="font-display text-3xl font-extrabold">2/4</span></Ring>
+          <Ring value={1} label="4 of 4 workouts done this week" size={72} stroke={8}><span className="font-display text-xl font-extrabold">4/4</span></Ring>
+          <Ring value={0} label="0 of 3 workouts done this week" size={72} stroke={8}><span className="font-display text-xl font-extrabold">0/3</span></Ring>
+          <StreakFlame weeks={6} />
+          <StreakFlame weeks={0} />
+          <StreakFlame weeks={6} paused />
         </div>
       </section>
 

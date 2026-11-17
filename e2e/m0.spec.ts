@@ -120,3 +120,11 @@ test("the sample gym is the same for everyone who opens it", async ({ page }) =>
   expect(counts).toMatchObject({ members: 150, branches: 3, users: 16 });
   expect(counts.memberships).toBeGreaterThanOrEqual(150);
 });
+
+test("the ring and streak describe themselves in words", async ({ page }) => {
+  await page.goto("/dev/design");
+  await expect(page.getByRole("img", { name: "2 of 4 workouts done this week" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "6-week streak" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "No streak yet" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Streak paused at 6 weeks" })).toBeVisible();
+});
