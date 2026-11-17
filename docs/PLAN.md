@@ -188,14 +188,16 @@ src/
   pages/          marketing pages: home/, signup/, LoginPage, LegalPage, NotFound
   components/     ui/ (Button, Logo, Container, SectionHeader, StatusPill) and gym/ (marketing illustrations)
   config/ data/ hooks/ lib/   marketing brand, content, motion hooks, formatting and scroll helpers
-  app/            lazy entry (AppEntry), session (localStorage) and SessionContext, guards (RequireArea, RequireCan, Can), area stub
-  api/            typed API functions, demo implementation now, HTTP later (planned)
-  demo/           Dexie schema, seed data, latency/failure simulation, reset (planned)
+  app/            lazy entry (AppEntry), session (localStorage), SessionContext, guards (RequireArea, RequireCan, Can), demoAccounts (people who can log in; also read by the login page, so keep it tiny), area stub
+  api/            typed API functions and React Query hooks. context.ts re-resolves the caller from the database and checks permissions. Demo implementation now, HTTP later
+  demo/           db.ts (Dexie, one table per S07 record), seed.ts (pure, deterministic generator), simulate.ts (latency and failures), index.ts (ensureSeeded, resetDemo, runOnce, writeAudit)
   domain/         pure business rules, no React
     roles.ts        roles, areas, home path per role
     types/          S07 records as Zod schemas: common, core, billing, ops, training. Money is whole paise; dates are ISO strings
     permissions.ts  role × action → scope map, can(), canRefund() (S03)
-    membership.ts checkin.ts credits.ts billing.ts metrics.ts reports.ts   added in the milestone that needs each
+    dates.ts audit.ts membership.ts   India-time dates, audit event builder, current membership and trainer assignment helpers
+    checkin.ts credits.ts billing.ts metrics.ts reports.ts   added in the milestone that needs each (membership.ts gains the lifecycle in M3)
+  test/           Vitest setup (fake IndexedDB, in-memory localStorage, no simulated delay)
   features/       one folder per area: member/ trainer/ desk/ owner/ admin/ (finance lives in desk/)
   design/         app-only pieces: Button3D, shells, toasts, skeletons, palette (planned)
 e2e/              Playwright tests: marketing.spec.ts is the regression suite for the marketing site
@@ -234,8 +236,9 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 ### M0 · Foundation
 - [x] Add `/app` role routing (lazy, per area); marketing pages stay in `src/pages/`
 - [x] Domain types for every S07 record
-- [ ] Demo database (Dexie), seed generator, reset control, latency and failure simulation
-- [x] Permission map and route guards
+- [x] Demo database (Dexie), seed generator, reset control (`resetDemo()`; the button comes with the shells), latency and failure simulation
+  - Seed in M0: Pulse Fitness, 3 branches, 14 logins (6 trainers), plan catalogue, 150 members in every membership state, trainer assignments (incl. transfers), consents, PT credits. Invoices, bookings, workouts, check-ins and exercises are seeded in the milestone that first shows them.
+- [x] Permission map and route guards (`member.list` is separate from `member.read`, so members cannot browse the member list)
 - [ ] Design additions: `Button3D`, shells (member/trainer bottom tabs, staff sidebar), skeletons, toasts, empty states, status pills, ⌘K palette
 - [ ] Login: members with phone number + OTP **or** email + password (both offered); staff with email + password; demo accepts any 6-digit OTP and any password, plus a “Try as…” role picker and a role switcher in demo mode
 - [ ] PWA setup

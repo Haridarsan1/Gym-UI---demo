@@ -157,6 +157,12 @@ describe("staff limits (R02)", () => {
 });
 
 describe("feature-level checks for navigation", () => {
+  it("lets only staff browse the member list, never a member", () => {
+    expect(can(member, "member.list")).toBe(false);
+    expect(can(member, "member.read", { tenantId: "t1", memberId: "m1" })).toBe(true);
+    for (const p of [owner, manager, desk, finance, trainer]) expect(can(p, "member.list"), p.role).toBe(true);
+  });
+
   it("answers without a record", () => {
     expect(can(desk, "checkin.record")).toBe(true);
     expect(can(member, "checkin.record")).toBe(false);

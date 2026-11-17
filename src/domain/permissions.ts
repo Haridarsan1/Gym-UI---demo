@@ -24,6 +24,8 @@ type Grants = Partial<Record<Role, Scope>>;
 const GRANTS = {
   // People and consent
   "member.read": { owner: O, branch_manager: B, front_desk: B, finance: B, trainer: A, member: W },
+  /** Browsing the member list. Members open only their own record, so they cannot list. */
+  "member.list": { owner: O, branch_manager: B, front_desk: B, finance: B, trainer: A },
   "member.create": { owner: O, branch_manager: B, front_desk: B },
   "member.update": { owner: O, branch_manager: B, front_desk: B, member: W },
   "trainer.assign": { owner: O, branch_manager: B, front_desk: B },
