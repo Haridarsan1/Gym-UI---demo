@@ -2,10 +2,11 @@ import { lazy, Suspense, useEffect, useRef } from "react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import HomePage from "@/pages/home/HomePage";
 import { scrollToId } from "@/lib/scroll";
+import { AREAS, AREA_PATH } from "@/domain/roles";
 
 const TrialSignupPage = lazy(() => import("@/pages/signup/TrialSignupPage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
-const AppPlaceholder = lazy(() => import("@/pages/AppPlaceholder"));
+const AppEntry = lazy(() => import("@/app/AppEntry"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
@@ -66,7 +67,10 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/signup" element={<TrialSignupPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/app/*" element={<AppPlaceholder />} />
+          <Route path="/app/*" element={<AppEntry area="index" />} />
+          {AREAS.map((a) => (
+            <Route key={a} path={`${AREA_PATH[a]}/*`} element={<AppEntry area={a} />} />
+          ))}
           <Route path="/privacy" element={<LegalPage title="Privacy policy" />} />
           <Route path="/terms" element={<LegalPage title="Terms of service" />} />
           <Route path="/refunds" element={<LegalPage title="Refund policy" />} />

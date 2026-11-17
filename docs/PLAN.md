@@ -181,23 +181,31 @@ Optional expansion (POS, chat, wearables, nutrition) is out of scope until rollo
 
 ### Folder structure
 
+Marketing code stays where it was. App code is new and lives in its own folders so it never ships to marketing routes. Entries marked *(planned)* are added later in M0; remove the mark when the folder lands.
+
 ```
 src/
-  app/            router, providers, role layouts, guards
-  api/            typed API functions (demo implementation now, HTTP later)
-  demo/           Dexie schema, seed data, latency/failure simulation, reset
-  domain/         S07 types and pure business rules (no React)
-    membership.ts   lifecycle, freeze, proration, grace (M02)
-    checkin.ts      eligibility, scan window, overrides (M05)
-    credits.ts      PT credit ledger (M06)
-    billing.ts      invoices, taxes, partial payments, refunds (M03, M04)
-    metrics.ts      adherence, volume, PRs (P02, P03)
-    reports.ts      renewals, utilisation, billed vs collected (O07)
-    permissions.ts  role and branch checks (S03)
-  features/       one folder per module: member/, trainer/, desk/, finance/, owner/, admin/
-  design/         tokens, Button3D, Path, Celebrate, DataTable, charts, shells
-  marketing/      existing home, signup, login pages (moved here)
+  pages/          marketing pages: home/, signup/, LoginPage, LegalPage, NotFound
+  components/     ui/ (Button, Logo, Container, SectionHeader, StatusPill) and gym/ (marketing illustrations)
+  config/ data/ hooks/ lib/   marketing brand, content, motion hooks, formatting and scroll helpers
+  app/            lazy entry (AppEntry), session (localStorage), area stub; guards and router pieces (planned)
+  api/            typed API functions, demo implementation now, HTTP later (planned)
+  demo/           Dexie schema, seed data, latency/failure simulation, reset (planned)
+  domain/         pure business rules, no React
+    roles.ts        roles, areas, home path per role
+    types.ts        S07 records as Zod schemas (planned)
+    permissions.ts  role and branch checks (S03) (planned)
+    membership.ts checkin.ts credits.ts billing.ts metrics.ts reports.ts   added in the milestone that needs each
+  features/       one folder per area: member/ trainer/ desk/ owner/ admin/ (finance lives in desk/)
+  design/         app-only pieces: Button3D, shells, toasts, skeletons, palette (planned)
+e2e/              Playwright tests: marketing.spec.ts is the regression suite for the marketing site
+scripts/          bundle-report.mjs
 ```
+
+**Bundle rule:** `App.tsx` loads `src/app/AppEntry.tsx` lazily and nothing else from the app. React Query, Dexie, Zod, the seed generator and the shells must not appear in the bundles for `/`, `/signup` or `/login`. `npm run bundle-report` (after `npm run build`) fails if they do.
+
+**Dependencies are pinned** to exact versions, each at least two weeks old when added. Vitest is on 3.x because Vitest 4 and later need Vite 6 or newer and the project is on Vite 5.
+
 
 ### Permissions
 
@@ -224,7 +232,7 @@ One permission map in `domain/permissions.ts` (role × action × scope: own, ass
 Each milestone ends with: typecheck and build pass, unit tests for any new domain rules, Playwright tests for the milestone’s flows, a check at 390 px and 1440 px, and an updated checklist here.
 
 ### M0 · Foundation
-- [ ] Move marketing pages to `src/marketing/`; add `/app` role routing
+- [x] Add `/app` role routing (lazy, per area); marketing pages stay in `src/pages/`
 - [ ] Domain types for every S07 record
 - [ ] Demo database (Dexie), seed generator, reset control, latency and failure simulation
 - [ ] Permission map and route guards

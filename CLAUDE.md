@@ -14,7 +14,7 @@ Ember is gym management software for Indian gyms: one role-based web app for pla
 - Before writing code for a screen, re-read the requirement IDs listed for it and follow them exactly.
 - After each screen: run the checks below, then tick its box in `docs/PLAN.md` (`[ ]` → `[x]`).
 - If a requirement is unclear or two requirements conflict, stop and ask instead of guessing. Note open questions under “Decisions to confirm” in `docs/PLAN.md`.
-- Do not change the marketing pages unless asked.
+- Do not change the marketing pages unless asked. `e2e/marketing.spec.ts` must keep passing.
 
 ## Commands
 
@@ -22,7 +22,8 @@ Ember is gym management software for Indian gyms: one role-based web app for pla
 npm run dev         # local dev server
 npm run build       # typecheck + production build (must pass)
 npm run test        # Vitest unit tests (domain rules)
-npm run e2e         # Playwright flows (acceptance scenarios)
+npm run e2e         # Playwright flows (acceptance scenarios, marketing regression)
+npm run bundle-report  # after build: gzipped JS per route; fails if app code reaches marketing routes
 ```
 
 Add the `test` and `e2e` scripts in milestone M0 if they don’t exist yet.
