@@ -79,6 +79,44 @@ test.describe("Workout complete", () => {
     await expect(page.getByRole("region", { name: "How did it feel?" })).toBeVisible();
   });
 
+  test("a record and a new badge throw a short confetti burst, loaded only then", async ({ page }) => {
+    const requests: string[] = [];
+    page.on("request", (r) => r.url().includes("confetti") && requests.push(r.url()));
+    await doWorkout(page, { heavyBench: true });
+    expect(requests).toHaveLength(0); // nothing is downloaded until there is something to celebrate
+    await page.evaluate(() => {
+      const w = window as unknown as { __confetti: Array<{ added: number; removed?: number }> };
+      w.__confetti = [];
+      new MutationObserver((records) => {
+        for (const r of records) {
+          r.addedNodes.forEach((n) => n instanceof HTMLCanvasElement && n.hasAttribute("data-confetti") && w.__confetti.push({ added: performance.now() }));
+          r.removedNodes.forEach((n) => {
+            if (n instanceof HTMLCanvasElement && n.hasAttribute("data-confetti")) w.__confetti.find((c) => c.removed === undefined)!.removed = performance.now();
+          });
+        }
+      }).observe(document.body, { childList: true });
+    });
+    await finishSheet(page).getByRole("button", { name: "Finish workout" }).click();
+    await expect(done(page)).toBeVisible({ timeout: 6000 });
+    await expect(page.locator("canvas[data-confetti]")).toHaveCount(0, { timeout: 2000 });
+    const bursts = await page.evaluate(() => (window as unknown as { __confetti: Array<{ added: number; removed?: number }> }).__confetti);
+    expect(requests.length).toBeGreaterThan(0);
+    expect(bursts.length).toBeGreaterThanOrEqual(1);
+    for (const b of bursts) expect(b.removed! - b.added).toBeLessThan(1100);
+  });
+
+  test("with reduced motion there is no confetti, and nothing is downloaded for it", async ({ page }) => {
+    const requests: string[] = [];
+    page.on("request", (r) => r.url().includes("confetti") && requests.push(r.url()));
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await doWorkout(page, { heavyBench: true });
+    await finishSheet(page).getByRole("button", { name: "Finish workout" }).click();
+    await expect(done(page)).toBeVisible({ timeout: 800 });
+    await page.waitForTimeout(500);
+    await expect(page.locator("canvas[data-confetti]")).toHaveCount(0);
+    expect(requests).toHaveLength(0);
+  });
+
   test("with reduced motion everything appears at once, with no animation", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await doWorkout(page, { heavyBench: true });

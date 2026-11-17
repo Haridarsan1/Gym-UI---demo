@@ -3,7 +3,7 @@ import { Award, Check, Moon, Trophy } from "lucide-react";
 import type { WorkoutSummary } from "@/api";
 import { Ring } from "@/design/Ring";
 import { StreakFlame } from "@/design/StreakFlame";
-import { haptic } from "@/design/haptics";
+import { celebrate, type CelebrationKind } from "@/design/celebrate";
 import { kgText } from "@/domain/celebration";
 import { useTween } from "@/features/member/complete/useReveal";
 import { cn } from "@/lib/format";
@@ -11,10 +11,10 @@ import { cn } from "@/lib/format";
 const eyebrow = "text-xs font-semibold uppercase tracking-wide text-clay-muted";
 
 /** A part of the celebration. It pops in when it appears, unless everything is shown at once. */
-function Part({ label, tone = "white", pop, buzz, children }: { label: string; tone?: "white" | "mint" | "lilac"; pop: boolean; buzz?: number[]; children: React.ReactNode }) {
+function Part({ label, tone = "white", pop, effect, children }: { label: string; tone?: "white" | "mint" | "lilac"; pop: boolean; effect?: CelebrationKind; children: React.ReactNode }) {
   useEffect(() => {
-    if (pop && buzz) haptic(buzz);
-  }, [pop, buzz]);
+    if (pop && effect) celebrate(effect);
+  }, [pop, effect]);
   return (
     <section aria-label={label} className={cn("scroll-mb-32 p-5", tone === "mint" ? "clay-mint rounded-[1.75rem]" : tone === "lilac" ? "clay !bg-lilac-100 text-clay-ink ring-2 ring-lilac-300" : "clay", pop && "pop-in")}>
       {children}
@@ -35,7 +35,7 @@ export function ResultPart({ s, pop }: { s: WorkoutSummary; pop: boolean }) {
         ? { title: `${done} of ${total} sets done`, line: "Every session counts. Your trainer will see exactly what you did." }
         : { title: "Skipped today", line: "That is fine. Your next workout is waiting when you are." };
   return (
-    <Part label="Result" tone={s.status === "completed" ? "mint" : "white"} pop={pop} buzz={s.status === "skipped" ? undefined : [30, 40, 30]}>
+    <Part label="Result" tone={s.status === "completed" ? "mint" : "white"} pop={pop} effect={s.status === "skipped" ? undefined : "result"}>
       <span className="grid h-12 w-12 place-items-center rounded-full bg-white/70" aria-hidden="true">
         {s.status === "skipped" ? <Moon className="h-7 w-7" /> : <Check className="h-7 w-7" />}
       </span>
@@ -62,7 +62,7 @@ export function VolumePart({ kg, pop, running, ms }: { kg: number; pop: boolean;
 
 export function RecordPart({ r, pop }: { r: WorkoutSummary["records"][number]; pop: boolean }) {
   return (
-    <Part label="Personal record" tone="lilac" pop={pop} buzz={[40, 50, 40, 50, 80]}>
+    <Part label="Personal record" tone="lilac" pop={pop} effect="record">
       <div className="flex items-center gap-4">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/70" aria-hidden="true">
           <Trophy className="h-6 w-6" />
@@ -109,7 +109,7 @@ export function WeekPart({ s, pop, running }: { s: WorkoutSummary; pop: boolean;
 
 export function BadgePart({ b, pop }: { b: WorkoutSummary["badges"][number]; pop: boolean }) {
   return (
-    <Part label="Badge earned" tone="mint" pop={pop} buzz={[60, 40, 60]}>
+    <Part label="Badge earned" tone="mint" pop={pop} effect="badge">
       <div className="flex items-center gap-4">
         <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white/70" aria-hidden="true">
           <Award className="h-8 w-8" />

@@ -45,7 +45,7 @@ test.describe("Workout session: Arjun", () => {
     const form = page.getByRole("form", { name: "Set 1" });
     await expect(form.getByRole("textbox", { name: "Reps" })).toHaveValue("10");
     // The load is last time’s load, and the hint says so.
-    const hint = await form.getByText(/^Last time: /).textContent();
+    const hint = await form.getByText(/^Best last time: /).textContent();
     const lastLoad = /× ([\d.]+) kg/.exec(hint!)![1]!;
     await expect(form.getByRole("textbox", { name: "Load (kg)" })).toHaveValue(lastLoad);
     await form.getByRole("button", { name: "Log set" }).click();

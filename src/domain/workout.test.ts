@@ -10,9 +10,9 @@ const day: PlanDay = { dayOffset: 0, weekIndex: 0, dayIndex: 0, title: "Upper", 
 
 describe("targets", () => {
   it("describes what the trainer wrote", () => {
-    expect(describeTarget(bench)).toBe("3 × 10 · 20 kg · rest 1 min 15 s");
-    expect(describeTarget(row)).toBe("2 × 8–12 · rest 1 min");
-    expect(describeTarget(plank)).toBe("2 × 45 s · rest 45 s");
+    expect(describeTarget(bench)).toBe("3 × 10, 20 kg, rest 1 min 15 s");
+    expect(describeTarget(row)).toBe("2 × 8–12, rest 1 min");
+    expect(describeTarget(plank)).toBe("2 × 45 s, rest 45 s");
   });
   it("pre-fills the lower end of a range", () => {
     expect(targetReps(row)).toBe(8);
@@ -156,10 +156,18 @@ describe("last time", () => {
   const log = (scheduledOn: string, sets: Array<[number, number, boolean?]>, status: "completed" | "partial" | "skipped" | "draft" = "completed") => ({
     status, scheduledOn, entries: [{ exerciseId: "ex_bench", sets: sets.map(([reps, loadKg, skipped], i) => ({ setNumber: i + 1, reps, loadKg, skipped: !!skipped })) }],
   });
-  it("is the last set done in the most recent finished workout", () => {
+  it("is the best set in the most recent finished workout: heaviest load, then most reps, not the final set", () => {
     const last = lastTimeFor([log("2026-11-03", [[10, 20]]), log("2026-11-10", [[10, 22.5], [10, 22.5], [8, 22.5]])], "ex_bench", "2026-11-17");
-    expect(last).toMatchObject({ date: "2026-11-10", set: { reps: 8, loadKg: 22.5 } });
-    expect(lastTimeText(last!)).toBe("Last time: 8 × 22.5 kg");
+    expect(last).toMatchObject({ date: "2026-11-10", set: { reps: 10, loadKg: 22.5 } });
+    expect(lastTimeText(last!)).toBe("Best last time: 10 × 22.5 kg");
+  });
+  it("prefers the heavier set even with fewer reps, and the later set only when load and reps are equal", () => {
+    expect(lastTimeFor([log("2026-11-10", [[12, 20], [8, 25], [10, 22.5]])], "ex_bench", "2026-11-17")!.set).toMatchObject({ reps: 8, loadKg: 25 });
+    expect(lastTimeFor([log("2026-11-10", [[8, 25], [10, 25], [9, 25]])], "ex_bench", "2026-11-17")!.set).toMatchObject({ reps: 10, loadKg: 25 });
+  });
+  it("picks the longest hold for exercises done for time", () => {
+    const l = { status: "completed" as const, scheduledOn: "2026-11-10", entries: [{ exerciseId: "ex_plank", sets: [{ setNumber: 1, durationSec: 40, skipped: false }, { setNumber: 2, durationSec: 55, skipped: false }, { setNumber: 3, durationSec: 30, skipped: false }] }] };
+    expect(lastTimeFor([l], "ex_plank", "2026-11-17")!.set.durationSec).toBe(55);
   });
   it("ignores skipped sets, skipped and draft workouts, and today and later", () => {
     const logs = [log("2026-11-03", [[10, 20]]), log("2026-11-10", [[10, 25, true]]), log("2026-11-12", [[10, 30]], "skipped"), log("2026-11-14", [[10, 30]], "draft"), log("2026-11-17", [[10, 30]])];

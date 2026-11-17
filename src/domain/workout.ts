@@ -27,7 +27,7 @@ export function durationText(seconds: number): string {
   return s ? `${m} min ${s} s` : `${m} min`;
 }
 
-/** “3 × 10 · 18 kg · rest 1 min 15 s”. The target as the trainer wrote it. */
+/** “3 × 10, 18 kg, rest 1 min 15 s”. The target as the trainer wrote it. */
 export function describeTarget(p: Prescription): string {
   const parts: string[] = [];
   const reps = repsText(p);
@@ -37,7 +37,7 @@ export function describeTarget(p: Prescription): string {
   if (p.distanceM) parts.push(`${p.distanceM} m`);
   if (p.restSec) parts.push(`rest ${durationText(p.restSec)}`);
   if (p.rpeTarget) parts.push(`effort ${p.rpeTarget}/10`);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 /** A set logged with one tap: exactly what was prescribed. */
@@ -158,27 +158,32 @@ export function describeSet(s: LoggedSet): string {
   else if (s.loadKg) parts.push(`${s.loadKg} kg`);
   if (s.durationSec !== undefined) parts.push(durationText(s.durationSec));
   if (s.distanceM !== undefined) parts.push(`${s.distanceM} m`);
-  return parts.join(" · ") || "done";
+  return parts.join(", ") || "done";
 }
 
 /** The sets of one exercise in words, in order: “10 × 20 kg, 10 × 20 kg, 8 × 20 kg”. */
 export const describeLogged = (e: Pick<LoggedExercise, "sets">): string => e.sets.map(describeSet).join(", ");
 
-/** What the member did last time for an exercise: the date, and the last set they did. */
+/** What the member did last time for an exercise: the date, and the best set they did. */
 export interface LastTime {
   date: string;
   set: LoggedSet;
 }
 
+/** Heaviest load first; at equal load, the most reps; then the longest time. */
+const better = (a: LoggedSet, b: LoggedSet): boolean =>
+  (a.loadKg ?? 0) !== (b.loadKg ?? 0) ? (a.loadKg ?? 0) > (b.loadKg ?? 0) : (a.reps ?? 0) !== (b.reps ?? 0) ? (a.reps ?? 0) > (b.reps ?? 0) : (a.durationSec ?? 0) > (b.durationSec ?? 0);
+
 /**
- * The most recent finished workout before `before` in which the member did this exercise, and the last set they did in it.
- * Skipped sets and skipped workouts don’t count. Substitutions count as the exercise actually done.
+ * The most recent finished workout before `before` in which the member did this exercise, and the best set they did in it:
+ * the heaviest load, and at equal load the most reps (not simply the final set, which is usually the most tired). Skipped
+ * sets and skipped workouts don’t count. Substitutions count as the exercise actually done.
  */
 export function lastTimeFor(logs: Array<Pick<WorkoutLog, "status" | "scheduledOn" | "entries">>, exerciseId: string, before: string): LastTime | undefined {
   const finished = logs.filter((l) => l.status !== "draft" && l.status !== "skipped" && l.scheduledOn < before).sort((a, b) => b.scheduledOn.localeCompare(a.scheduledOn));
   for (const log of finished) {
-    const sets = log.entries.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets).filter((s) => !s.skipped && (s.reps !== undefined || s.loadKg !== undefined));
-    const set = sets.at(-1);
+    const sets = log.entries.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets).filter((s) => !s.skipped && (s.reps !== undefined || s.loadKg !== undefined || s.durationSec !== undefined));
+    const set = sets.reduce<LoggedSet | undefined>((best, s) => (!best || better(s, best) ? s : best), undefined);
     if (set) return { date: log.scheduledOn, set };
   }
   return undefined;
@@ -200,5 +205,5 @@ export function prefillFor(p: Pick<Prescription, "reps" | "loadKg">, last?: Last
   return { reps, loadKg };
 }
 
-/** “Last time: 10 × 22.5 kg”. */
-export const lastTimeText = (last: LastTime): string => `Last time: ${describeSet(last.set)}`;
+/** “Best last time: 10 × 22.5 kg”. */
+export const lastTimeText = (last: LastTime): string => `Best last time: ${describeSet(last.set)}`;
