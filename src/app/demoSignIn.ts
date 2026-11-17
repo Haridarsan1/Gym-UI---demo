@@ -1,0 +1,22 @@
+import { DEMO_ACCOUNTS, type DemoAccount } from "@/app/demoAccounts";
+import { writeSession, type Session } from "@/app/session";
+
+/**
+ * Signing in as one of the demo people. Used by the login page, the signup page and the role switcher.
+ * This file is part of the marketing bundle, so it must not import React Query, Dexie or Zod.
+ */
+export function sessionFor(account: DemoAccount): Session {
+  return { userId: account.userId, name: account.name, role: account.role, tenantId: account.tenantId, branchIds: account.branchIds, memberId: account.memberId, limits: account.limits };
+}
+
+/** Writes the session for this person and returns it, or null if there is no such demo account. */
+export function signInDemo(userId: string): Session | null {
+  const account = DEMO_ACCOUNTS.find((a) => a.userId === userId);
+  if (!account) return null;
+  const session = sessionFor(account);
+  writeSession(session);
+  return session;
+}
+
+/** The people shown in “Try as…” and in the role switcher: one for each role worth seeing. */
+export const FEATURED_ACCOUNTS: DemoAccount[] = DEMO_ACCOUNTS.filter((a) => a.featured);

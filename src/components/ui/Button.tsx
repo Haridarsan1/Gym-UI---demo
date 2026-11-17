@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/format";
 
@@ -44,17 +44,17 @@ export function Button({ variant = "clay", size = "md", className, children, ...
   );
 }
 
-export function ButtonLink({ to, variant = "clay", size = "md", className, children }: CommonProps & { to: string }) {
+export function ButtonLink({ to, variant = "clay", size = "md", className, children, onClick }: CommonProps & { to: string; onClick?: MouseEventHandler<HTMLAnchorElement> }) {
   const cls = classes(variant, size, className);
   if (to.startsWith("#") || to.startsWith("mailto:")) {
     return (
-      <a href={to} className={cls}>
+      <a href={to} className={cls} onClick={onClick}>
         {children}
       </a>
     );
   }
   return (
-    <Link to={to} className={cls}>
+    <Link to={to} className={cls} onClick={onClick}>
       {children}
     </Link>
   );

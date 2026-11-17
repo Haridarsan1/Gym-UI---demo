@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { LogOut, RotateCcw } from "lucide-react";
+import { LogOut, RotateCcw, Shuffle } from "lucide-react";
 import { useMe } from "@/api/hooks";
 import { menuFor, screenPath } from "@/app/navigation";
 import { useCan, useSession } from "@/app/SessionContext";
-import { useResetDemo, useSignOut } from "@/app/useSessionActions";
+import { useResetDemo, useSignOut, useSwitchAccount } from "@/app/useSessionActions";
+import { FEATURED_ACCOUNTS } from "@/app/demoSignIn";
+import { DEMO_MODE } from "@/app/mode";
 import { Avatar } from "@/design/Avatar";
 import { ROLE_LABEL, areaFor } from "@/domain/roles";
 
@@ -18,6 +20,7 @@ export function AvatarMenu() {
   const me = useMe();
   const signOut = useSignOut();
   const resetDemo = useResetDemo();
+  const switchAccount = useSwitchAccount();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const panelId = useId();
@@ -65,6 +68,32 @@ export function AvatarMenu() {
                 </li>
               ))}
             </ul>
+          )}
+          {DEMO_MODE && (
+            <div className="border-t border-clay-line py-1">
+              <p className="flex items-center gap-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-clay-subtle">
+                <Shuffle className="h-3.5 w-3.5" aria-hidden="true" /> Demo: switch role
+              </p>
+              <ul>
+                {FEATURED_ACCOUNTS.filter((a) => a.userId !== session.userId).map((a) => (
+                  <li key={a.userId}>
+                    <button
+                      type="button"
+                      className={row}
+                      onClick={() => {
+                        setOpen(false);
+                        switchAccount(a.userId);
+                      }}
+                    >
+                      <span className="flex-1">
+                        {ROLE_LABEL[a.role]}
+                        <span className="block text-xs text-clay-muted">{a.name}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           <div className="border-t border-clay-line py-1">
             <button

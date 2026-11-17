@@ -191,6 +191,7 @@ src/
   app/            lazy entry (AppEntry), session (localStorage), SessionContext, guards (RequireArea, RequireCan, Can),
                   screens.ts (registry of every PLAN §4 screen: path, requirement IDs, permission, place in navigation),
                   navigation.ts (what each person sees, mobile bar, landing screen, raised action), AreaRoutes (routes built from the registry),
+                  demoSignIn (sign in as a demo person; shared by login, signup and the role switcher), mode (demo flag),
                   ScreenStub (placeholder until a screen’s milestone), SubNav, demoAccounts (people who can log in; also read by the login page, so keep it tiny)
   api/            typed API functions and React Query hooks. context.ts re-resolves the caller from the database and checks permissions. Demo implementation now, HTTP later
   demo/           db.ts (Dexie, one table per S07 record), seed.ts (pure, deterministic generator), simulate.ts (latency and failures), index.ts (ensureSeeded, resetDemo, runOnce, writeAudit)
@@ -247,7 +248,9 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
   - Navigation: member tabs Today · Program · (raised: Start today’s workout, or Check-in pass when there is no workout) · Progress · Bookings; Me behind the avatar (membership and receipts, check-in pass, reviews and check-ins, profile/consent/preferences). Trainer tabs Today · Clients · (raised: Log session) · Schedule · Library (exercises, templates, programs); Me behind the avatar. Staff: sidebar on desktop, four tabs plus More on phones. Every screen in §4 has a route and a place; the registry is checked against this file by a test.
   - Finance staff work in `/desk` and land on Invoices and payments, because they cannot open Check-in.
   - Left for the login step: role switcher in demo mode. The PWA step adds the “New version available” toast (the toast component already supports staying until dismissed).
-- [ ] Login: members with phone number + OTP **or** email + password (both offered); staff with email + password; demo accepts any 6-digit OTP and any password, plus a “Try as…” role picker and a role switcher in demo mode
+- [x] Login: members with phone number + OTP **or** email + password (both offered); staff with email + password; demo accepts any 6-digit OTP and any password, plus a “Try as…” role picker and a role switcher in demo mode
+  - The email or phone number must belong to someone in the demo gym (`src/app/demoAccounts.ts`); anything else says so in plain words. Phone login is for members only. The session is stored in localStorage (`ember.session`) and Sign out is in every shell. The role switcher is in the avatar menu and ⌘K, and hidden when `VITE_DEMO_MODE=false`.
+  - After signup, “Open your dashboard” signs in as the owner of Pulse Fitness and opens the owner home.
 - [ ] PWA setup
 - **Done when:** each role lands on its own empty home inside its shell, on phone and desktop, with the correct navigation.
 

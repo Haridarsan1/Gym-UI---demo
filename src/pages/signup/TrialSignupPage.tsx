@@ -5,6 +5,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Dumbbell, Kettlebell } from "@/components/gym/Equipment";
 import { Logo } from "@/components/ui/Logo";
 import { brand } from "@/config/brand";
+import { signInDemo } from "@/app/demoSignIn";
 import { branchOptions, cities, memberOptions, pricingTiers } from "@/data/content";
 import { createTrialAccount, type BranchRange, type MemberRange, type TrialSignupResult } from "@/lib/api";
 import { cn } from "@/lib/format";
@@ -554,7 +555,8 @@ function Success({ gymName, trialEndsAt }: { gymName: string; trialEndsAt: strin
           </li>
         ))}
       </ol>
-      <ButtonLink to="/app" variant="primary" size="lg" className="mt-8 w-full">
+      <p className="mt-6 text-sm text-clay-muted">This demo opens a sample gym, Pulse Fitness, signed in as its owner, so you can look around.</p>
+      <ButtonLink to="/owner" variant="primary" size="lg" className="mt-4 w-full" onClick={() => signInDemo("u_owner")}>
         Open your dashboard
       </ButtonLink>
     </div>

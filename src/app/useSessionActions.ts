@@ -2,6 +2,8 @@ import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { resetDemo } from "@/demo";
+import { signInDemo } from "@/app/demoSignIn";
+import { homePathFor } from "@/domain/roles";
 import { useSession } from "@/app/SessionContext";
 import { useToast } from "@/design/Toast";
 
@@ -30,4 +32,21 @@ export function useResetDemo(): () => Promise<void> {
       toast({ title: "Demo data wasn’t reset", description: "Try again. If it keeps failing, reload the page.", tone: "error" });
     }
   }, [client, toast]);
+}
+
+/** Demo mode only: sign in as someone else without going through login, to see the app as another role. */
+export function useSwitchAccount(): (userId: string) => void {
+  const { signIn } = useSession();
+  const client = useQueryClient();
+  const navigate = useNavigate();
+  return useCallback(
+    (userId: string) => {
+      const session = signInDemo(userId);
+      if (!session) return;
+      client.clear();
+      signIn(session);
+      navigate(homePathFor(session.role), { replace: true });
+    },
+    [signIn, client, navigate],
+  );
 }

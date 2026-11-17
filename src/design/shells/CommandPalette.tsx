@@ -1,11 +1,13 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CornerDownLeft, LogOut, RotateCcw, Search, type LucideIcon } from "lucide-react";
+import { CornerDownLeft, LogOut, RotateCcw, Search, Shuffle, type LucideIcon } from "lucide-react";
 import { paletteScreens, screenPath } from "@/app/navigation";
 import { useCan, useSession } from "@/app/SessionContext";
-import { useResetDemo, useSignOut } from "@/app/useSessionActions";
+import { useResetDemo, useSignOut, useSwitchAccount } from "@/app/useSessionActions";
+import { FEATURED_ACCOUNTS } from "@/app/demoSignIn";
+import { DEMO_MODE } from "@/app/mode";
 import { Dialog } from "@/design/Dialog";
-import { areaFor } from "@/domain/roles";
+import { ROLE_LABEL, areaFor } from "@/domain/roles";
 import { cn } from "@/lib/format";
 
 interface Command {
@@ -23,6 +25,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const navigate = useNavigate();
   const signOut = useSignOut();
   const resetDemo = useResetDemo();
+  const switchAccount = useSwitchAccount();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const listId = useId();
@@ -51,12 +54,18 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     const go: Command[] = paletteScreens(area, can).map((s) => ({
       id: `go-${s.id}`, label: s.title, hint: "Go to", icon: s.icon, run: () => navigate(screenPath(area, s)),
     }));
+    const switches: Command[] = DEMO_MODE
+      ? FEATURED_ACCOUNTS.filter((a) => a.userId !== session.userId).map((a) => ({
+          id: `switch-${a.userId}`, label: `Switch to ${ROLE_LABEL[a.role]}`, hint: a.name, icon: Shuffle, run: () => switchAccount(a.userId),
+        }))
+      : [];
     return [
       ...go,
+      ...switches,
       { id: "reset", label: "Reset demo data", hint: "Action", icon: RotateCcw, run: () => void resetDemo() },
       { id: "signout", label: "Sign out", hint: "Action", icon: LogOut, run: signOut },
     ];
-  }, [session, can, navigate, resetDemo, signOut]);
+  }, [session, can, navigate, resetDemo, signOut, switchAccount]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();

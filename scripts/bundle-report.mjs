@@ -15,11 +15,11 @@ const routes = [
   { path: "/", marketing: true },
   { path: "/signup", marketing: true },
   { path: "/login", marketing: true },
-  { path: "/m", role: "member" },
-  { path: "/t", role: "trainer" },
-  { path: "/desk", role: "front_desk" },
-  { path: "/owner", role: "owner" },
-  { path: "/admin", role: "platform_admin" },
+  { path: "/m", user: { userId: "u_member_arjun", role: "member" } },
+  { path: "/t", user: { userId: "u_trainer_meera", role: "trainer" } },
+  { path: "/desk", user: { userId: "u_desk_andheri", role: "front_desk" } },
+  { path: "/owner", user: { userId: "u_owner", role: "owner" } },
+  { path: "/admin", user: { userId: "u_admin", role: "platform_admin" } },
 ];
 
 /** Strings that only exist in app-only libraries. */
@@ -44,8 +44,9 @@ const appText = [];
 console.log("Route      JS gzip   Files  Notes");
 for (const route of routes) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
-  if (route.role) {
-    await ctx.addInitScript((role) => localStorage.setItem("ember.session", JSON.stringify({ userId: "report", role })), route.role);
+  if (route.user) {
+    // Real demo users, so the route renders its shell. Roles and branches are re-read from the database by the app.
+    await ctx.addInitScript((u) => localStorage.setItem("ember.session", JSON.stringify({ ...u, name: "Report", tenantId: "t_pulse", branchIds: ["br_andheri"] })), route.user);
   }
   const page = await ctx.newPage();
   const files = [];
