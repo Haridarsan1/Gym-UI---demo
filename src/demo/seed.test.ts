@@ -29,6 +29,10 @@ describe("demo seed", () => {
     parseAll(Booking, seed.bookings, "booking");
   });
 
+  it("keeps the plan terms: a membership’s trainer assignments and plans are all real", () => {
+    expect(seed.membershipPlans.length).toBe(9);
+  });
+
   it("is the same every time for the same seed and date", () => {
     expect(generateSeed(NOW)).toEqual(seed);
     expect(generateSeed(NOW, 1).members.map((m) => m.name)).not.toEqual(seed.members.map((m) => m.name));
@@ -51,7 +55,7 @@ describe("demo seed", () => {
     for (const key of ["id", "name", "phone", "qrToken"] as const) expect(new Set(seed.members.map((m) => m[key])).size, key).toBe(150);
     const states = new Set(seed.memberships.map((m) => m.status));
     expect([...states].sort()).toEqual(["active", "canceled", "expired", "frozen", "pending", "scheduled"]);
-    const current = seed.memberships.filter((m) => !m.id.endsWith("_prior"));
+    const current = seed.memberships.filter((m) => !m.id.includes("_prior"));
     expect(current).toHaveLength(150);
     const count = (s: string) => current.filter((m) => m.status === s).length;
     expect([count("active"), count("frozen"), count("expired"), count("canceled"), count("scheduled"), count("pending")]).toEqual([100, 9, 21, 8, 6, 6]);
@@ -59,7 +63,7 @@ describe("demo seed", () => {
 
   it("keeps the dates of each state consistent with today", () => {
     const today = "2026-11-17";
-    for (const m of seed.memberships.filter((x) => !x.id.endsWith("_prior"))) {
+    for (const m of seed.memberships.filter((x) => !x.id.includes("_prior"))) {
       if (m.status === "active") expect(m.endsOn! > today, m.id).toBe(true);
       if (m.status === "expired") expect(m.endsOn! < today, m.id).toBe(true);
       if (m.status === "scheduled") expect(m.startsOn > today, m.id).toBe(true);
@@ -112,9 +116,9 @@ describe("demo seed", () => {
   it("includes Arjun Kumar, who trains with Coach Meera on Monthly Plus", () => {
     const arjun = seed.members.find((m) => m.id === "mem_arjun")!;
     expect(arjun).toMatchObject({ name: "Arjun Kumar", phone: "9820022002", userId: "u_member_arjun" });
-    expect(seed.memberships.find((m) => m.memberId === "mem_arjun")).toMatchObject({ status: "active", planId: "pl_monthly_plus" });
+    expect(seed.memberships.find((m) => m.memberId === "mem_arjun" && !m.id.includes("_prior"))).toMatchObject({ status: "active", planId: "pl_monthly_plus" });
     expect(seed.trainerAssignments.find((a) => a.memberId === "mem_arjun" && !a.effectiveTo)?.trainerId).toBe("u_trainer_meera");
-    expect(seed.creditLedger.find((c) => c.memberId === "mem_arjun")?.credits).toBe(2);
+    expect(seed.creditLedger.find((c) => c.memberId === "mem_arjun" && c.kind === "purchase")?.credits).toBe(8);
   });
 
   it("gives every member data-processing consent, and photo consent to some", () => {

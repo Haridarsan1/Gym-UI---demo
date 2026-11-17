@@ -69,6 +69,8 @@ export const InvoiceLine = z.object({
   taxRateBp: basisPoints,
 });
 
+export type InvoiceLine = z.infer<typeof InvoiceLine>;
+
 export const Invoice = z.object({
   id,
   tenantId: id,
@@ -77,6 +79,8 @@ export const Invoice = z.object({
   memberId: id,
   membershipId: id.optional(),
   branchId: id,
+  /** GST state code of the place of supply (for example "27" for Maharashtra). Decides CGST + SGST or IGST on the receipt. */
+  placeOfSupply: z.string().regex(/^\d{2}$/),
   issuedOn: isoDate,
   dueOn: isoDate,
   lines: z.array(InvoiceLine).min(1),

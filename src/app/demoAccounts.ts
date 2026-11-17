@@ -22,6 +22,8 @@ export interface DemoAccount {
   limits?: StaffLimits;
   /** Shown in the “Try as…” picker when true. */
   featured?: boolean;
+  /** Extra sample members, each showing a different state. Listed under “More sample members” on the login page. */
+  sample?: boolean;
   /** One line shown under the role in the picker. */
   blurb: string;
 }
@@ -46,6 +48,9 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   { userId: "u_trainer_kavya", name: "Kavya Reddy", role: "trainer", tenantId: TENANT_ID, branchIds: [BRANCH.powai], email: "kavya.reddy@pulsefitness.in", phone: "9820011010", limits: trainer, blurb: "Trainer, Powai" },
   { userId: "u_trainer_vikrant", name: "Vikrant Singh", role: "trainer", tenantId: TENANT_ID, branchIds: [BRANCH.andheri, BRANCH.powai], email: "vikrant.singh@pulsefitness.in", phone: "9820011011", limits: trainer, blurb: "Trainer, Andheri and Powai" },
   { userId: "u_member_arjun", name: "Arjun Kumar", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], memberId: "mem_arjun", email: "arjun.kumar@example.in", phone: "9820022002", featured: true, blurb: "Monthly Plus member, trains with Coach Meera" },
+  { userId: "u_member_priya", name: "Priya Sharma", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], memberId: "mem_priya", email: "priya.sharma@example.in", phone: "9820022003", sample: true, blurb: "Rest day today, a renewal invoice is overdue" },
+  { userId: "u_member_rahul", name: "Rahul Mehta", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.bandra], memberId: "mem_rahul", email: "rahul.mehta@example.in", phone: "9820022004", sample: true, blurb: "Membership frozen for travel, streak paused" },
+  { userId: "u_member_sneha", name: "Sneha Patil", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], memberId: "mem_sneha", email: "sneha.patil@example.in", phone: "9820022005", sample: true, blurb: "10-visit pass, trainer is still preparing a plan" },
 ];
 
 export const findAccountByEmail = (email: string): DemoAccount | undefined => DEMO_ACCOUNTS.find((a) => a.email.toLowerCase() === email.trim().toLowerCase());

@@ -20,3 +20,6 @@ export function signInDemo(userId: string): Session | null {
 
 /** The people shown in “Try as…” and in the role switcher: one for each role worth seeing. */
 export const FEATURED_ACCOUNTS: DemoAccount[] = DEMO_ACCOUNTS.filter((a) => a.featured);
+
+/** More sample members, each in a different state. Shown under “More sample members” on the login page. */
+export const SAMPLE_MEMBERS: DemoAccount[] = DEMO_ACCOUNTS.filter((a) => a.sample);

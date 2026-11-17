@@ -20,6 +20,9 @@ export const Tenant = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   gstin: z.string().optional(),
+  /** Registered name and address, printed on tax receipts. */
+  legalName: z.string().optional(),
+  address: z.string().optional(),
   currency: z.literal("INR"),
   timeZone: z.string(),
   subscription: z.object({

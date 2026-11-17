@@ -1,12 +1,16 @@
-import { addDays, todayIST } from "@/domain/dates";
 import { ALL_BRANCHES, BRANCH, DEMO_ACCOUNTS, TENANT_ID } from "@/app/demoAccounts";
+import { addDays, todayIST } from "@/domain/dates";
 import type {
-  AuditEvent, Booking, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, GymClass, Goal, Invoice, Measurement, Member,
-  Membership, MembershipPlan, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, User, WorkoutLog, WorkoutPlanVersion,
+  AuditEvent, BadgeAward, Booking, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, GymClass, GymPolicies, Goal, Invoice, Measurement, Member, MemberSettings,
+  Membership, MembershipPlan, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerReview, User, WorkoutLog, WorkoutPlanVersion,
 } from "@/domain/types";
+import { rng } from "@/demo/rng";
+import { PERSONAS } from "@/demo/personas";
+import { buildMemberData } from "@/demo/seedMember";
+import { EXERCISES } from "@/demo/exercises";
 
 /** Bump when the seed shape changes. The app re-seeds once when the stored version is older. */
-export const SEED_VERSION = 1;
+export const SEED_VERSION = 2;
 
 export interface SeedData {
   tenants: Tenant[];
@@ -32,38 +36,11 @@ export interface SeedData {
   measurements: Measurement[];
   consents: Consent[];
   auditEvents: AuditEvent[];
-}
-
-/** Small seeded random numbers, so the same seed always gives the same gym. */
-function rng(seed: number) {
-  let a = seed >>> 0;
-  const next = () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  const int = (min: number, max: number) => min + Math.floor(next() * (max - min + 1));
-  const pick = <T,>(list: readonly T[]): T => list[Math.floor(next() * list.length)] as T;
-  const shuffle = <T,>(list: readonly T[]): T[] => {
-    const out = [...list];
-    for (let i = out.length - 1; i > 0; i--) {
-      const j = Math.floor(next() * (i + 1));
-      [out[i], out[j]] = [out[j] as T, out[i] as T];
-    }
-    return out;
-  };
-  const weighted = <T,>(items: ReadonlyArray<readonly [T, number]>): T => {
-    const total = items.reduce((n, [, w]) => n + w, 0);
-    let r = next() * total;
-    for (const [item, w] of items) {
-      r -= w;
-      if (r < 0) return item;
-    }
-    return items[items.length - 1]![0];
-  };
-  return { next, int, pick, shuffle, weighted };
+  trainerReviews: TrainerReview[];
+  memberSettings: MemberSettings[];
+  badgeAwards: BadgeAward[];
+  trainerAvailability: TrainerAvailability[];
+  gymPolicies: GymPolicies[];
 }
 
 const FIRST = ["Aarav", "Aditi", "Aisha", "Akash", "Ananya", "Anil", "Anjali", "Arnav", "Bhavna", "Chirag", "Deepak", "Diya", "Farhan", "Gauri", "Harsh", "Ishaan", "Isha", "Jaya", "Karthik", "Kiran", "Lakshmi", "Manish", "Meghna", "Mohit", "Nikhil", "Nisha", "Omkar", "Pallavi", "Pranav", "Rachna", "Rajat", "Riya", "Rohan", "Sahil", "Sakshi", "Shreya", "Siddharth", "Tanvi", "Uday", "Varun", "Vidya", "Yash", "Zoya"];
@@ -91,7 +68,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
   const tenants: Tenant[] = [
     {
-      id: TENANT_ID, name: "Pulse Fitness", slug: "pulse-fitness", gstin: "27AABCP1234F1Z5", currency: "INR", timeZone: "Asia/Kolkata",
+      id: TENANT_ID, name: "Pulse Fitness", slug: "pulse-fitness", gstin: "27AABCP1234F1Z5", legalName: "Pulse Fitness Private Limited", address: "Ground floor, Veera Desai Road, Andheri West, Mumbai 400053, Maharashtra", currency: "INR", timeZone: "Asia/Kolkata",
       subscription: { state: "trial", saasPlanId: "sp_growth", trialEndsAt: createdAt(addDays(today, 12)), renewsOn: addDays(today, 12) },
       createdAt: createdAt(addDays(today, -2)),
     },
@@ -104,6 +81,22 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     { id: BRANCH.bandra, tenantId: TENANT_ID, name: "Bandra", city: "Mumbai", address: "Hill Road, Bandra West", hours, rooms: [{ id: "rm_bandra_a", name: "Studio A", capacity: 18 }], active: true },
     { id: BRANCH.powai, tenantId: TENANT_ID, name: "Powai", city: "Mumbai", address: "Hiranandani Gardens, Powai", hours, rooms: [{ id: "rm_powai_a", name: "Studio A", capacity: 25 }, { id: "rm_powai_b", name: "Cycle room", capacity: 12 }], active: true },
   ];
+
+  const policies: GymPolicies = {
+    id: `pol_${TENANT_ID}`, tenantId: TENANT_ID, cancellationCutoffHours: 12, lateCancelConsumesCredit: true, noShowConsumesCredit: true,
+    streakThresholdPercent: 75, bookingHorizonDays: 14, sessionMinutes: 60,
+  };
+
+  // Trainers take sessions 6 to 11 am and 5 to 9 pm. With two branches they alternate: first on Mon, Wed, Fri, second on Tue, Thu, Sat.
+  const availability: TrainerAvailability[] = [];
+  for (const t of DEMO_ACCOUNTS.filter((a) => a.role === "trainer")) {
+    for (let weekday = 1; weekday <= 6; weekday++) {
+      const branchId = t.branchIds.length > 1 && weekday % 2 === 0 ? t.branchIds[1]! : t.branchIds[0]!;
+      for (const [start, end] of [["06:00", "11:00"], ["17:00", "21:00"]] as const) {
+        availability.push({ id: `av_${t.userId}_${weekday}_${start.slice(0, 2)}`, tenantId: TENANT_ID, trainerId: t.userId, branchId, weekday, start, end });
+      }
+    }
+  }
 
   const users: User[] = DEMO_ACCOUNTS.map((a) => ({
     id: a.userId, tenantId: a.tenantId, name: a.name, email: a.email, phone: a.phone, role: a.role, status: "active", mfaEnabled: a.role === "owner" || a.role === "platform_admin", memberId: a.memberId, createdAt: createdAt(addDays(today, -60)),
@@ -140,8 +133,11 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     ...Array<Status>(100).fill("active"), ...Array<Status>(9).fill("frozen"), ...Array<Status>(21).fill("expired"),
     ...Array<Status>(8).fill("canceled"), ...Array<Status>(6).fill("scheduled"), ...Array<Status>(6).fill("pending"),
   ]);
-  const arjunAt = statuses.indexOf("active");
-  [statuses[0], statuses[arjunAt]] = [statuses[arjunAt]!, statuses[0]!];
+  // The first four members are the sample people with logins. Swapping keeps the counts of each state the same.
+  PERSONAS.forEach((persona, k) => {
+    const at = statuses.findIndex((st, j) => j >= PERSONAS.length && st === persona.status);
+    [statuses[k], statuses[at]] = [statuses[at]!, statuses[k]!];
+  });
 
   const trainerAccounts = DEMO_ACCOUNTS.filter((a) => a.role === "trainer");
   const trainersAt = (branchId: string) => trainerAccounts.filter((t) => t.branchIds.includes(branchId));
@@ -152,22 +148,22 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   const trainerAssignments: TrainerAssignment[] = [];
   const consents: Consent[] = [];
   const creditLedger: CreditLedgerEntry[] = [];
-  const usedNames = new Set<string>(["Arjun Kumar"]);
+  const usedNames = new Set<string>(PERSONAS.map((p) => p.name));
 
   for (let i = 0; i < 150; i++) {
-    const isArjun = i === 0;
+    const persona = PERSONAS[i];
     const status = statuses[i]!;
-    const branchId = isArjun ? BRANCH.andheri : r.weighted([[BRANCH.andheri, 55], [BRANCH.bandra, 50], [BRANCH.powai, 45]]);
-    let name = "Arjun Kumar";
-    if (!isArjun) {
+    const branchId = persona?.branchId ?? r.weighted([[BRANCH.andheri, 55], [BRANCH.bandra, 50], [BRANCH.powai, 45]]);
+    let name = persona?.name ?? "";
+    if (!persona) {
       do name = `${r.pick(FIRST)} ${r.pick(LAST)}`;
       while (usedNames.has(name));
       usedNames.add(name);
     }
 
-    let planId = isArjun ? "pl_monthly_plus" : r.weighted(planWeights);
+    let planId = persona?.planId ?? r.weighted(planWeights);
     if (planId === "pl_visit20" && branchId === BRANCH.bandra) planId = "pl_visit10";
-    if (status === "active" && !isArjun && r.next() < 0.03) planId = "pl_trial";
+    if (status === "active" && !persona && r.next() < 0.03) planId = "pl_trial";
     const p = planById.get(planId)!;
     const duration = p.durationDays ?? 30;
 
@@ -177,10 +173,10 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     switch (status) {
       case "active":
       case "frozen": {
-        const elapsed = isArjun ? 9 : r.int(1, Math.max(1, duration - 6));
+        const elapsed = persona?.elapsed ?? r.int(1, Math.max(1, duration - 6));
         startsOn = addDays(today, -elapsed);
         endsOn = addDays(startsOn, duration);
-        if (status === "frozen") extra.freezes = [{ from: addDays(today, -r.int(1, 8)), to: addDays(today, r.int(4, 20)), reason: r.pick(FREEZE_REASONS) }];
+        if (status === "frozen") extra.freezes = persona ? [{ from: addDays(today, -5), to: addDays(today, 12), reason: "Travel" }] : [{ from: addDays(today, -r.int(1, 8)), to: addDays(today, r.int(4, 20)), reason: r.pick(FREEZE_REASONS) }];
         break;
       }
       case "expired":
@@ -205,41 +201,48 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
     const visits = p.visits ?? 10;
     const visitsRemaining =
-      p.kind !== "visit" ? null : status === "active" || status === "frozen" ? (isArjun ? 0 : Math.max(0, visits - r.int(0, visits - 1))) : status === "expired" ? r.int(0, 3) : visits;
+      p.kind !== "visit" ? null : status === "active" || status === "frozen" ? (persona?.visitsRemaining ?? Math.max(0, visits - r.int(0, visits - 1))) : status === "expired" ? r.int(0, 3) : visits;
 
-    const memberId = isArjun ? "mem_arjun" : `mem_${String(i).padStart(3, "0")}`;
+    const memberId = persona?.memberId ?? `mem_${String(i).padStart(3, "0")}`;
     const membershipId = `ms_${memberId}`;
     let earliest = startsOn;
 
-    // Some members renewed: an earlier, finished membership sits behind the current one.
-    if (!isArjun && (status === "active" || status === "frozen") && r.next() < 0.2) {
-      const priorEnd = addDays(startsOn, -1);
+    // Some members renewed: earlier, finished memberships sit behind the current one, each renewing the one before.
+    const priors = persona ? persona.priors : (status === "active" || status === "frozen") && r.next() < 0.2 ? 1 : 0;
+    let renews = startsOn;
+    let renewedBy: Partial<Membership> = extra;
+    for (let k = 1; k <= priors; k++) {
+      const priorEnd = addDays(renews, -1);
       const priorStart = addDays(priorEnd, -duration);
-      earliest = priorStart;
-      memberships.push({
-        id: `${membershipId}_prior`, tenantId: TENANT_ID, memberId, planId, terms: terms(p), status: "expired", startsOn: priorStart, endsOn: priorEnd,
+      const priorId = `${membershipId}_prior${k > 1 ? k : ""}`;
+      renewedBy.renewsMembershipId = priorId;
+      const prior: Membership = {
+        id: priorId, tenantId: TENANT_ID, memberId, planId, terms: terms(p), status: "expired", startsOn: priorStart, endsOn: priorEnd,
         visitsRemaining: p.kind === "visit" ? 0 : null, freezes: [], autoRenew: false, createdAt: createdAt(priorStart),
-      });
-      extra.renewsMembershipId = `${membershipId}_prior`;
+      };
+      memberships.push(prior);
+      renewedBy = prior;
+      renews = priorStart;
+      earliest = priorStart;
     }
 
     memberships.push({
-      id: membershipId, tenantId: TENANT_ID, memberId, planId, terms: terms(p), status, startsOn, endsOn, visitsRemaining, freezes: [], autoRenew: !isArjun && status === "active" && r.next() < 0.25,
+      id: membershipId, tenantId: TENANT_ID, memberId, planId, terms: terms(p), status, startsOn, endsOn, visitsRemaining, freezes: [], autoRenew: !persona && status === "active" && r.next() < 0.25,
       createdAt: status === "scheduled" ? createdAt(addDays(today, -r.int(1, 5))) : createdAt(startsOn), ...extra,
     });
 
     const joinedOn = addDays(earliest, -r.int(0, 3));
     members.push({
-      id: memberId, tenantId: TENANT_ID, userId: isArjun ? "u_member_arjun" : undefined, name,
-      phone: isArjun ? "9820022002" : String(9_100_000_000 + i * 3719 + r.int(0, 3000)),
-      email: isArjun ? "arjun.kumar@example.in" : r.next() < 0.7 ? `${name.toLowerCase().replace(/\s+/g, ".")}@example.in` : undefined,
+      id: memberId, tenantId: TENANT_ID, userId: persona?.userId, name,
+      phone: persona?.phone ?? String(9_100_000_000 + i * 3719 + r.int(0, 3000)),
+      email: persona ? persona.email : r.next() < 0.7 ? `${name.toLowerCase().replace(/\s+/g, ".")}@example.in` : undefined,
       dateOfBirth: `${r.int(1975, 2005)}-${String(r.int(1, 12)).padStart(2, "0")}-${String(r.int(1, 28)).padStart(2, "0")}`,
       gender: r.pick(["female", "male", "male", "female", "undisclosed"] as const), homeBranchId: branchId, joinedOn, qrToken: `qr-${memberId}-${r.int(100000, 999999)}`,
       leadSource: r.pick(["Walk-in", "Instagram", "Referral", "Google", "Society tie-up"]),
     });
 
     // Training credits come with some plans.
-    if (p.ptCredits && (status === "active" || status === "frozen")) {
+    if (p.ptCredits && !persona && (status === "active" || status === "frozen")) {
       creditLedger.push({
         id: `cr_${memberId}`, tenantId: TENANT_ID, memberId, membershipId, kind: "purchase", credits: p.ptCredits, expiresOn: endsOn, createdBy: deskFor(branchId), createdAt: createdAt(startsOn), idempotencyKey: `seed-credit-${memberId}`,
       });
@@ -247,9 +250,9 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
     // Trainers: about seven in ten members have one. Arjun trains with Coach Meera.
     const candidates = trainersAt(branchId);
-    if (isArjun || (candidates.length > 0 && status !== "pending" && r.next() < 0.7)) {
-      const trainer = isArjun ? trainerAccounts[0]! : r.pick(candidates);
-      const reassigned = !isArjun && candidates.length > 1 && (status === "active" || status === "frozen") && r.next() < 0.06;
+    if (persona ? !!persona.trainerId : candidates.length > 0 && status !== "pending" && r.next() < 0.7) {
+      const trainer = persona ? trainerAccounts.find((t) => t.userId === persona.trainerId)! : r.pick(candidates);
+      const reassigned = !persona && candidates.length > 1 && (status === "active" || status === "frozen") && r.next() < 0.06;
       if (reassigned) {
         const previous = r.pick(candidates.filter((t) => t.userId !== trainer.userId));
         const switchedOn = addDays(today, -r.int(10, 40));
@@ -264,7 +267,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
     // Consent: everyone agrees to data processing. The rest are optional.
     const grant = (scope: Consent["scope"], chance: number) => {
-      if (isArjun || chance >= 1 || r.next() < chance)
+      if (persona || chance >= 1 || r.next() < chance)
         consents.push({ id: `cn_${memberId}_${scope}`, tenantId: TENANT_ID, memberId, scope, grantedAt: createdAt(joinedOn), noticeVersion: "2026-01", recordedBy: deskFor(branchId) });
     };
     grant("data_processing", 1);
@@ -273,8 +276,15 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     grant("marketing", 0.5);
   }
 
+  // Training, billing and activity for the sample members. Everyone else gets this in the milestone that first shows it.
+  const memberData = buildMemberData({ today, r, members, memberships, membershipPlans, deskFor });
+
   return {
-    tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, creditLedger, consents,
-    invoices: [], payments: [], refunds: [], classes: [], bookings: [], checkIns: [], exercises: [], workoutPlanVersions: [], workoutLogs: [], goals: [], measurements: [], auditEvents: [],
+    tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,
+    creditLedger: [...creditLedger, ...memberData.creditLedger],
+    invoices: memberData.invoices, payments: memberData.payments, refunds: [], classes: [], bookings: memberData.bookings, checkIns: memberData.checkIns,
+    exercises: EXERCISES, workoutPlanVersions: memberData.workoutPlanVersions, workoutLogs: memberData.workoutLogs, goals: memberData.goals,
+    measurements: memberData.measurements, auditEvents: [], trainerReviews: memberData.trainerReviews, memberSettings: memberData.memberSettings,
+    badgeAwards: memberData.badgeAwards, trainerAvailability: availability, gymPolicies: [policies],
   };
 }

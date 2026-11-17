@@ -214,6 +214,41 @@ scripts/          bundle-report.mjs, make-icons.mjs, serve-dist.mjs
 **Dependencies are pinned** to exact versions, each at least two weeks old when added. Vitest is on 3.x because Vitest 4 and later need Vite 6 or newer and the project is on Vite 5.
 
 
+### Records beyond S07
+
+These exist because the member app needs them. Each is a Zod schema in `src/domain/types/supporting.ts`, has a Dexie table, and is seeded for the sample members.
+
+| Record | Why it is needed |
+|---|---|
+| `TrainerReview` | T06 and P04 need feedback the member can see (`shared_review`), notes the trainer keeps private (`private_note`), and the member’s own effort, recovery and obstacles check-in (`member_checkin`). One record with a kind keeps the history, with its author, in one place. `readByMemberAt` drives the “new review” card on Today. Members never see private notes. |
+| `MemberSettings` | O04 and S04 let members choose which emails they get, and the app offers sounds (off by default) and haptics. Marketing consent is a `Consent` record, not stored here. |
+| `BadgeAward` | A celebration should happen once, when a badge is first earned. The stored award is how the app knows a badge is new, and keeps its date. The badge rules are in `domain/badges.ts`. |
+| `TrainerAvailability` | T04 and O01 book coaching against trainer availability, so the member needs open slots. This is the weekly pattern (weekday, start, end, branch). Leave and shifts arrive in M2. |
+| `GymPolicies` | The booking, cancellation and streak rules are the gym’s choice, not constants. One row per gym: free-cancellation cutoff (12 hours), whether late cancels and no-shows use the credit (both yes), the streak threshold (75%), how far ahead members can book (14 days) and session length (60 minutes). The owner edits them in M4. |
+
+Also added to existing records: `Invoice.placeOfSupply` (GST state code, decides CGST + SGST or IGST) and `Tenant.legalName` and `Tenant.address` (printed on tax receipts).
+
+### Rules written down in M1
+
+- **Which plan applies on a date:** the published version that started most recently on or before that date. A new version replaces the old one from its start date; earlier dates keep their original targets (T06).
+- **Adherence (P03):** completed workouts against scheduled, non-canceled workouts whose dates have passed in the period. Partial, skipped and missed (nothing logged) are counted separately. Unscheduled workouts are reported as extra. With nothing scheduled the rate is empty, never zero. Days inside a freeze are not counted as missed.
+- **Volume (P02):** the sum of load × reps over sets that were done and have both.
+- **Personal record:** the heaviest load ever lifted for an exercise in a set that was done. The first time an exercise is logged sets the baseline and is not a record. A substituted exercise is judged as the exercise actually done.
+- **Streak:** weeks (Monday to Sunday) in a row in which at least 75% of the planned workouts were completed or partial (the percentage is a `GymPolicies` value). Weeks with nothing planned, and weeks overlapping a freeze, pause the streak. The week in progress adds to it once it reaches the threshold and never breaks it before it ends.
+- **Credits (M06):** purchase adds to available; reservation moves available to reserved; consumption uses reserved; release returns reserved to available; reversal undoes the referenced entry; expiry and adjustments change available.
+- **Invoice totals:** a discount is spread over the lines before 18% GST is worked out. **Tax split:** CGST + SGST in equal halves (an odd paisa goes to SGST) when the place of supply is the gym’s state, otherwise IGST. Gym services use SAC 999723.
+
+### Sample members
+
+| Member | Login | Shows |
+|---|---|---|
+| Arjun Kumar | `u_member_arjun`, phone 98200 22002 | A workout today (new plan from 13 days ago), 12 weeks of logs, a streak, 8 training credits (5 free, 1 held, 2 used), a booking tomorrow at 7 pm, one unread review, badges, a GST invoice for each month. |
+| Priya Sharma | phone 98200 22003 | A rest day, and a renewal invoice of ₹2,950 overdue by four days. |
+| Rahul Mehta | phone 98200 22004 | A frozen membership (streak paused), an IGST invoice (Karnataka). |
+| Sneha Patil | phone 98200 22005 | A trainer but no plan yet, a 10-visit pass with 4 visits left. |
+
+Everything is relative to today, so Arjun always has a workout today.
+
 ### Permissions
 
 One permission map in `domain/permissions.ts` (role × action × scope: own, assigned, branch, organisation, platform). It drives routes, navigation, buttons and API checks in demo mode. Cross-tenant and cross-branch access is denied by default and covered by tests (S03, A05).
@@ -244,7 +279,7 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - [x] Add `/app` role routing (lazy, per area); marketing pages stay in `src/pages/`
 - [x] Domain types for every S07 record
 - [x] Demo database (Dexie), seed generator, reset control (`resetDemo()`; the button comes with the shells), latency and failure simulation
-  - Seed in M0: Pulse Fitness, 3 branches, 14 logins (6 trainers), plan catalogue, 150 members in every membership state, trainer assignments (incl. transfers), consents, PT credits. Invoices, bookings, workouts, check-ins and exercises are seeded in the milestone that first shows them.
+  - Seed (M0, extended in M1 with the sample members’ training, billing and activity): Pulse Fitness, 3 branches, 14 logins (6 trainers), plan catalogue, 150 members in every membership state, trainer assignments (incl. transfers), consents, PT credits. Invoices, bookings, workouts, check-ins and exercises are seeded in the milestone that first shows them.
 - [x] Permission map and route guards (`member.list` is separate from `member.read`, so members cannot browse the member list)
 - [x] Design additions: `Button3D`, shells (member/trainer bottom tabs, staff sidebar), skeletons, toasts, empty states, status pills, ⌘K palette
   - Navigation: member tabs Today · Program · (raised: Start today’s workout, or Check-in pass when there is no workout) · Progress · Bookings; Me behind the avatar (membership and receipts, check-in pass, profile/consent/preferences). Reviews are a section of Progress. Trainer tabs Today · Clients · (raised: Log session) · Schedule · Library (exercises, templates, programs); Me behind the avatar. Staff: sidebar on desktop, four tabs plus More on phones. Every screen in §4 has a route and a place; the registry is checked against this file by a test.

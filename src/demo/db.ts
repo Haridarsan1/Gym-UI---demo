@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import type {
-  AuditEvent, Booking, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
-  MembershipPlan, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, User, WorkoutLog, WorkoutPlanVersion,
+  AuditEvent, BadgeAward, Booking, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
+  MembershipPlan, MemberSettings, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerReview, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
 } from "@/domain/types";
 
 export interface MetaRow {
@@ -42,6 +42,11 @@ export class EmberDB extends Dexie {
   measurements!: EntityTable<Measurement, "id">;
   consents!: EntityTable<Consent, "id">;
   auditEvents!: EntityTable<AuditEvent, "id">;
+  trainerReviews!: EntityTable<TrainerReview, "id">;
+  memberSettings!: EntityTable<MemberSettings, "id">;
+  badgeAwards!: EntityTable<BadgeAward, "id">;
+  trainerAvailability!: EntityTable<TrainerAvailability, "id">;
+  gymPolicies!: EntityTable<GymPolicies, "id">;
   meta!: EntityTable<MetaRow, "key">;
   idempotency!: EntityTable<IdempotencyRow, "key">;
 
@@ -74,6 +79,14 @@ export class EmberDB extends Dexie {
       auditEvents: "id, tenantId, at, action, entityId",
       meta: "key",
       idempotency: "key",
+    });
+    // Version 2 (M1): records for the member app. Existing tables are unchanged.
+    this.version(2).stores({
+      trainerReviews: "id, tenantId, memberId, kind, createdAt",
+      memberSettings: "id, tenantId, &memberId",
+      badgeAwards: "id, tenantId, memberId, badge",
+      trainerAvailability: "id, tenantId, trainerId, weekday",
+      gymPolicies: "id, tenantId",
     });
   }
 }

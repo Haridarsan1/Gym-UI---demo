@@ -18,7 +18,11 @@ async function writeSeed(): Promise<void> {
       db.tenants.bulkAdd(data.tenants), db.saasPlans.bulkAdd(data.saasPlans), db.branches.bulkAdd(data.branches), db.users.bulkAdd(data.users),
       db.staffRoles.bulkAdd(data.staffRoles), db.members.bulkAdd(data.members), db.trainerAssignments.bulkAdd(data.trainerAssignments),
       db.membershipPlans.bulkAdd(data.membershipPlans), db.memberships.bulkAdd(data.memberships), db.creditLedger.bulkAdd(data.creditLedger),
-      db.consents.bulkAdd(data.consents),
+      db.consents.bulkAdd(data.consents), db.exercises.bulkAdd(data.exercises), db.workoutPlanVersions.bulkAdd(data.workoutPlanVersions),
+      db.workoutLogs.bulkAdd(data.workoutLogs), db.goals.bulkAdd(data.goals), db.measurements.bulkAdd(data.measurements), db.bookings.bulkAdd(data.bookings),
+      db.checkIns.bulkAdd(data.checkIns), db.invoices.bulkAdd(data.invoices), db.payments.bulkAdd(data.payments), db.trainerReviews.bulkAdd(data.trainerReviews),
+      db.memberSettings.bulkAdd(data.memberSettings), db.badgeAwards.bulkAdd(data.badgeAwards), db.trainerAvailability.bulkAdd(data.trainerAvailability),
+      db.gymPolicies.bulkAdd(data.gymPolicies),
     ]);
     await db.meta.bulkPut([{ key: SEED_KEY, value: SEED_VERSION }, { key: "seededAt", value: new Date().toISOString() }]);
   });

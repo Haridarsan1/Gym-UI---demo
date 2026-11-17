@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Kettlebell } from "@/components/gym/Equipment";
 import { brand } from "@/config/brand";
 import { findAccountByEmail, findAccountByPhone } from "@/app/demoAccounts";
-import { FEATURED_ACCOUNTS, signInDemo } from "@/app/demoSignIn";
+import { FEATURED_ACCOUNTS, SAMPLE_MEMBERS, signInDemo } from "@/app/demoSignIn";
 import { readSession, writeSession } from "@/app/session";
 import { AREA_PATH, ROLE_LABEL, areaFor, homePathFor, type Role } from "@/domain/roles";
 import { cn } from "@/lib/format";
@@ -210,6 +210,19 @@ export default function LoginPage() {
               </li>
             ))}
           </ul>
+          <details className="mt-4">
+            <summary className="flex min-h-[2.75rem] cursor-pointer items-center text-sm font-semibold text-clay-muted">More sample members</summary>
+            <ul className="mt-2 grid gap-3 sm:grid-cols-2">
+              {SAMPLE_MEMBERS.map((a) => (
+                <li key={a.userId}>
+                  <button type="button" onClick={() => enter(a.userId, a.role)} className="press clay-flat flex min-h-[4.25rem] w-full flex-col items-start justify-center !rounded-2xl px-4 py-3 text-left">
+                    <span className="font-semibold">{a.name}</span>
+                    <span className="text-xs text-clay-subtle">{a.blurb}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </details>
         </section>
       </div>
     </main>
