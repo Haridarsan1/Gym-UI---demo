@@ -8,6 +8,7 @@ import { SessionProvider } from "@/app/SessionContext";
 import { RequireArea } from "@/app/guards";
 import { ToastProvider } from "@/design/Toast";
 import { DemoGate } from "@/design/DemoGate";
+import { UpdateWatcher } from "@/app/UpdateWatcher";
 
 /**
  * The only door into the app from the marketing site. App.tsx loads this file lazily, so React Query,
@@ -42,6 +43,7 @@ export default function AppEntry({ area }: { area: Area | "index" }) {
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
         <ToastProvider>
+          <UpdateWatcher />
           <Suspense fallback={<div className="min-h-screen bg-clay-canvas" />}>
             {area === "index" || !Area ? (
               <AppIndex />

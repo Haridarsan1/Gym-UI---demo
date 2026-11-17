@@ -23,6 +23,7 @@ npm run dev         # local dev server
 npm run build       # typecheck + production build (must pass)
 npm run test        # Vitest unit tests (domain rules)
 npm run e2e         # Playwright flows (acceptance scenarios, marketing regression)
+npm run e2e:pwa     # service worker and manifest tests (builds first)
 npm run bundle-report  # after build: gzipped JS per route; fails if app code reaches marketing routes
 ```
 

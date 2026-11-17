@@ -205,8 +205,8 @@ src/
   features/       one folder per area: member/ trainer/ desk/ owner/ admin/ (finance lives in desk/)
   design/         app-only pieces: Button3D, Skeleton, States (empty and error), StatusPills, Toast, Dialog, Avatar, DemoGate, DesignCheck (dev only)
     shells/         PlayShell (member and trainer), StaffShell (desk, owner, admin), AvatarMenu, BranchSwitcher and BranchContext, CommandPalette
-e2e/              Playwright tests: marketing.spec.ts is the regression suite for the marketing site
-scripts/          bundle-report.mjs
+e2e/              Playwright tests: marketing.spec.ts is the regression suite for the marketing site; pwa.spec.ts runs against a production build (npm run e2e:pwa)
+scripts/          bundle-report.mjs, make-icons.mjs, serve-dist.mjs
 ```
 
 **Bundle rule:** `App.tsx` loads `src/app/AppEntry.tsx` lazily and nothing else from the app. The home page is lazy too, so `/m`, `/login` and `/signup` don’t download it; `vite.config.ts` preloads it (with everything it imports) on `/` only, so `/` is not slowed down (measured: LCP 1744 ms vs 1728 ms before, Slow-4G profile with 4× CPU slowdown). React Query, Dexie, Zod, the seed generator and the shells must not appear in the bundles for `/`, `/signup` or `/login`. `npm run bundle-report` (after `npm run build`) fails if they do.
@@ -251,7 +251,11 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - [x] Login: members with phone number + OTP **or** email + password (both offered); staff with email + password; demo accepts any 6-digit OTP and any password, plus a “Try as…” role picker and a role switcher in demo mode
   - The email or phone number must belong to someone in the demo gym (`src/app/demoAccounts.ts`); anything else says so in plain words. Phone login is for members only. The session is stored in localStorage (`ember.session`) and Sign out is in every shell. The role switcher is in the avatar menu and ⌘K, and hidden when `VITE_DEMO_MODE=false`.
   - After signup, “Open your dashboard” signs in as the owner of Pulse Fitness and opens the owner home.
-- [ ] PWA setup
+- [x] PWA setup
+  - `vite-plugin-pwa` with `registerType: "autoUpdate"`: a new service worker takes over as soon as it is ready. It is registered by `src/app/pwa.ts` only when the app opens (never on marketing pages) and only in production builds.
+  - Caches static files only (app scripts, styles, Latin fonts, icons), about 790 KB uncompressed. `index.html` is never precached and there is no navigation fallback; page loads are network first (3 s timeout) with the last copy kept for offline, so a Vercel deploy shows on the next load. Marketing-only chunks and Latin-extended fonts are not precached.
+  - The page is not reloaded for you, so a workout in progress is safe. A “New version available” toast with a Reload button stays until dismissed. The same toast shows when a lazy screen’s file was removed by a deploy (`vite:preloadError`).
+  - `public/icons/` is made by `npm run icons`. `vercel.json` serves `sw.js` and the manifest with no caching. Tests: `npm run e2e:pwa` (builds and uses `scripts/serve-dist.mjs`, which can simulate a deploy).
 - **Done when:** each role lands on its own empty home inside its shell, on phone and desktop, with the correct navigation.
 
 ### M1 · Member app (R05)
