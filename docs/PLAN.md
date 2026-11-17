@@ -238,6 +238,14 @@ Also added to existing records: `Invoice.placeOfSupply` (GST state code, decides
 - **Credits (M06):** purchase adds to available; reservation moves available to reserved; consumption uses reserved; release returns reserved to available; reversal undoes the referenced entry; expiry and adjustments change available.
 - **Invoice totals:** a discount is spread over the lines before 18% GST is worked out. **Tax split:** CGST + SGST in equal halves (an odd paisa goes to SGST) when the place of supply is the gym’s state, otherwise IGST. **Place of supply** for in-gym services (memberships, PT sessions, classes) is the branch’s state (`Branch.stateCode`), whatever the member’s address (`placeOfSupplyFor` in `billing.ts`); IGST stays for services delivered in another state. Gym services use SAC 999723.
 
+### Rules written down in M1, steps 5 and 6
+
+- **Workout result (T05):** completed when every prescribed main set was done, whatever the reps and load (10, 10, 8 against 3 × 10 is completed); partial when some were done; skipped when none were. Warm-up and cool-down sets are logged but do not change the result, unless they are all a day has.
+- **Pre-filled targets (W03):** a set is pre-filled with the prescribed reps (the lower end of a range), load and duration. Logging it unchanged is stored as “as prescribed”.
+- **Substitution (W03):** a swapped exercise is stored against the one it replaced and answers its prescription. Its sets start empty, because they are a different movement.
+- **When a workout can be logged:** on its day, for an active membership. A started workout can still be saved until the end of the next day. A finished workout is final; a trainer corrects it (T05). A frozen or ended membership can preview the plan but not log.
+- **Drafts and retries:** one log per member and day. A draft is saved as sets are logged and carries the workout’s idempotency key; the final submit uses the same key, so repeating it returns the same log. A draft save that arrives after the submit is ignored.
+
 ### Sample members
 
 | Member | Login | Shows |
@@ -299,7 +307,9 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - [x] Today (step 4)
   - States: workout today (with “New plan from Coach Meera, 4 Nov”), workout started (Continue), done / partly done / skipped (never red), rest day, no plan yet, frozen, expired, pending, no membership. Notices for overdue or due invoices. Cards: this week’s ring and streak, training sessions with the exact free-cancellation deadline, new shared review, membership. The raised button starts or continues today’s workout for active members, and is the check-in pass otherwise.
   - The seed generator loads on demand, so returning visits never download it.
-- [ ] Program path
+- [x] Program path (step 5)
+  - The plan as weeks of days, one week at a time with Previous and Next week and “Back to this week”. Workout days are markers on a path (done, partly done, skipped, not logged, today, coming up; skipped and not logged are neutral grey, never red); rest days are quiet markers. Past weeks show the version of the plan that governed them (T06), and “Earlier plans” lists older versions with their dates.
+  - Tapping a workout opens a preview (`PreviewSheet`): the prescription, how to do each exercise, alternatives, and for a day already logged what was done next to the target. It offers Start or Continue only for today’s workout; for other days it says why not.
 - [ ] Workout session with logging, drafts, substitutions, rest timer, idempotent submit
 - [ ] Workout complete celebration and badges
 - [ ] Progress charts, PRs, goals

@@ -149,3 +149,17 @@ export function loggingBlockedReason(args: { date: string; today: string; member
   if (date < today && !(hasDraft && date >= yesterday)) return "This day has passed. Ask your trainer to log it for you.";
   return undefined;
 }
+
+/** “10 × 20 kg”, “45 s”, or “skipped”. One logged set in words. */
+export function describeSet(s: LoggedSet): string {
+  if (s.skipped) return "skipped";
+  const parts: string[] = [];
+  if (s.reps !== undefined) parts.push(s.loadKg ? `${s.reps} × ${s.loadKg} kg` : `${s.reps} reps`);
+  else if (s.loadKg) parts.push(`${s.loadKg} kg`);
+  if (s.durationSec !== undefined) parts.push(durationText(s.durationSec));
+  if (s.distanceM !== undefined) parts.push(`${s.distanceM} m`);
+  return parts.join(" · ") || "done";
+}
+
+/** The sets of one exercise in words, in order: “10 × 20 kg, 10 × 20 kg, 8 × 20 kg”. */
+export const describeLogged = (e: Pick<LoggedExercise, "sets">): string => e.sets.map(describeSet).join(", ");

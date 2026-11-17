@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlanDay, Prescription } from "@/domain/types";
-import { asPrescribed, clearSet, describeTarget, emptyEntries, entryFor, fieldsFor, hasActivity, logSet, loggingBlockedReason, normalizeEntries, progress, restAfter, skipSet, statusFor, substituteExercise, targetReps } from "@/domain/workout";
+import { asPrescribed, clearSet, describeLogged, describeSet, describeTarget, emptyEntries, entryFor, fieldsFor, hasActivity, logSet, loggingBlockedReason, normalizeEntries, progress, restAfter, skipSet, statusFor, substituteExercise, targetReps } from "@/domain/workout";
 
 const bench: Prescription = { exerciseId: "ex_bench", order: 1, section: "main", sets: 3, reps: 10, loadKg: 20, restSec: 75 };
 const row: Prescription = { exerciseId: "ex_row", order: 2, section: "main", sets: 2, reps: { min: 8, max: 12 }, restSec: 60 };
@@ -137,5 +137,17 @@ describe("when a workout can be logged", () => {
     expect(loggingBlockedReason({ ...base, logStatus: "completed" })).toMatch(/already logged/);
     expect(loggingBlockedReason({ ...base, logStatus: "skipped" })).toMatch(/already logged/);
     expect(loggingBlockedReason({ ...base, logStatus: "draft", hasDraft: true })).toBeUndefined();
+  });
+});
+
+describe("logged sets in words", () => {
+  it("says what was done", () => {
+    expect(describeSet({ setNumber: 1, reps: 10, loadKg: 20, skipped: false })).toBe("10 × 20 kg");
+    expect(describeSet({ setNumber: 1, reps: 12, skipped: false })).toBe("12 reps");
+    expect(describeSet({ setNumber: 1, durationSec: 45, skipped: false })).toBe("45 s");
+    expect(describeSet({ setNumber: 2, skipped: true })).toBe("skipped");
+  });
+  it("lists the sets in order", () => {
+    expect(describeLogged({ sets: [{ setNumber: 1, reps: 10, loadKg: 20, skipped: false }, { setNumber: 2, reps: 10, loadKg: 20, skipped: false }, { setNumber: 3, reps: 8, loadKg: 20, skipped: false }] })).toBe("10 × 20 kg, 10 × 20 kg, 8 × 20 kg");
   });
 });

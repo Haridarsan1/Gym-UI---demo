@@ -18,7 +18,8 @@ export function Dialog({ open, onClose, label, placement = "center", children, c
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
-    (panel.current?.querySelector<HTMLElement>("[data-autofocus]") ?? panel.current?.querySelector<HTMLElement>(FOCUSABLE))?.focus();
+    // With nothing to focus yet (content still loading) the panel itself takes focus, so Escape and Tab stay inside.
+    (panel.current?.querySelector<HTMLElement>("[data-autofocus]") ?? panel.current?.querySelector<HTMLElement>(FOCUSABLE) ?? panel.current)?.focus();
     return () => {
       document.body.style.overflow = prevOverflow;
       document.body.style.paddingRight = "";
@@ -50,7 +51,7 @@ export function Dialog({ open, onClose, label, placement = "center", children, c
 
   return createPortal(
     <div className={cn("fixed inset-0 z-[70] flex justify-center bg-[rgba(35,28,53,0.45)] backdrop-blur-[2px]", placement === "bottom" ? "items-end" : placement === "top" ? "items-start pt-[12vh]" : "items-center")} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={panel} role="dialog" aria-modal="true" aria-label={label} onKeyDown={onKeyDown} className={cn("clay max-h-[85dvh] w-full overflow-auto", placement === "bottom" ? "max-w-lg !rounded-b-none pb-[env(safe-area-inset-bottom)]" : "mx-4 max-w-xl", className)}>
+      <div ref={panel} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onKeyDown={onKeyDown} className={cn("clay max-h-[85dvh] w-full overflow-auto focus:outline-none", placement === "bottom" ? "max-w-lg !rounded-b-none pb-[env(safe-area-inset-bottom)]" : "mx-4 max-w-xl", className)}>
         {children}
       </div>
     </div>,
