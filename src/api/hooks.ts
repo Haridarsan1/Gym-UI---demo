@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { getMe } from "@/api/me";
 import { listMembers, type MemberListParams } from "@/api/members";
 import { getToday } from "@/api/member";
-import { getProgram, getWorkout, saveWorkoutDraft, submitWorkout, type DraftInput, type SubmitInput } from "@/api/workout";
+import type { DraftInput, SubmitInput } from "@/api/workout";
 import { isRetryable } from "@/api/errors";
 import { useSession } from "@/app/SessionContext";
 
@@ -10,6 +10,12 @@ import { useSession } from "@/app/SessionContext";
  * Screens use these hooks and nothing else to read data. Each one calls an API function with the signed-in session,
  * so switching user or signing out never shows the previous person’s data (the user id is part of every key).
  */
+/**
+ * The workout API checks its input with Zod, which Today and the other areas never need. It is loaded the first time a
+ * program or workout screen asks for it, so it stays out of every area’s first download (the `/m` budget).
+ */
+const workoutApi = () => import("@/api/workout");
+
 const retry = (count: number, error: unknown) => count < 2 && isRetryable(error);
 
 export function useMe() {
@@ -37,7 +43,7 @@ export function useToday() {
 /** The member’s plan as weeks of days, and how each day went. */
 export function useProgram() {
   const { session } = useSession();
-  return useQuery({ queryKey: ["member", session?.userId, "program"], queryFn: () => getProgram(session), enabled: !!session, retry, staleTime: 15_000 });
+  return useQuery({ queryKey: ["member", session?.userId, "program"], queryFn: async () => (await workoutApi()).getProgram(session), enabled: !!session, retry, staleTime: 15_000 });
 }
 
 /**
@@ -48,7 +54,7 @@ export function useWorkout(date: string, enabled = true) {
   const { session } = useSession();
   return useQuery({
     queryKey: ["member", session?.userId, "workout", date],
-    queryFn: () => getWorkout(session, date),
+    queryFn: async () => (await workoutApi()).getWorkout(session, date),
     enabled: !!session && enabled,
     retry,
     staleTime: 0,
@@ -61,7 +67,14 @@ export function useWorkout(date: string, enabled = true) {
 /** Saves a workout in progress. Safe to repeat. */
 export function useSaveWorkoutDraft() {
   const { session } = useSession();
-  return useMutation({ mutationFn: (input: DraftInput) => saveWorkoutDraft(session, input), retry });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: DraftInput) => (await workoutApi()).saveWorkoutDraft(session, input),
+    retry,
+    retryDelay: 400,
+    // Today shows “Continue workout” from the draft, so it must hear about a new one.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId, "today"] }),
+  });
 }
 
 /** Finishes a workout. Repeating it with the same key makes no second log. Refreshes Today and the program path. */
@@ -69,8 +82,9 @@ export function useSubmitWorkout() {
   const { session } = useSession();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: SubmitInput) => submitWorkout(session, input),
+    mutationFn: async (input: SubmitInput) => (await workoutApi()).submitWorkout(session, input),
     retry,
+    retryDelay: 600,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId] }),
   });
 }

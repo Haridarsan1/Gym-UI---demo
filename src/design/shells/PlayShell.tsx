@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button3DLink } from "@/design/Button3D";
 import { LogoMark } from "@/components/ui/Logo";
 import { useMe } from "@/api/hooks";
@@ -16,6 +16,8 @@ import { cn } from "@/lib/format";
 export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer"; todaysWorkout?: TodaysWorkout }) {
   const can = useCan();
   const me = useMe();
+  // Logging a workout takes the whole screen: the tab bar steps aside for the session’s own controls.
+  const immersive = area === "member" && /^\/m\/workout\/[^/]+\/?$/.test(useLocation().pathname);
   const tabs = tabsFor(area, can);
   const left = tabs.slice(0, 2);
   const right = tabs.slice(2);
@@ -42,6 +44,7 @@ export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer";
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-2xl px-4 py-6 focus:outline-none">
         <Outlet />
       </main>
+      {!immersive && (
       <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
         <div className="clay mx-auto grid max-w-md grid-cols-5 items-end !rounded-3xl px-1 pb-1 pt-1">
           {left.map((s) => (
@@ -66,6 +69,7 @@ export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer";
           ))}
         </div>
       </nav>
+      )}
     </div>
   );
 }

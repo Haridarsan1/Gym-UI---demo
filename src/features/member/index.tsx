@@ -6,6 +6,7 @@ import { MemberShell } from "@/features/member/MemberShell";
 const implemented = {
   today: lazy(() => import("@/features/member/Today")),
   program: lazy(() => import("@/features/member/Program")),
+  workout: lazy(() => import("@/features/member/Workout")),
 };
 
 export default function MemberArea() {

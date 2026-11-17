@@ -66,7 +66,7 @@ test.describe("member app navigation", () => {
 
   test("every tab opens its screen", async ({ page }) => {
     await signInAs(page, "u_member_arjun", "/m");
-    for (const [tab, heading] of [["Program", "Program path"], ["Progress", "Progress"], ["Bookings", "Bookings"], ["Today", "Today"]] as const) {
+    for (const [tab, heading] of [["Program", "Program"], ["Progress", "Progress"], ["Bookings", "Bookings"], ["Today", "Today"]] as const) {
       await main(page).getByRole("link", { name: tab, exact: true }).click();
       await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
     }

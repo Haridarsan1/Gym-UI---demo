@@ -310,7 +310,11 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - [x] Program path (step 5)
   - The plan as weeks of days, one week at a time with Previous and Next week and “Back to this week”. Workout days are markers on a path (done, partly done, skipped, not logged, today, coming up; skipped and not logged are neutral grey, never red); rest days are quiet markers. Past weeks show the version of the plan that governed them (T06), and “Earlier plans” lists older versions with their dates.
   - Tapping a workout opens a preview (`PreviewSheet`): the prescription, how to do each exercise, alternatives, and for a day already logged what was done next to the target. It offers Start or Continue only for today’s workout; for other days it says why not.
-- [ ] Workout session with logging, drafts, substitutions, rest timer, idempotent submit
+- [x] Workout session with logging, drafts, substitutions, rest timer, idempotent submit (step 6)
+  - One exercise at a time with Back and Next; the tab bar steps aside and the session has its own bar. Each set opens pre-filled with its target, so a set done as prescribed is one tap on “Log set”; reps, load, time and distance have − and + buttons and can be typed. “Skip set” is neutral grey and can be undone or logged after all; “Change” edits a logged set.
+  - “Swap exercise” lists the library’s alternatives and keeps the original in view (“Instead of …”). A rest timer starts after a set when the trainer set a rest, counts down from an end time (so it stays right when the phone sleeps), and has +15 s and Skip rest.
+  - Sets are saved as a draft half a second after each change, in order, and when the person leaves or the page is hidden. “Finish” (any time) or “Finish workout” (last exercise) opens a sheet with the result in words, effort 1 to 10 and a note; submitting again after a failure uses the same key.
+  - Finishing sends the member to Today with a short confirmation. The celebration, volume and personal records come with the next step.
 - [ ] Workout complete celebration and badges
 - [ ] Progress charts, PRs, goals
 - [ ] Bookings with credits and policy
@@ -407,4 +411,4 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 | Finance staff work in `/desk` but cannot check members in. Where do they land? | On Invoices and payments. |
 | Platform administrators see no gym records, not even in support mode yet. | Support access (M5) adds a time-limited, reasoned, audited grant. |
 | GST place of supply and rates | Branch state for in-gym services (CGST + SGST), 18%, SAC 999723. GST rules to be confirmed by the gym’s accountant before launch. |
-| Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6. Bundle budget for `/m` is met: 129 KB of 170 KB. |
+| Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6. Bundle budget for `/m` is met: 150 KB of 170 KB after step 6. The workout API (which uses Zod) is loaded on demand with the program and workout screens, so it stays out of every area’s first download. |
