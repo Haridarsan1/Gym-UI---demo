@@ -75,12 +75,11 @@ test.describe("Workout session: Arjun", () => {
     await page.getByRole("button", { name: "Finish workout" }).first().click();
     const sheet = page.getByRole("dialog", { name: "Finish workout" });
     await expect(sheet).toContainText("15 of 15 sets done");
-    await sheet.getByRole("button", { name: "Effort 7 of 10, hard" }).click();
     await sheet.getByLabel("Anything your trainer should know?").fill("Felt strong");
     await sheet.getByRole("button", { name: "Finish workout" }).click();
 
-    await expect(page).toHaveURL(/\/m$/);
-    await expect(page.getByText("Workout done").first()).toBeVisible();
+    await expect(page).toHaveURL(/\/m\/workout\/\d{4}-\d{2}-\d{2}\/complete$/);
+    await expect(page.getByRole("heading", { name: "Workout done" })).toBeVisible();
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Program" }).click();
     await expect(page.getByRole("button", { name: /Upper body and core/ })).toContainText("Done");
     // Opening the preview shows what was done next to the target.
@@ -140,8 +139,8 @@ test.describe("Workout session: Arjun", () => {
     const sheet = page.getByRole("dialog", { name: "Finish workout" });
     await expect(sheet).toContainText("1 of 15 sets done · 1 skipped · 13 not logged");
     await sheet.getByRole("button", { name: "Save partly done workout" }).click();
-    await expect(page).toHaveURL(/\/m$/);
-    await expect(page.getByText("Workout partly done")).toBeVisible();
+    await expect(page).toHaveURL(/\/complete$/);
+    await expect(page.getByRole("heading", { name: "1 of 15 sets done" })).toBeVisible();
   });
 
   test("a failed submit can be retried and makes one log", async ({ page }) => {
@@ -155,8 +154,8 @@ test.describe("Workout session: Arjun", () => {
     await expect(sheet.getByRole("alert")).toContainText("Your sets are safe");
     await simulate(page, 0);
     await sheet.getByRole("button", { name: "Try again" }).click();
-    await expect(page).toHaveURL(/\/m$/);
-    await expect(page.getByText("Workout saved as partly done")).toBeVisible();
+    await expect(page).toHaveURL(/\/complete$/);
+    await expect(page.getByRole("heading", { name: /sets done$/ })).toBeVisible();
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Program" }).click();
     await expect(page.getByRole("button", { name: /Upper body and core/ })).toContainText("Partly done");
     await expect(page.getByRole("list", { name: "Days of the week" }).getByText(/^Partly done ·/)).toHaveCount(1);

@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSubmitWorkout } from "@/api";
 import type { WorkoutView } from "@/api";
 import { Button3D } from "@/design/Button3D";
-import { useToast } from "@/design/Toast";
 import type { LoggedExercise, LoggedSet } from "@/domain/types";
 import { clearSet, entryFor, logSet, progress, restAfter, skipSet, substituteExercise } from "@/domain/workout";
 import { ExerciseStep } from "@/features/member/workout/ExerciseStep";
@@ -31,7 +30,6 @@ function startingStep(view: WorkoutView): number {
 /** Logging a workout: one exercise at a time, a rest timer between sets, drafts saved as you go, and a safe final submit (W03, T05). */
 export function Session({ view }: { view: WorkoutView }) {
   const navigate = useNavigate();
-  const toast = useToast();
   const submit = useSubmitWorkout();
   const [entries, setEntries] = useState<LoggedExercise[]>(view.entries);
   const [step, setStep] = useState(() => startingStep(view));
@@ -80,10 +78,9 @@ export function Session({ view }: { view: WorkoutView }) {
   const finish = async (d: FinishDetails) => {
     await autosave.flush();
     try {
-      const r = await submit.mutateAsync({ date: view.date, entries, idempotencyKey: view.idempotencyKey, effort: d.effort, notes: d.notes });
-      const message = r.status === "completed" ? "Workout done" : r.status === "partial" ? "Workout saved as partly done" : "Workout recorded as skipped";
-      toast({ title: message, description: `${r.progress.done} of ${r.progress.total} sets done.`, tone: "success" });
-      navigate("/m", { replace: true });
+      const r = await submit.mutateAsync({ date: view.date, entries, idempotencyKey: view.idempotencyKey, notes: d.notes });
+      // The summary is the reward; it asks how the workout felt.
+      navigate(`/m/workout/${r.date}/complete`, { replace: true, state: { celebrate: true } });
     } catch {
       /* The sheet shows the error from the mutation and offers a retry with the same key. */
     }

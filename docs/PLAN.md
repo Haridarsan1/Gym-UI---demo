@@ -315,7 +315,12 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
   - “Swap exercise” lists the library’s alternatives and keeps the original in view (“Instead of …”). A rest timer starts after a set when the trainer set a rest, counts down from an end time (so it stays right when the phone sleeps), and has +15 s and Skip rest.
   - Sets are saved as a draft half a second after each change, in order, and when the person leaves or the page is hidden. “Finish” (any time) or “Finish workout” (last exercise) opens a sheet with the result in words, effort 1 to 10 and a note; submitting again after a failure uses the same key.
   - Finishing sends the member to Today with a short confirmation. The celebration, volume and personal records come with the next step.
-- [ ] Workout complete celebration and badges
+- [x] Workout complete celebration and badges (step 7)
+  - Finishing opens `/m/workout/:date/complete`. The parts appear in order: the result, the volume counting up, each personal record one by one, the week ring and streak, then each badge. The whole sequence is under 4 seconds (`planStages` shares 3.8 s by weight, at least 0.35 s a part; beyond three records or two badges the rest go straight into the final list). A tap anywhere moves to the next part, “Skip” goes to the end. With reduced motion, or when the summary is opened later from Today (“See summary”), everything is shown at once and nothing replays. No confetti: parts pop in, buzz on Android for a record or badge, and the ring fills.
+  - A partly done workout is celebrated by its sets (“8 of 9 sets done”) with “Every session counts.” A skipped day gets a calm note and no sequence. Nothing is red or says failed.
+  - After the sequence: “How did it feel?” (effort 1 to 10, recovery in five words), both optional, each tap saves on its own and a second tap clears it (P04). Effort moved here from the finish sheet, which now only has an optional note.
+  - Share uses the Web Share API with a plain line such as “Upper body and core done: 6,420 kg moved, new dumbbell bench press PR 25 kg” (or “… : 8 of 9 sets done, …” when partly done). No name or link. The button is left out where `navigator.share` doesn’t exist.
+  - Badges are awarded once, inside the submit transaction, so a repeated submit awards nothing new. Records are worked out from the logs (not stored): the heaviest load ever for that exercise, the first time an exercise is logged being a baseline.
 - [ ] Progress charts, PRs, goals
 - [ ] Bookings with credits and policy
 - [ ] Membership, renew, invoices and receipts
