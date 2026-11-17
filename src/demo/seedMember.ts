@@ -1,10 +1,10 @@
 import { BRANCH, TENANT_ID } from "@/app/demoAccounts";
 import { earnedBadges } from "@/domain/badges";
-import { invoiceTotals } from "@/domain/billing";
+import { invoiceTotals, placeOfSupplyFor } from "@/domain/billing";
 import { addDays, istDateTime, weekStart } from "@/domain/dates";
 import { detectPRs, scheduledBetween, streakWeeks, weekStats } from "@/domain/metrics";
 import type {
-  BadgeAward, Booking, CheckIn, CreditLedgerEntry, Goal, Invoice, Measurement, Member, MemberSettings, Membership, MembershipPlan, Payment, PlanDay,
+  BadgeAward, Booking, Branch, CheckIn, CreditLedgerEntry, Goal, Invoice, Measurement, Member, MemberSettings, Membership, MembershipPlan, Payment, PlanDay,
   Prescription, TrainerReview, WorkoutLog, WorkoutPlanVersion,
 } from "@/domain/types";
 import { PERSONAS, type Persona } from "@/demo/personas";
@@ -70,6 +70,7 @@ function buildDays(pattern: Array<[number, Template]>, weeks: number, firstWeekN
 export interface MemberSeedInput {
   today: string;
   r: Rng;
+  branches: Pick<Branch, "id" | "stateCode">[];
   members: Member[];
   memberships: Membership[];
   membershipPlans: MembershipPlan[];
@@ -92,8 +93,9 @@ export interface MemberSeed {
 }
 
 export function buildMemberData(input: MemberSeedInput): MemberSeed {
-  const { today, r, memberships, membershipPlans, deskFor } = input;
+  const { today, r, branches, memberships, membershipPlans, deskFor } = input;
   const at = (date: string, time: string) => istDateTime(date, time);
+  const branchStates = new Map(branches.map((b) => [b.id, b.stateCode]));
   const planName = new Map(membershipPlans.map((p) => [p.id, p.name]));
   const out: MemberSeed = { workoutPlanVersions: [], workoutLogs: [], goals: [], measurements: [], trainerReviews: [], memberSettings: [], badgeAwards: [], bookings: [], checkIns: [], invoices: [], payments: [], creditLedger: [] };
   let invoiceNo = 1;
@@ -252,7 +254,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
       const n = invoiceNo++;
       const inv: Invoice = {
         id: `inv_${String(n).padStart(4, "0")}`, tenantId: TENANT_ID, number: `INV-2026-${String(n).padStart(4, "0")}`, memberId: persona.memberId, membershipId: m?.id, branchId: persona.branchId,
-        placeOfSupply: opts.place ?? "27", issuedOn, dueOn, lines, ...totals, status: opts.paid === false ? "open" : "paid", createdAt: at(issuedOn, "10:00"),
+        placeOfSupply: placeOfSupplyFor(branchStates.get(persona.branchId)!), issuedOn, dueOn, lines, ...totals, status: opts.paid === false ? "open" : "paid", createdAt: at(issuedOn, "10:00"),
       };
       out.invoices.push(inv);
       if (opts.paid !== false) {
@@ -267,8 +269,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
       return inv;
     };
     for (const m of mine) {
-      const rahul = persona.memberId === "mem_rahul";
-      invoiceFor(m, `${planName.get(m.planId)} membership`, m.terms.pricePaise, 1, m.startsOn, addDays(m.startsOn, 3), { place: rahul ? "29" : "27", method: persona.memberId === "mem_priya" && m !== current ? "cash" : "upi" });
+      invoiceFor(m, `${planName.get(m.planId)} membership`, m.terms.pricePaise, 1, m.startsOn, addDays(m.startsOn, 3), { method: persona.memberId === "mem_priya" && m !== current ? "cash" : "upi" });
     }
     if (persona.memberId === "mem_priya") {
       // The next month’s invoice has been sent and its due date has passed: ₹2,950 overdue by four days.

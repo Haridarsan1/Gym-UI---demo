@@ -43,6 +43,13 @@ export function taxBreakup(taxPaise: number, supplierState: string, placeOfSuppl
   return { cgstPaise: cgst, sgstPaise: taxPaise - cgst, igstPaise: 0 };
 }
 
+/**
+ * Place of supply. Fitness services (memberships, PT sessions, classes) are taxed where they are performed, so for
+ * in-gym services it is the branch’s state, whatever the member’s address. Only a service delivered elsewhere
+ * (for example online coaching) passes `deliveredIn`. GST rules to be confirmed by the gym’s accountant before launch.
+ */
+export const placeOfSupplyFor = (branchStateCode: string, deliveredIn?: string): string => deliveredIn ?? branchStateCode;
+
 /** The state code in a GSTIN: its first two digits. */
 export const stateOfGstin = (gstin: string): string => gstin.slice(0, 2);
 

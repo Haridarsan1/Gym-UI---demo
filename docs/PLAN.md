@@ -236,7 +236,7 @@ Also added to existing records: `Invoice.placeOfSupply` (GST state code, decides
 - **Personal record:** the heaviest load ever lifted for an exercise in a set that was done. The first time an exercise is logged sets the baseline and is not a record. A substituted exercise is judged as the exercise actually done.
 - **Streak:** weeks (Monday to Sunday) in a row in which at least 75% of the planned workouts were completed or partial (the percentage is a `GymPolicies` value). Weeks with nothing planned, and weeks overlapping a freeze, pause the streak. The week in progress adds to it once it reaches the threshold and never breaks it before it ends.
 - **Credits (M06):** purchase adds to available; reservation moves available to reserved; consumption uses reserved; release returns reserved to available; reversal undoes the referenced entry; expiry and adjustments change available.
-- **Invoice totals:** a discount is spread over the lines before 18% GST is worked out. **Tax split:** CGST + SGST in equal halves (an odd paisa goes to SGST) when the place of supply is the gym’s state, otherwise IGST. Gym services use SAC 999723.
+- **Invoice totals:** a discount is spread over the lines before 18% GST is worked out. **Tax split:** CGST + SGST in equal halves (an odd paisa goes to SGST) when the place of supply is the gym’s state, otherwise IGST. **Place of supply** for in-gym services (memberships, PT sessions, classes) is the branch’s state (`Branch.stateCode`), whatever the member’s address (`placeOfSupplyFor` in `billing.ts`); IGST stays for services delivered in another state. Gym services use SAC 999723.
 
 ### Sample members
 
@@ -244,7 +244,7 @@ Also added to existing records: `Invoice.placeOfSupply` (GST state code, decides
 |---|---|---|
 | Arjun Kumar | `u_member_arjun`, phone 98200 22002 | A workout today (new plan from 13 days ago), 12 weeks of logs, a streak, 8 training credits (5 free, 1 held, 2 used), a booking in two days at 6 pm (free cancellation until 6 am that day), one unread review, badges, a GST invoice for each month. |
 | Priya Sharma | phone 98200 22003 | A rest day, and a renewal invoice of ₹2,950 overdue by four days. |
-| Rahul Mehta | phone 98200 22004 | A frozen membership (streak paused), an IGST invoice (Karnataka). |
+| Rahul Mehta | phone 98200 22004 | A frozen membership (streak paused), a CGST + SGST invoice (in-gym services are taxed in the branch’s state, even though Rahul lives in Karnataka). |
 | Sneha Patil | phone 98200 22005 | A trainer but no plan yet, a 10-visit pass with 4 visits left. |
 
 Everything is relative to today, so Arjun always has a workout today.
@@ -396,4 +396,5 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 |---|---|
 | Finance staff work in `/desk` but cannot check members in. Where do they land? | On Invoices and payments. |
 | Platform administrators see no gym records, not even in support mode yet. | Support access (M5) adds a time-limited, reasoned, audited grant. |
+| GST place of supply and rates | Branch state for in-gym services (CGST + SGST), 18%, SAC 999723. GST rules to be confirmed by the gym’s accountant before launch. |
 | Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6. Bundle budget for `/m` is met: 129 KB of 170 KB. |

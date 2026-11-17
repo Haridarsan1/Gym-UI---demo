@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SAC_FITNESS, STATE_NAMES, amountDuePaise, amountInWords, invoiceTotals, isOverdue, paidPaise, stateOfGstin, taxBreakup } from "@/domain/billing";
+import { SAC_FITNESS, placeOfSupplyFor, STATE_NAMES, amountDuePaise, amountInWords, invoiceTotals, isOverdue, paidPaise, stateOfGstin, taxBreakup } from "@/domain/billing";
 
 describe("invoice totals", () => {
   it("adds 18% GST to a monthly plan: ₹2,500 + ₹450 = ₹2,950", () => {
@@ -15,6 +15,17 @@ describe("invoice totals", () => {
   });
   it("never discounts below zero", () => {
     expect(invoiceTotals([{ quantity: 1, unitPaise: 1000, taxRateBp: 0 }], 5000).totalPaise).toBe(0);
+  });
+});
+
+describe("place of supply", () => {
+  it("is the branch’s state for in-gym services, whatever the member’s address", () => {
+    expect(placeOfSupplyFor("27")).toBe("27");
+    expect(taxBreakup(45_000, "27", placeOfSupplyFor("27"))).toEqual({ cgstPaise: 22_500, sgstPaise: 22_500, igstPaise: 0 });
+  });
+  it("is another state only when the service is delivered there", () => {
+    expect(placeOfSupplyFor("27", "29")).toBe("29");
+    expect(taxBreakup(45_000, "27", placeOfSupplyFor("27", "29")).igstPaise).toBe(45_000);
   });
 });
 

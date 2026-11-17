@@ -76,9 +76,9 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   const week = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, open: "05:30", close: "22:30" }));
   const hours = [...week, { weekday: 6, open: "06:00", close: "20:00" }, { weekday: 0, open: "07:00", close: "13:00" }];
   const branches: Branch[] = [
-    { id: BRANCH.andheri, tenantId: TENANT_ID, name: "Andheri", city: "Mumbai", address: "Veera Desai Road, Andheri West", hours, rooms: [{ id: "rm_andheri_a", name: "Studio A", capacity: 20 }, { id: "rm_andheri_b", name: "Studio B", capacity: 15 }], active: true },
-    { id: BRANCH.bandra, tenantId: TENANT_ID, name: "Bandra", city: "Mumbai", address: "Hill Road, Bandra West", hours, rooms: [{ id: "rm_bandra_a", name: "Studio A", capacity: 18 }], active: true },
-    { id: BRANCH.powai, tenantId: TENANT_ID, name: "Powai", city: "Mumbai", address: "Hiranandani Gardens, Powai", hours, rooms: [{ id: "rm_powai_a", name: "Studio A", capacity: 25 }, { id: "rm_powai_b", name: "Cycle room", capacity: 12 }], active: true },
+    { id: BRANCH.andheri, tenantId: TENANT_ID, name: "Andheri", city: "Mumbai", address: "Veera Desai Road, Andheri West", stateCode: "27", hours, rooms: [{ id: "rm_andheri_a", name: "Studio A", capacity: 20 }, { id: "rm_andheri_b", name: "Studio B", capacity: 15 }], active: true },
+    { id: BRANCH.bandra, tenantId: TENANT_ID, name: "Bandra", city: "Mumbai", address: "Hill Road, Bandra West", stateCode: "27", hours, rooms: [{ id: "rm_bandra_a", name: "Studio A", capacity: 18 }], active: true },
+    { id: BRANCH.powai, tenantId: TENANT_ID, name: "Powai", city: "Mumbai", address: "Hiranandani Gardens, Powai", stateCode: "27", hours, rooms: [{ id: "rm_powai_a", name: "Studio A", capacity: 25 }, { id: "rm_powai_b", name: "Cycle room", capacity: 12 }], active: true },
   ];
 
   const policies: GymPolicies = {
@@ -276,7 +276,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   }
 
   // Training, billing and activity for the sample members. Everyone else gets this in the milestone that first shows it.
-  const memberData = buildMemberData({ today, r, members, memberships, membershipPlans, deskFor });
+  const memberData = buildMemberData({ today, r, branches, members, memberships, membershipPlans, deskFor });
 
   return {
     tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,

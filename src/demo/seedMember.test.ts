@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateSeed } from "@/demo/seed";
-import { amountDuePaise, isOverdue } from "@/domain/billing";
+import { amountDuePaise, isOverdue, stateOfGstin, taxBreakup } from "@/domain/billing";
 import { creditBalance } from "@/domain/credits";
 import { addDays, weekStart } from "@/domain/dates";
 import { earnedBadges } from "@/domain/badges";
@@ -178,8 +178,10 @@ describe("Rahul Mehta: frozen", () => {
     const a = adherence(versions("mem_rahul"), logs("mem_rahul"), addDays(TODAY, -60), TODAY, TODAY);
     expect(a.scheduled).toBeGreaterThan(0);
   });
-  it("is charged IGST: his place of supply is Karnataka", () => {
-    expect(seed.invoices.find((i) => i.memberId === "mem_rahul")!.placeOfSupply).toBe("29");
+  it("is charged CGST + SGST: services at a Maharashtra branch are taxed in Maharashtra", () => {
+    const inv = seed.invoices.find((i) => i.memberId === "mem_rahul")!;
+    expect(inv.placeOfSupply).toBe("27");
+    expect(taxBreakup(inv.taxPaise, stateOfGstin(seed.tenants[0]!.gstin!), inv.placeOfSupply).igstPaise).toBe(0);
   });
 });
 
