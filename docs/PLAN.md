@@ -188,13 +188,13 @@ src/
   pages/          marketing pages: home/, signup/, LoginPage, LegalPage, NotFound
   components/     ui/ (Button, Logo, Container, SectionHeader, StatusPill) and gym/ (marketing illustrations)
   config/ data/ hooks/ lib/   marketing brand, content, motion hooks, formatting and scroll helpers
-  app/            lazy entry (AppEntry), session (localStorage), area stub; guards and router pieces (planned)
+  app/            lazy entry (AppEntry), session (localStorage) and SessionContext, guards (RequireArea, RequireCan, Can), area stub
   api/            typed API functions, demo implementation now, HTTP later (planned)
   demo/           Dexie schema, seed data, latency/failure simulation, reset (planned)
   domain/         pure business rules, no React
     roles.ts        roles, areas, home path per role
     types/          S07 records as Zod schemas: common, core, billing, ops, training. Money is whole paise; dates are ISO strings
-    permissions.ts  role and branch checks (S03) (planned)
+    permissions.ts  role × action → scope map, can(), canRefund() (S03)
     membership.ts checkin.ts credits.ts billing.ts metrics.ts reports.ts   added in the milestone that needs each
   features/       one folder per area: member/ trainer/ desk/ owner/ admin/ (finance lives in desk/)
   design/         app-only pieces: Button3D, shells, toasts, skeletons, palette (planned)
@@ -235,7 +235,7 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - [x] Add `/app` role routing (lazy, per area); marketing pages stay in `src/pages/`
 - [x] Domain types for every S07 record
 - [ ] Demo database (Dexie), seed generator, reset control, latency and failure simulation
-- [ ] Permission map and route guards
+- [x] Permission map and route guards
 - [ ] Design additions: `Button3D`, shells (member/trainer bottom tabs, staff sidebar), skeletons, toasts, empty states, status pills, ⌘K palette
 - [ ] Login: members with phone number + OTP **or** email + password (both offered); staff with email + password; demo accepts any 6-digit OTP and any password, plus a “Try as…” role picker and a role switcher in demo mode
 - [ ] PWA setup
@@ -285,7 +285,7 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - **Done when:** a branch manager sees only their branches everywhere, including exports.
 
 ### M5 · Platform admin (R01)
-- [ ] Tenants, tenant detail, SaaS plans
+- [ ] Tenants, tenant detail, SaaS plans (platform admins have no access to a gym’s records; support access adds a time-limited principal in `permissions.ts`)
 - [ ] Time-limited support access with banner and audit
 - **Done when:** support access expires automatically and every action is in the audit log.
 

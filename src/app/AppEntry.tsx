@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Area } from "@/domain/roles";
 import { homePathFor } from "@/domain/roles";
 import { readSession } from "@/app/session";
+import { SessionProvider } from "@/app/SessionContext";
+import { RequireArea } from "@/app/guards";
 
 /**
  * The only door into the app from the marketing site. App.tsx loads this file lazily, so React Query,
@@ -35,7 +37,17 @@ export default function AppEntry({ area }: { area: Area | "index" }) {
   const Area = area === "index" ? null : areas[area];
   return (
     <QueryClientProvider client={queryClient}>
-      <Suspense fallback={<div className="min-h-screen bg-clay-canvas" />}>{Area ? <Area /> : <AppIndex />}</Suspense>
+      <SessionProvider>
+        <Suspense fallback={<div className="min-h-screen bg-clay-canvas" />}>
+          {area === "index" || !Area ? (
+            <AppIndex />
+          ) : (
+            <RequireArea area={area}>
+              <Area />
+            </RequireArea>
+          )}
+        </Suspense>
+      </SessionProvider>
       {Devtools && (
         <Suspense fallback={null}>
           <Devtools initialIsOpen={false} />
