@@ -20,8 +20,8 @@ export interface SensitiveView {
  * the permission checks (assigned trainer, the member themselves, or an owner or branch manager who has been given
  * “Can view client health and progress photos”), photo consent, and the audit entry cannot be skipped.
  *
- * Every successful view writes an audit event, including repeat views and views by the member. A refused view writes
- * nothing and returns “forbidden”. Screens fetch the actual content after this call succeeds.
+ * Every successful view by staff or a trainer writes an audit event, repeat views included. A member looking at their own
+ * records is not audited. A refused view writes nothing and returns “forbidden”. Screens fetch the actual content after this call succeeds.
  * (Assessments get a record to check against when the assessment model is built in M2. Photos are checked now.)
  */
 export async function viewSensitive(session: Session | null, view: SensitiveView): Promise<SensitiveView> {
@@ -47,6 +47,8 @@ export async function viewSensitive(session: Session | null, view: SensitiveView
   };
   assertCan(principal, view.kind === "photo" ? "photo.read" : "assessment.read", resource);
 
-  await writeAudit(principal, { action: view.kind === "photo" ? "photo.view" : "assessment.view", entityType: view.kind, entityId: view.entityId, memberId: view.memberId });
+  if (principal.role !== "member") {
+    await writeAudit(principal, { action: view.kind === "photo" ? "photo.view" : "assessment.view", entityType: view.kind, entityId: view.entityId, memberId: view.memberId });
+  }
   return view;
 }

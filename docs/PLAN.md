@@ -218,7 +218,7 @@ scripts/          bundle-report.mjs, make-icons.mjs, serve-dist.mjs
 
 One permission map in `domain/permissions.ts` (role × action × scope: own, assigned, branch, organisation, platform). It drives routes, navigation, buttons and API checks in demo mode. Cross-tenant and cross-branch access is denied by default and covered by tests (S03, A05).
 
-**Client health data.** Assessments and progress photos are open to the assigned trainer and to the member. Owners and branch managers are denied by default and can be given “Can view client health and progress photos” (a per-person switch in `StaffLimits`, set by an owner, never for front desk or finance). Even then, photos need the member’s photo consent, branch managers stay within their branches, and private trainer notes stay trainer-only. Owners and branch managers can always see that an assessment exists and each goal’s status. Every view goes through `src/api/sensitive.ts` and writes an audit event (`assessment.view`, `photo.view`), including repeat views and the member’s own.
+**Client health data.** Assessments and progress photos are open to the assigned trainer and to the member. Owners and branch managers are denied by default and can be given “Can view client health and progress photos” (a per-person switch in `StaffLimits`, set by an owner, never for front desk or finance). Even then, photos need the member’s photo consent, branch managers stay within their branches, and private trainer notes stay trainer-only. Owners and branch managers can always see that an assessment exists and each goal’s status. Every view goes through `src/api/sensitive.ts` and writes an audit event (`assessment.view`, `photo.view`), including repeat views. A member looking at their own records is not audited (decided after M0).
 
 ---
 
@@ -336,7 +336,7 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 
 | Decision | Choice |
 |---|---|
-| Owner access to assessments and progress photos | Denied by default. An owner can switch on “Can view client health and progress photos” for an owner or branch manager (never front desk or finance). Every view of an assessment or photo is written to the audit log. Owners always see that an assessment exists and each goal’s status. |
+| Owner access to assessments and progress photos | Denied by default. An owner can switch on “Can view client health and progress photos” for an owner or branch manager (never front desk or finance). Every view of an assessment or photo by staff or a trainer is written to the audit log; members’ views of their own records are not. Owners always see that an assessment exists and each goal’s status. |
 | React Router | Stay on 6.x, upgraded from 6.28.0 to 6.30.6 (exact pin). The two moderate advisories that remain affect all of 6.x through 7.17 and need the v7 jump: they concern server-side rendering, which we do not use, and open redirects via `<Link>`/`navigate`, where we only navigate to our own paths (the login return address is checked against the person’s own area). |
 | Reviews and check-ins | A Reviews section inside Progress, not in the avatar menu. Today shows a card when a trainer shares a new review. |
 | Button colours | Coloured faces stay. Ember is `#D14000` (white text 4.7:1). Mint and lilac keep dark text. The marketing site’s orange (`.clay-ember`) uses the same shade family. |

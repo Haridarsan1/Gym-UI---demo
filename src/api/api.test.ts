@@ -258,14 +258,14 @@ describe("client health data: assessments and progress photos (S04, A05)", () =>
     for (const userId of ["u_desk_andheri", "u_finance"]) await setHealth(userId, false);
   });
 
-  it("lets the assigned trainer and the member view, and logs both", async () => {
+  it("lets the assigned trainer and the member view, and logs the trainer’s view but not the member’s own", async () => {
     const before = (await events()).length;
     await viewSensitive(as("u_trainer_meera"), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" });
     await viewSensitive(as("u_member_arjun"), { kind: "photo", memberId: "mem_arjun", entityId: "ph_mem_arjun" });
     const all = await events();
-    expect(all.length).toBe(before + 2);
+    expect(all.length).toBe(before + 1);
     expect(all.filter((e) => e.actorId === "u_trainer_meera").map((e) => e.action)).toEqual(["assessment.view"]);
-    expect(all.filter((e) => e.actorId === "u_member_arjun").map((e) => [e.action, e.actorRole])).toEqual([["photo.view", "member"]]);
+    expect(all.filter((e) => e.actorRole === "member")).toEqual([]);
   });
 
   it("refuses a trainer who does not train the member, and a member looking at someone else", async () => {
