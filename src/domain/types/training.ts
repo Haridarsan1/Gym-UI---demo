@@ -86,6 +86,7 @@ export const LoggedSet = z.object({
   /** Logged with one tap as prescribed. */
   asPrescribed: z.boolean().optional(),
 });
+export type LoggedSet = z.infer<typeof LoggedSet>;
 
 export const LoggedExercise = z.object({
   exerciseId: id,
@@ -94,6 +95,7 @@ export const LoggedExercise = z.object({
   sets: z.array(LoggedSet),
   notes: z.string().optional(),
 });
+export type LoggedExercise = z.infer<typeof LoggedExercise>;
 
 /** What was actually done (W03, T05). Shown next to the prescription it answers. */
 export const WorkoutLog = z.object({
