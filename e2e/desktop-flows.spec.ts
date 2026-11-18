@@ -452,25 +452,25 @@ for (const width of WIDTHS) {
       await addFrom("Plank");
       await expect(items).toHaveCount(3);
 
-      // Drag the last exercise to the top with the mouse: the row follows the pointer, and the order changes when it is dropped.
-      // Put the first row a good way below the top edge, so dragging never trips the page’s own edge scrolling.
-      await items.first().evaluate((el) => window.scrollBy(0, el.getBoundingClientRect().top - 280));
+      // Drag the last exercise above the middle one with the mouse: the row follows the pointer, and the order changes when it is dropped.
+      // The rows are scrolled well inside the window, so the page’s own edge scrolling never joins in.
+      await items.nth(1).evaluate((el) => window.scrollBy(0, el.getBoundingClientRect().top - 260));
       const handle = items.nth(2).getByRole("button", { name: /^Drag to reorder/ });
-      const target = (await items.first().boundingBox())!;
+      const target = (await items.nth(1).boundingBox())!;
       const hb = (await handle.boundingBox())!;
       await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
       await page.mouse.down();
       await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2 - 20, { steps: 4 });
-      await page.mouse.move(hb.x + hb.width / 2, target.y + 10, { steps: 12 });
+      await page.mouse.move(hb.x + hb.width / 2, target.y + target.height / 2 - 10, { steps: 12 });
       await expect(items.nth(2)).toHaveAttribute("data-dragging", "true");
       await page.mouse.up();
-      await expect(items.first()).toContainText("Plank");
-      await expect(items.nth(1)).toContainText("Goblet squat");
+      await expect(items.nth(1)).toContainText("Plank");
+      await expect(items.nth(2)).toContainText("Dumbbell bench press");
 
       // The buttons do it too, for anyone who can’t drag.
       await page.waitForTimeout(400); // the dropped row finishes settling
-      await items.nth(2).getByRole("button", { name: /^Move .* up$/ }).click();
-      await expect(items.nth(1)).toContainText("Dumbbell bench press");
+      await items.nth(1).getByRole("button", { name: /^Move .* up$/ }).click();
+      await expect(items.first()).toContainText("Plank");
 
       await page.getByLabel("Program name").fill("Getting started");
       await page.getByLabel("Workout name").fill("Full body");
@@ -527,7 +527,7 @@ for (const width of WIDTHS) {
     test("Templates: reach them from the library, open one beside the list, share it, and create another", async ({ page }) => {
       const problems = await open(page, width, "u_trainer_meera", "/t");
       await nav(page, "Exercises").click();
-      await page.getByRole("link", { name: "Templates" }).click();
+      await page.getByRole("navigation", { name: "Section" }).getByRole("link", { name: "Templates" }).click();
       await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
       expect(await page.locator("[data-zones]").getAttribute("data-zones")).toBe(width >= 1280 ? "3" : "2");
       const list = page.getByRole("list", { name: "Template list" }).getByRole("listitem");

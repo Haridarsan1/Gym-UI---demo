@@ -1,0 +1,22 @@
+[
+  { "key": "clients-list", "caption": "Clients: search, filters, adherence" },
+  { "key": "client-overview", "caption": "Client: overview and at a glance" },
+  { "key": "client-workouts", "caption": "Client: workouts, who entered each" },
+  { "key": "client-notes", "caption": "Client: private note and reviews" },
+  { "key": "assessment", "caption": "Assessment: form and history" },
+  { "key": "assessment-goals", "caption": "Goals with cadence and progress" },
+  { "key": "goal-sheet", "caption": "Add a goal" },
+  { "key": "assessment-withdrawn", "caption": "Assessment consent withdrawn" },
+  { "key": "library", "caption": "Exercise library" },
+  { "key": "library-exercise", "caption": "Library: one exercise" },
+  { "key": "library-add", "caption": "Library: add the gym’s own" },
+  { "key": "templates", "caption": "Templates" },
+  { "key": "builder-revise", "caption": "Builder: revising version 2" },
+  { "key": "builder-building", "caption": "Builder: a program being built" },
+  { "key": "builder-drag", "caption": "Builder: drag and drop mid-move" },
+  { "key": "builder-library", "caption": "Builder: adding from the library" },
+  { "key": "builder-templates", "caption": "Builder: the template picker" },
+  { "key": "builder-preview", "caption": "Builder: Preview as member" },
+  { "key": "builder-confirm", "caption": "Publish: what goes live" },
+  { "key": "builder-published", "caption": "Publish: the new version" }
+]

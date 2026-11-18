@@ -73,13 +73,13 @@ function Row({ item: it, index, count, week, dayKey, names, issues, dispatch }: 
           <GripVertical className="h-5 w-5" aria-hidden="true" />
         </button>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{name}{ex?.archived ? " (archived)" : ""}</p>
+          <p className="break-words font-semibold leading-tight">{name}{ex?.archived ? " (archived)" : ""}</p>
         </div>
         <button type="button" className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-xl text-clay-muted hover:bg-white disabled:opacity-40" aria-label={`Move ${name} up`} disabled={index === 0} onClick={() => dispatch({ type: "moveRx", week, dayKey, from: index, to: index - 1 })}><ArrowUp className="h-5 w-5" aria-hidden="true" /></button>
         <button type="button" className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-xl text-clay-muted hover:bg-white disabled:opacity-40" aria-label={`Move ${name} down`} disabled={index === count - 1} onClick={() => dispatch({ type: "moveRx", week, dayKey, from: index, to: index + 1 })}><ArrowDown className="h-5 w-5" aria-hidden="true" /></button>
         <button type="button" className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-xl text-clay-muted hover:bg-white hover:text-status-danger-fg" aria-label={`Remove ${name}`} onClick={() => dispatch({ type: "removeRx", week, dayKey, rxKey: it.key })}><Trash2 className="h-5 w-5" aria-hidden="true" /></button>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Field label="Section" htmlFor={`s-${it.key}`}>
           <select id={`s-${it.key}`} value={it.section} onChange={(e) => set({ section: e.target.value as EditorRx["section"] })} className={inputClass}>
             {SECTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}

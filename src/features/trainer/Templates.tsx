@@ -12,6 +12,7 @@ import { useSplit, useWide } from "@/design/useMediaQuery";
 import { dayName, fromPlanDays } from "@/domain/program";
 import { cn } from "@/lib/format";
 import { useExercises } from "@/api/hooks";
+import { LibraryTabs } from "@/features/trainer/LibraryTabs";
 import { ProgramEditor } from "@/features/trainer/program/ProgramEditor";
 
 /**
@@ -66,7 +67,7 @@ function TemplateList() {
     </section>
   );
   if (!split) {
-    if (!selected) return <div className="space-y-4">{header}{list}</div>;
+    if (!selected) return <div className="space-y-4"><LibraryTabs />{header}{list}</div>;
     return (
       <div>
         <Link to="/t/library/templates" className="mb-3 inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-xl pr-3 font-semibold text-clay-muted hover:text-clay-ink"><ArrowLeft className="h-5 w-5" aria-hidden="true" />Templates</Link>
@@ -76,6 +77,7 @@ function TemplateList() {
   }
   return (
     <div className="space-y-4">
+      <LibraryTabs />
       {header}
       <ThreeZone
         listWidth="minmax(16rem,20rem)"

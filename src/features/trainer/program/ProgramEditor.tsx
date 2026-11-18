@@ -61,6 +61,7 @@ export function ProgramEditor(props: EditorProps) {
   const [showIssues, setShowIssues] = useState(false);
   const [shared, setShared] = useState(props.kind === "template" ? (props.template?.shared ?? false) : false);
   const [saveError, setSaveError] = useState<string>();
+  const [announce, setAnnounce] = useState("");
   const [templateId, setTemplateId] = useState(props.kind === "template" ? props.template?.id : undefined);
 
   const { doc, startsOn, selected } = state;
@@ -81,7 +82,8 @@ export function ProgramEditor(props: EditorProps) {
   const addExercise = (exerciseId: string, section: "warmup" | "main" | "cooldown") => {
     if (!day) return;
     dispatch({ type: "addRx", week: selected.week, dayKey: day.key, exerciseId, section });
-    toast({ title: `Added ${names.get(exerciseId)?.name ?? "exercise"}`, duration: 1500 });
+    // The list grows on screen, so a toast would only sit on top of the work. Screen readers hear it instead.
+    setAnnounce(`Added ${names.get(exerciseId)?.name ?? "exercise"} to ${day.title || "the workout"}.`);
   };
 
   const saveMemberDraft = () => {
@@ -172,10 +174,11 @@ export function ProgramEditor(props: EditorProps) {
 
   return (
     <div className="space-y-4">
+      <p role="status" aria-live="polite" className="sr-only">{announce}</p>
       {header}
       {toolbar}
       {split ? (
-        <ThreeZone listWidth="minmax(15rem,18rem)" list={nav} detail={detail} context={<div id="pg-library" className="clay p-4"><ExercisePicker onPick={addExercise} /></div>} />
+        <ThreeZone listWidth={wide ? "minmax(15rem,18rem)" : "minmax(12.5rem,14.5rem)"} list={nav} detail={detail} context={<div id="pg-library" className="clay p-4"><ExercisePicker onPick={addExercise} /></div>} />
       ) : (
         <div className="space-y-4">{nav}{detail}</div>
       )}

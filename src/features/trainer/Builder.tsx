@@ -1,9 +1,9 @@
 import { Link, useSearchParams } from "react-router-dom";
-import { FileText } from "lucide-react";
 import { useClients, useProgramSource } from "@/api/hooks";
 import { Avatar } from "@/design/Avatar";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonCard, SkeletonRows } from "@/design/Skeleton";
+import { LibraryTabs } from "@/features/trainer/LibraryTabs";
 import { ProgramEditor } from "@/features/trainer/program/ProgramEditor";
 
 /**
@@ -29,11 +29,11 @@ function ChooseClient() {
   const query = useClients({ flag: undefined });
   return (
     <div className="space-y-4">
+      <LibraryTabs />
       <header>
-        <h1 className="text-[1.7rem] font-bold leading-tight tracking-tight lg:text-4xl">Programs</h1>
-        <p className="text-clay-muted">Choose the client you are building a program for, or work on your templates.</p>
+        <h1 className="text-[1.7rem] font-bold leading-tight tracking-tight lg:text-4xl">Program builder</h1>
+        <p className="text-clay-muted">Choose the client you are building a program for. Templates have their own tab.</p>
       </header>
-      <Link to="/t/library/templates" className="clay flex min-h-[3.5rem] items-center gap-3 p-4 font-semibold"><FileText className="h-5 w-5 text-clay-muted" aria-hidden="true" />Templates</Link>
       <QueryBoundary query={query} errorTitle="We couldn’t load your clients" skeleton={<SkeletonRows rows={6} label="Loading clients" />}>
         {(rows) => (
           <ul aria-label="Choose a client" className="clay space-y-1 p-2">

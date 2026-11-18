@@ -28,7 +28,7 @@ export function Navigator({ doc, startsOn, selected, issues, dispatch }: { doc: 
                     <button type="button" aria-current={on ? "true" : undefined} onClick={() => dispatch({ type: "select", week: w, dayKey: day.key })} className={cn("flex min-h-[2.75rem] w-full cursor-pointer items-center gap-3 rounded-xl px-3 text-left", on ? "bg-ember-50 font-semibold text-ember-700" : "hover:bg-clay-canvas")}>
                       <span className="w-9 shrink-0 text-sm font-semibold text-clay-muted">{dayName(startsOn, day.weekday)}</span>
                       <span className="min-w-0 flex-1 truncate">{day.title || "Untitled day"}</span>
-                      <span className="shrink-0 text-xs text-clay-muted">{day.items.length} {day.items.length === 1 ? "exercise" : "exercises"}</span>
+                      <span className="hidden shrink-0 text-xs text-clay-muted xl:inline">{day.items.length} {day.items.length === 1 ? "exercise" : "exercises"}</span>
                       {bad && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-status-danger-fg" role="img" aria-label="Needs attention" />}
                     </button>
                   </li>
