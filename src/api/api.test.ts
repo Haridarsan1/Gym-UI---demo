@@ -186,6 +186,12 @@ describe("network simulation", () => {
   });
 });
 
+/** Assessments need the member’s own consent (M2). Tests that open one make sure there is an active one. */
+const agreeToAssessments = async (memberId: string) => {
+  await db.consents.where("memberId").equals(memberId).filter((c) => c.scope === "assessments").delete();
+  await db.consents.add({ id: `cn_test_${memberId}`, tenantId: "t_pulse", memberId, scope: "assessments", grantedAt: "2026-11-01T00:00:00.000Z", noticeVersion: "2026-01", recordedBy: "u_owner" });
+};
+
 describe("client health data: assessments and progress photos (S04, A05)", () => {
   const photoFor = (memberId: string, id = `ph_${memberId}`) =>
     db.measurements.put({ id, tenantId: "t_pulse", memberId, kind: "progress_photo", measuredOn: "2026-11-01", mediaRef: "blob:x", source: "member", recordedBy: "u_member_arjun", createdAt: "2026-11-01T04:30:00.000Z" });
@@ -231,6 +237,7 @@ describe("client health data: assessments and progress photos (S04, A05)", () =>
     await setHealth("u_bm_bandra", true);
     expect(await rejects(viewSensitive(as("u_bm_bandra"), { kind: "assessment", memberId: "mem_arjun", entityId: "asm_1" }))).toBe("forbidden"); // Andheri
     const bandra = (await db.members.where("homeBranchId").equals("br_bandra").first())!;
+    await agreeToAssessments(bandra.id);
     await viewSensitive(as("u_bm_bandra"), { kind: "assessment", memberId: bandra.id, entityId: "asm_2" });
     await setHealth("u_bm_bandra", false);
   });
@@ -241,7 +248,8 @@ describe("client health data: assessments and progress photos (S04, A05)", () =>
     await db.consents.where("memberId").equals(noConsent.id).filter((c) => c.scope === "photos").delete();
     await photoFor(noConsent.id);
     expect(await rejects(viewSensitive(as("u_owner"), { kind: "photo", memberId: noConsent.id, entityId: `ph_${noConsent.id}` }))).toBe("forbidden");
-    await viewSensitive(as("u_owner"), { kind: "assessment", memberId: noConsent.id, entityId: "asm_3" }); // assessments need no photo consent
+    await agreeToAssessments(noConsent.id);
+    await viewSensitive(as("u_owner"), { kind: "assessment", memberId: noConsent.id, entityId: "asm_3" }); // assessments need no photo consent, only their own
     await setHealth("u_owner", false);
   });
 

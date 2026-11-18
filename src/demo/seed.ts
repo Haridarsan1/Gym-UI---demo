@@ -1,13 +1,14 @@
 import { ALL_BRANCHES, BRANCH, DEMO_ACCOUNTS, TENANT_ID } from "@/app/demoAccounts";
 import { addDays, todayIST } from "@/domain/dates";
 import type {
-  AuditEvent, BadgeAward, Booking, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, GymClass, GymPolicies, Goal, Invoice, Measurement, Member, MemberSettings,
-  Membership, MembershipPlan, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerReview, User, WorkoutLog, WorkoutPlanVersion,
+  AuditEvent, BadgeAward, Booking, Assessment, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, GymClass, GymPolicies, Goal, Invoice, Measurement, Member, MemberSettings,
+  Membership, MembershipPlan, Payment, ProgramTemplate, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerReview, User, WorkoutLog, WorkoutPlanVersion,
 } from "@/domain/types";
 import { rng } from "@/demo/rng";
 import { PERSONAS } from "@/demo/personas";
 import { TRAINER_POLICY_DEFAULTS } from "@/domain/trainerToday";
 import { buildRoster } from "@/demo/seedTrainer";
+import { buildTemplates } from "@/demo/seedTemplates";
 import { buildMemberData } from "@/demo/seedMember";
 import { EXERCISES } from "@/demo/exercises";
 
@@ -42,6 +43,8 @@ export interface SeedData {
   badgeAwards: BadgeAward[];
   trainerAvailability: TrainerAvailability[];
   gymPolicies: GymPolicies[];
+  assessments: Assessment[];
+  programTemplates: ProgramTemplate[];
 }
 
 const FIRST = ["Aarav", "Aditi", "Aisha", "Akash", "Ananya", "Anil", "Anjali", "Arnav", "Bhavna", "Chirag", "Deepak", "Diya", "Farhan", "Gauri", "Harsh", "Ishaan", "Isha", "Jaya", "Karthik", "Kiran", "Lakshmi", "Manish", "Meghna", "Mohit", "Nikhil", "Nisha", "Omkar", "Pallavi", "Pranav", "Rachna", "Rajat", "Riya", "Rohan", "Sahil", "Sakshi", "Shreya", "Siddharth", "Tanvi", "Uday", "Varun", "Vidya", "Yash", "Zoya"];
@@ -280,13 +283,17 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   // Training, billing and activity for the sample members. Everyone else gets this in the milestone that first shows it.
   const memberData = buildMemberData({ today, r, branches, members, memberships, membershipPlans, deskFor });
   // The trainers’ books of clients (M2): plans, logs, reviews and today’s sessions for everyone else with a trainer.
-  const roster = buildRoster({ today, members, memberships, trainerAssignments, availability, deskFor });
+  // Rahul has withdrawn his assessment consent since his assessment, so Coach Farah sees “Assessment consent withdrawn”.
+  const rahulConsent = consents.find((c) => c.id === "cn_mem_rahul_assessments");
+  if (rahulConsent) rahulConsent.withdrawnAt = createdAt(addDays(today, -9));
+  const assessmentConsent = new Set(consents.filter((c) => c.scope === "assessments" && !c.withdrawnAt).map((c) => c.memberId));
+  const roster = buildRoster({ today, members, memberships, trainerAssignments, availability, deskFor, assessmentConsent });
 
   return {
     tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,
     creditLedger: [...creditLedger, ...memberData.creditLedger, ...roster.creditLedger],
     invoices: memberData.invoices, payments: memberData.payments, refunds: [], classes: [], bookings: [...memberData.bookings, ...roster.bookings], checkIns: memberData.checkIns,
-    exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: [...memberData.goals, ...roster.goals],
+    exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: [...memberData.goals, ...roster.goals], assessments: [...memberData.assessments, ...roster.assessments], programTemplates: buildTemplates(today, createdAt),
     measurements: memberData.measurements, auditEvents: [], trainerReviews: [...memberData.trainerReviews, ...roster.trainerReviews], memberSettings: memberData.memberSettings,
     badgeAwards: memberData.badgeAwards, trainerAvailability: availability, gymPolicies: [policies],
   };

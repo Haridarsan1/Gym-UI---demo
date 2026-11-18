@@ -22,7 +22,7 @@ export interface SensitiveView {
  *
  * Every successful view by staff or a trainer writes an audit event, repeat views included. A member looking at their own
  * records is not audited. A refused view writes nothing and returns “forbidden”. Screens fetch the actual content after this call succeeds.
- * (Assessments get a record to check against when the assessment model is built in M2. Photos are checked now.)
+ * Assessments are checked against the member’s consent too (M2).
  */
 export async function viewSensitive(session: Session | null, view: SensitiveView): Promise<SensitiveView> {
   const { principal } = await open(session);
@@ -46,6 +46,14 @@ export async function viewSensitive(session: Session | null, view: SensitiveView
     photoConsent: consents.some((c) => c.scope === "photos" && !c.withdrawnAt),
   };
   assertCan(principal, view.kind === "photo" ? "photo.read" : "assessment.read", resource);
+
+  // Assessments need the member’s consent. Withdrawing it hides every existing assessment from all staff, the assigned
+  // trainer included, who are told so. The member can always read their own.
+  if (view.kind === "assessment" && principal.role !== "member") {
+    const latest = consents.filter((c) => c.scope === "assessments").sort((a, b) => b.grantedAt.localeCompare(a.grantedAt))[0];
+    if (!latest) throw new ApiError("forbidden", "This member hasn’t agreed to assessments.", { reason: "none" });
+    if (latest.withdrawnAt) throw new ApiError("forbidden", "Assessment consent withdrawn.", { reason: "withdrawn", on: latest.withdrawnAt.slice(0, 10) });
+  }
 
   if (principal.role !== "member") {
     await writeAudit(principal, { action: view.kind === "photo" ? "photo.view" : "assessment.view", entityType: view.kind, entityId: view.entityId, memberId: view.memberId });

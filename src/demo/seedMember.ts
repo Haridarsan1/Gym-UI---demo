@@ -5,7 +5,7 @@ import { addDays, istDateTime, weekStart } from "@/domain/dates";
 import { detectPRs, scheduledBetween, streakWeeks, weekStats } from "@/domain/metrics";
 import type {
   BadgeAward, Booking, Branch, CheckIn, CreditLedgerEntry, Goal, Invoice, Measurement, Member, MemberSettings, Membership, MembershipPlan, Payment, PlanDay,
-  Prescription, TrainerReview, WorkoutLog, WorkoutPlanVersion,
+  Prescription, TrainerReview, WorkoutLog, WorkoutPlanVersion, Assessment,
 } from "@/domain/types";
 import { PERSONAS, type Persona } from "@/demo/personas";
 import type { Rng } from "@/demo/rng";
@@ -100,6 +100,7 @@ export interface MemberSeed {
   invoices: Invoice[];
   payments: Payment[];
   creditLedger: CreditLedgerEntry[];
+  assessments: Assessment[];
 }
 
 export function buildMemberData(input: MemberSeedInput): MemberSeed {
@@ -107,7 +108,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
   const at = (date: string, time: string) => istDateTime(date, time);
   const branchStates = new Map(branches.map((b) => [b.id, b.stateCode]));
   const planName = new Map(membershipPlans.map((p) => [p.id, p.name]));
-  const out: MemberSeed = { workoutPlanVersions: [], workoutLogs: [], goals: [], measurements: [], trainerReviews: [], memberSettings: [], badgeAwards: [], bookings: [], checkIns: [], invoices: [], payments: [], creditLedger: [] };
+  const out: MemberSeed = { workoutPlanVersions: [], workoutLogs: [], goals: [], measurements: [], trainerReviews: [], memberSettings: [], badgeAwards: [], bookings: [], checkIns: [], invoices: [], payments: [], creditLedger: [], assessments: [] };
   let invoiceNo = 1;
 
   const version = (persona: Persona, n: number, name: string, startsOn: string, pattern: Array<[number, Template]>, weeks: number, firstWeekNo: number, notes: string): WorkoutPlanVersion => ({
@@ -234,6 +235,16 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
       goal(1, { title: "Reach 86 kg", metric: "weight", unit: "kg", baseline: 91.2, target: 86, targetDate: addDays(today, 90), reviewEveryDays: 28, status: "active", history: [{ at: at(addDays(today, -60), "10:00"), by: persona.trainerId!, note: "Goal set." }] }, addDays(today, -60));
     }
     out.goals.push(...goals);
+
+    // ── Assessments (Arjun twice, Rahul once; Rahul has since withdrawn the consent, so his is hidden) ──
+    const assess = (n: number, daysAgo: number, a: Pick<Assessment, "experience" | "yearsTraining" | "availability" | "preferences" | "restrictions" | "baseline">) =>
+      out.assessments.push({ id: `as_${persona.memberId}_${n}`, tenantId: TENANT_ID, memberId: persona.memberId, recordedBy: persona.trainerId!, recordedOn: addDays(today, -daysAgo), createdAt: at(addDays(today, -daysAgo), "11:00"), ...a });
+    if (persona.memberId === "mem_arjun") {
+      assess(1, 84, { experience: "some", yearsTraining: 1.5, availability: { days: [1, 3, 5, 6], time: "evening" }, preferences: "Likes free weights. Dislikes the treadmill.", restrictions: "Left shoulder gets tight on overhead work.", baseline: { weightKg: 82.4, bodyFatPct: 24.5, waistCm: 90, restingHr: 68 } });
+      assess(2, 28, { experience: "some", yearsTraining: 1.5, availability: { days: [1, 3, 5, 6], time: "evening" }, preferences: "Likes free weights. Happy to add a short cardio finisher.", restrictions: "Shoulder is fine now. Still warms up before pressing.", baseline: { weightKg: 80.6, bodyFatPct: 23.2, waistCm: 87.5, restingHr: 64 } });
+    } else if (persona.memberId === "mem_rahul") {
+      assess(1, 59, { experience: "new", availability: { days: [1, 3, 5], time: "morning" }, preferences: "Prefers machines to barbells.", restrictions: "Mild lower back pain after long flights.", baseline: { weightKg: 91.2, waistCm: 102, restingHr: 76 } });
+    }
 
     // ── Reviews and settings ────────────────────────────────────────────────────────────────────────
     const review = (n: number, kind: TrainerReview["kind"], daysAgo: number, body: string, extra: Partial<TrainerReview> = {}) => {

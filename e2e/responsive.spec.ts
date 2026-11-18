@@ -206,6 +206,7 @@ test.describe("trainer screens at every width", () => {
     { path: "/t", h1: /^Good (morning|afternoon|evening), Meera$/, zones: true },
     { path: "/t/clients", h1: "Clients", zones: true },
     { path: "/t/clients/mem_arjun", h1: "Arjun Kumar", zones: true },
+    { path: "/t/clients/mem_arjun/assessment", h1: "Assessment and goals", zones: true },
   ];
   for (const width of WIDTHS) {
     test(`no sideways scroll, a capped width, the right zones and 44 px targets at ${width} px`, async ({ page }) => {

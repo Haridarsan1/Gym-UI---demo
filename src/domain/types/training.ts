@@ -165,3 +165,48 @@ export const Measurement = z.object({
   createdAt: isoDateTime,
 });
 export type Measurement = z.infer<typeof Measurement>;
+
+export const Experience = z.enum(["new", "some", "experienced"]);
+
+/**
+ * T02, P01: what a trainer learns about a client at the start and when they look again. Each assessment is a new record, so
+ * the history stays; the newest is the current one. It is health information: it is only read through `viewSensitive` (the
+ * assigned trainer, the member, or an owner or branch manager who has been given the switch), only with the member’s
+ * assessment consent, and every staff view is audited. Without the consent no new one can be recorded and the existing ones are hidden.
+ */
+export const Assessment = z.object({
+  id,
+  tenantId: id,
+  memberId: id,
+  recordedBy: id,
+  recordedOn: isoDate,
+  createdAt: isoDateTime,
+  experience: Experience,
+  yearsTraining: z.number().min(0).max(80).optional(),
+  availability: z.object({ days: z.array(z.number().int().min(0).max(6)), time: z.enum(["morning", "midday", "evening", "any"]) }),
+  preferences: z.string(),
+  /** What the member reported themselves: injuries, conditions, anything to work around. Optional. */
+  restrictions: z.string(),
+  baseline: z.object({ weightKg: z.number().positive().optional(), bodyFatPct: z.number().min(2).max(70).optional(), waistCm: z.number().positive().optional(), restingHr: z.number().int().min(30).max(220).optional() }),
+});
+export type Assessment = z.infer<typeof Assessment>;
+
+/**
+ * W02: a program a trainer can start from. Its days sit on a Monday-start calendar (`dayOffset` counts from the Monday of
+ * week 1), so applying it to a member only needs a start date. `shared` makes it visible to every trainer in the gym; the
+ * owner always sees all of them. Archived templates are hidden from the picker.
+ */
+export const ProgramTemplate = z.object({
+  id,
+  tenantId: id,
+  name: z.string().min(1),
+  description: z.string(),
+  ownerId: id,
+  shared: z.boolean(),
+  archived: z.boolean(),
+  weeks: z.number().int().min(1).max(52),
+  days: z.array(PlanDay),
+  createdAt: isoDateTime,
+  updatedAt: isoDateTime,
+});
+export type ProgramTemplate = z.infer<typeof ProgramTemplate>;

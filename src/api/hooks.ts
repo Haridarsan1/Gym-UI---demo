@@ -323,3 +323,36 @@ export function useAddPrivateNote(memberId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["trainer", session?.userId, "client", memberId] }),
   });
 }
+
+const assessmentsApi = () => import("@/api/assessments");
+
+/** A client’s assessments and goals (T02), for their trainer. Assessments are health data: they come through the audited door and need consent. */
+export function useAssessment(memberId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["trainer", session?.userId, "assessment", memberId], queryFn: async () => (await assessmentsApi()).getAssessment(session, memberId!), enabled: !!session && !!memberId, retry, staleTime: 0, gcTime: 0, refetchOnWindowFocus: false });
+}
+
+/** Everything that changes after an assessment or a goal is saved: the assessment screen, the client’s profile and Today. */
+function useRefreshClient() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return () => Promise.all(["assessment", "client", "clients", "today"].map((k) => queryClient.invalidateQueries({ queryKey: ["trainer", session?.userId, k] })));
+}
+
+export function useSaveAssessment() {
+  const { session } = useSession();
+  const refresh = useRefreshClient();
+  return useMutation({ mutationFn: async (input: import("@/api/assessments").AssessmentInput) => (await assessmentsApi()).saveAssessment(session, input), onSuccess: refresh });
+}
+
+export function useGoalActions(memberId: string) {
+  const { session } = useSession();
+  const refresh = useRefreshClient();
+  const api = assessmentsApi;
+  return {
+    create: useMutation({ mutationFn: async (i: import("@/api/assessments").GoalInput) => (await api()).createGoal(session, i), onSuccess: refresh }),
+    revise: useMutation({ mutationFn: async (i: import("@/api/assessments").GoalInput & { goalId: string; reason: string }) => (await api()).reviseGoal(session, i), onSuccess: refresh }),
+    close: useMutation({ mutationFn: async (i: { goalId: string; reason: string }) => (await api()).closeGoal(session, { memberId, ...i }), onSuccess: refresh }),
+    achieve: useMutation({ mutationFn: async (i: { goalId: string; note?: string }) => (await api()).confirmGoalAchieved(session, { memberId, ...i }), onSuccess: refresh }),
+  };
+}

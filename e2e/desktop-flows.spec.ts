@@ -302,3 +302,55 @@ for (const width of WIDTHS) {
     });
   });
 }
+
+for (const width of WIDTHS) {
+  test.describe(`trainer assessment at ${width} px`, () => {
+    test("Assessment: from the client, record an assessment, add a goal with its own cadence, and see the history", async ({ page }) => {
+      const problems = await open(page, width, "u_trainer_meera", "/t");
+      await nav(page, "Clients").click();
+      await page.getByRole("searchbox").fill("arjun");
+      await page.getByRole("list", { name: "Your clients" }).getByRole("link").first().click();
+      await page.getByRole("link", { name: "Assessment and goals" }).click();
+      await expect(page.getByRole("heading", { name: "Assessment and goals", level: 1 })).toBeVisible();
+      expect(await page.locator("[data-zones]").getAttribute("data-zones")).toBe(width >= 1280 ? "3" : "2");
+      await noSideways(page, "Assessment");
+      const history = page.getByRole("list", { name: "Assessments" }).getByRole("listitem");
+      await expect(history).toHaveCount(2);
+      if (width >= 1280) {
+        // The history is its own zone beside the form.
+        const hb = (await page.getByRole("region", { name: "Assessment history" }).boundingBox())!;
+        const fb = (await page.getByRole("region", { name: /Record a new assessment/ }).boundingBox())!;
+        expect(hb.x).toBeGreaterThanOrEqual(fb.x + fb.width - 1);
+      }
+      await page.getByLabel("Weight").fill("79.5");
+      await page.getByRole("button", { name: "Record assessment" }).click();
+      await expect(history).toHaveCount(3);
+
+      // A goal opens in a side panel, never a bottom sheet, on these widths.
+      await page.getByRole("button", { name: "Add a goal" }).click();
+      const d = page.getByRole("dialog", { name: "Add a goal" });
+      const b = (await d.boundingBox())!;
+      expect(b.x + b.width).toBeGreaterThan(width - 2);
+      await d.getByLabel("Goal", { exact: true }).fill("Deadlift 100 kg");
+      await d.getByLabel("What it measures").selectOption("deadlift");
+      await d.getByLabel("Target", { exact: true }).fill("100");
+      await d.getByLabel("Review every").fill("21");
+      await d.getByRole("button", { name: "Add goal" }).click();
+      await expect(page.getByRole("list", { name: "Active goals" }).filter({ hasText: "Deadlift 100 kg" })).toContainText("Review every 21 days");
+
+      // Back to the client, where the new goal shows too.
+      await page.getByRole("link", { name: "Arjun", exact: true }).click();
+      await expect(page.getByRole("region", { name: "Goals" })).toContainText("Deadlift 100 kg");
+      expect(problems).toEqual([]);
+    });
+
+    test("Assessment: a client who withdrew consent shows the notice and no form", async ({ page }) => {
+      await open(page, width, "u_trainer_farah", "/t");
+      await page.goto("/t/clients/mem_rahul/assessment");
+      await expect(page.getByRole("heading", { name: "Assessment and goals", level: 1 })).toBeVisible();
+      await expect(page.getByText("Assessment consent withdrawn")).toBeVisible();
+      await expect(page.getByRole("button", { name: "Record assessment" })).toHaveCount(0);
+      await noSideways(page, "Consent withdrawn");
+    });
+  });
+}

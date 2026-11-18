@@ -6,6 +6,7 @@ const implemented = {
   today: lazy(() => import("@/features/trainer/Today")),
   clients: lazy(() => import("@/features/trainer/Clients")),
   client: lazy(() => import("@/features/trainer/Clients")),
+  assessment: lazy(() => import("@/features/trainer/Assessment")),
 };
 
 export default function TrainerArea() {

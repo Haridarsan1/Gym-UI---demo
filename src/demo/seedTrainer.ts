@@ -2,7 +2,7 @@ import { TENANT_ID } from "@/app/demoAccounts";
 import { addDays, istDateTime, weekStart } from "@/domain/dates";
 import { scheduledBetween } from "@/domain/metrics";
 import { slotKeyFor, weekdayOf } from "@/domain/slots";
-import type { Booking, CreditLedgerEntry, Goal, Member, Membership, TrainerAssignment, TrainerAvailability, TrainerReview, WorkoutLog, WorkoutPlanVersion } from "@/domain/types";
+import type { Assessment, Booking, CreditLedgerEntry, Goal, Member, Membership, TrainerAssignment, TrainerAvailability, TrainerReview, WorkoutLog, WorkoutPlanVersion } from "@/domain/types";
 import { buildDays, hash } from "@/demo/seedMember";
 import { PERSONAS } from "@/demo/personas";
 
@@ -28,6 +28,8 @@ export interface RosterInput {
   trainerAssignments: TrainerAssignment[];
   availability: TrainerAvailability[];
   deskFor: (branchId: string) => string;
+  /** Members whose assessment consent is agreed and not withdrawn. */
+  assessmentConsent: Set<string>;
 }
 
 export interface RosterSeed {
@@ -35,6 +37,7 @@ export interface RosterSeed {
   workoutLogs: WorkoutLog[];
   trainerReviews: TrainerReview[];
   goals: Goal[];
+  assessments: Assessment[];
   bookings: Booking[];
   creditLedger: CreditLedgerEntry[];
 }
@@ -48,9 +51,9 @@ export const profileFor = (memberId: string): RosterProfile => {
 const PATTERN: Array<[number, "fullA" | "fullB"]> = [[0, "fullA"], [2, "fullB"], [4, "fullA"]];
 
 export function buildRoster(input: RosterInput): RosterSeed {
-  const { today, members, memberships, trainerAssignments, availability, deskFor } = input;
+  const { today, members, memberships, trainerAssignments, availability, deskFor, assessmentConsent } = input;
   const at = (date: string, time: string) => istDateTime(date, time);
-  const out: RosterSeed = { workoutPlanVersions: [], workoutLogs: [], trainerReviews: [], goals: [], bookings: [], creditLedger: [] };
+  const out: RosterSeed = { workoutPlanVersions: [], workoutLogs: [], trainerReviews: [], goals: [], assessments: [], bookings: [], creditLedger: [] };
   const personas = new Set(PERSONAS.map((p) => p.memberId));
   const yesterday = addDays(today, -1);
   const onPlan: Array<{ member: Member; trainerId: string }> = [];
@@ -103,6 +106,17 @@ export function buildRoster(input: RosterInput): RosterSeed {
       targetDate: addDays(today, 60), reviewEveryDays: [14, 28, 42][hash(`${member.id}cadence`) % 3]!, status: "active",
       history: [{ at: at(addDays(startsOn, -1), "17:00"), by: a.trainerId, note: "Goal set with the first plan." }], createdBy: a.trainerId, createdAt: at(addDays(startsOn, -1), "17:00"),
     });
+    // An assessment when the client agreed to them, recorded the day before the plan began.
+    if (assessmentConsent.has(member.id)) {
+      const h = hash(`${member.id}assess`);
+      out.assessments.push({
+        id: `as_${member.id}_1`, tenantId: TENANT_ID, memberId: member.id, recordedBy: a.trainerId, recordedOn: addDays(startsOn, -1), createdAt: at(addDays(startsOn, -1), "11:00"),
+        experience: (["new", "some", "experienced"] as const)[h % 3]!, yearsTraining: h % 3 === 0 ? undefined : 1 + (h % 5),
+        availability: { days: h % 2 ? [1, 3, 5] : [2, 4, 6], time: (["morning", "evening", "any"] as const)[h % 3]! },
+        preferences: ["Prefers machines.", "Likes free weights.", "Wants short sessions."][h % 3]!, restrictions: h % 4 === 0 ? "Occasional knee ache on stairs." : "",
+        baseline: { weightKg: 55 + (h % 40), waistCm: 70 + (h % 30) },
+      });
+    }
     onPlan.push({ member, trainerId: a.trainerId });
 
     // About one client in six holds a pack of training credits that runs out within two weeks.
