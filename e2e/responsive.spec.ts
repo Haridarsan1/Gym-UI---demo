@@ -202,7 +202,11 @@ test.describe("owner and admin shells at every width", () => {
 
 test.describe("trainer screens at every width", () => {
   /** Every trainer screen, as it is built: its address, its h1 and whether it uses the three-zone layout. Add each new screen here. */
-  const TRAINER_SCREENS: Array<{ path: string; h1: string | RegExp; zones: boolean }> = [{ path: "/t", h1: /^Good (morning|afternoon|evening), Meera$/, zones: true }];
+  const TRAINER_SCREENS: Array<{ path: string; h1: string | RegExp; zones: boolean }> = [
+    { path: "/t", h1: /^Good (morning|afternoon|evening), Meera$/, zones: true },
+    { path: "/t/clients", h1: "Clients", zones: true },
+    { path: "/t/clients/mem_arjun", h1: "Arjun Kumar", zones: true },
+  ];
   for (const width of WIDTHS) {
     test(`no sideways scroll, a capped width, the right zones and 44 px targets at ${width} px`, async ({ page }) => {
       for (const { path, h1, zones } of TRAINER_SCREENS) {

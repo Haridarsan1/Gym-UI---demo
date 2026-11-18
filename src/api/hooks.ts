@@ -292,3 +292,34 @@ export function useTrainerToday() {
   const { session } = useSession();
   return useQuery({ queryKey: ["trainer", session?.userId, "today"], queryFn: async () => (await trainerApi()).getTrainerToday(session), enabled: !!session, retry, staleTime: 15_000 });
 }
+
+const clientsApi = () => import("@/api/clients");
+
+/** The trainer’s clients (T01), searched and filtered. The previous list stays on screen while a new search loads. */
+export function useClients(params: import("@/api/clients").ClientListParams) {
+  const { session } = useSession();
+  return useQuery({
+    queryKey: ["trainer", session?.userId, "clients", params.search ?? "", params.flag ?? ""],
+    queryFn: async () => (await clientsApi()).listClients(session, params),
+    enabled: !!session,
+    retry,
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** One client’s profile, for their trainer (T02, T05, T06, A02). */
+export function useClient(memberId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["trainer", session?.userId, "client", memberId], queryFn: async () => (await clientsApi()).getClient(session, memberId!), enabled: !!session && !!memberId, retry, staleTime: 15_000 });
+}
+
+/** Writes a note only the trainer can read. */
+export function useAddPrivateNote(memberId: string) {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: string) => (await clientsApi()).addPrivateNote(session, { memberId, body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["trainer", session?.userId, "client", memberId] }),
+  });
+}

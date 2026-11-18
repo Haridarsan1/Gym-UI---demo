@@ -2,10 +2,9 @@ import { db } from "@/demo/db";
 import { assertCan, open } from "@/api/context";
 import { now } from "@/api/clock";
 import { ApiError } from "@/api/errors";
-import { creditBalance } from "@/domain/credits";
-import { daysBetween, istDateOf, todayIST } from "@/domain/dates";
-import { assignmentOn, currentMembership } from "@/domain/membership";
-import { expiringCredits, recentMissed, reviewCadenceFor, reviewDue, sessionPhases, TRAINER_POLICY_DEFAULTS, type SessionPhase } from "@/domain/trainerToday";
+import { istDateOf, todayIST } from "@/domain/dates";
+import { sessionPhases, type SessionPhase } from "@/domain/trainerToday";
+import { loadBook } from "@/api/book";
 import type { Principal } from "@/domain/permissions";
 import type { Session } from "@/app/session";
 
@@ -85,64 +84,25 @@ export interface TrainerTodayData {
 /** T07: the trainer’s dashboard. */
 export async function getTrainerToday(session: Session | null): Promise<TrainerTodayData> {
   const c = await openTrainer(session);
-  const [user, tenant, assignments, members, memberships, versions, logs, reviews, ledger, bookings, branches, goals, policies] = await Promise.all([
+  const [user, tenant, bookings, branches, book] = await Promise.all([
     db.users.get(c.trainerId),
     db.tenants.get(c.tenantId),
-    db.trainerAssignments.where("trainerId").equals(c.trainerId).toArray(),
-    db.members.where("tenantId").equals(c.tenantId).toArray(),
-    db.memberships.where("tenantId").equals(c.tenantId).toArray(),
-    db.workoutPlanVersions.where("tenantId").equals(c.tenantId).toArray(),
-    db.workoutLogs.where("tenantId").equals(c.tenantId).toArray(),
-    db.trainerReviews.where("tenantId").equals(c.tenantId).toArray(),
-    db.creditLedger.where("tenantId").equals(c.tenantId).toArray(),
     db.bookings.where("trainerId").equals(c.trainerId).toArray(),
     db.branches.where("tenantId").equals(c.tenantId).toArray(),
-    db.goals.where("tenantId").equals(c.tenantId).toArray(),
-    db.gymPolicies.where("tenantId").equals(c.tenantId).first(),
+    loadBook(c),
   ]);
-  // The gym’s rules for what counts as overdue, missed and expiring (GymPolicies, set by the owner in M4).
-  const rules = { ...TRAINER_POLICY_DEFAULTS, ...policies };
-  const group = <T extends { memberId: string }>(rows: T[]) => {
-    const map = new Map<string, T[]>();
-    for (const r of rows) map.set(r.memberId, [...(map.get(r.memberId) ?? []), r]);
-    return map;
-  };
-  const byMember = { ms: group(memberships), plans: group(versions.filter((v) => v.status === "published")), logs: group(logs), reviews: group(reviews), ledger: group(ledger), goals: group(goals), assignments: group(assignments) };
-  const memberById = new Map(members.map((m) => [m.id, m]));
   const out: TrainerTodayData = {
     firstName: (user?.name ?? c.principal.userId).split(" ")[0]!, gymName: tenant?.name ?? "Your gym", today: c.today, nowIso: c.nowIso,
-    clients: 0, sessions: [], overdueReviews: [], missed: [], expiring: [], awaitingPlan: [],
+    clients: book.clients.length, sessions: [], overdueReviews: [], missed: [], expiring: [], awaitingPlan: [],
   };
-
-  for (const m of members) {
-    if (m.archivedAt) continue;
-    const a = assignmentOn(byMember.assignments.get(m.id) ?? [], c.today);
-    if (!a || a.trainerId !== c.trainerId) continue;
-    const ms = currentMembership(byMember.ms.get(m.id) ?? []);
-    if (!ms || (ms.status !== "active" && ms.status !== "frozen")) continue;
-    out.clients++;
-    const ref: ClientRef = { memberId: m.id, name: m.name };
-    const plans = byMember.plans.get(m.id) ?? [];
-
-    const balance = creditBalance(byMember.ledger.get(m.id) ?? []);
-    const exp = expiringCredits(byMember.ledger.get(m.id) ?? [], balance.available, c.today, rules.creditExpiryWarningDays);
-    if (exp) out.expiring.push({ ...ref, ...exp });
-
-    if (ms.status !== "active") continue; // a frozen client is not behind, and is not waiting on anything
-    if (!plans.length) {
-      const since = a.effectiveFrom > ms.startsOn ? a.effectiveFrom : ms.startsOn;
-      out.awaitingPlan.push({ ...ref, daysWaiting: Math.max(0, daysBetween(since, c.today)), planName: ms.terms.name });
-      continue;
-    }
-    // A client is reviewed on the cadence their goals set (T02), or the gym’s default when none does.
-    const cadence = reviewCadenceFor(byMember.goals.get(m.id) ?? [], rules.reviewCadenceDays);
-    const due = reviewDue(byMember.reviews.get(m.id) ?? [], plans.map((p) => p.startsOn).sort()[0]!, c.today, cadence);
-    const reason = due.why === "follow-up" ? "Follow-up date has passed" : due.why === "cadence" ? `Reviewed every ${cadence} days` : "No review yet";
-    if (due.overdue) out.overdueReviews.push({ ...ref, dueOn: due.dueOn, daysOver: due.daysOver, reason });
-    const miss = recentMissed(plans, byMember.logs.get(m.id) ?? [], ms.freezes, c.today, rules.missedWorkoutsWindowDays);
-    if (miss.missed >= rules.missedWorkoutsThreshold) out.missed.push({ ...ref, missed: miss.missed, scheduled: miss.scheduled, lastMissedOn: miss.lastMissedOn, lastDoneOn: miss.lastDoneOn });
+  for (const k of book.clients) {
+    const ref: ClientRef = { memberId: k.member.id, name: k.member.name };
+    if (k.expiring) out.expiring.push({ ...ref, ...k.expiring });
+    if (k.awaiting) out.awaitingPlan.push({ ...ref, ...k.awaiting });
+    if (k.review?.overdue) out.overdueReviews.push({ ...ref, dueOn: k.review.dueOn, daysOver: k.review.daysOver, reason: k.review.reason });
+    if (k.missed) out.missed.push({ ...ref, missed: k.missed.missed, scheduled: k.missed.scheduled, lastMissedOn: k.missed.lastMissedOn, lastDoneOn: k.missed.lastDoneOn });
   }
-
+  const memberById = new Map(book.members.map((m) => [m.id, m]));
   const branchName = new Map(branches.map((b) => [b.id, b.name]));
   const todays = bookings.filter((b) => b.kind === "pt_session" && b.status !== "canceled" && istDateOf(b.startsAt) === c.today).sort((x, y) => x.startsAt.localeCompare(y.startsAt));
   const phases = sessionPhases(todays.map((b) => ({ startsAt: b.startsAt, endsAt: b.endsAt, status: b.status as "booked" | "attended" | "no_show" })), c.nowIso);

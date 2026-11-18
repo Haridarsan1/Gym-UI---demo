@@ -242,3 +242,63 @@ for (const width of WIDTHS) {
     });
   });
 }
+
+for (const width of WIDTHS) {
+  test.describe(`trainer clients at ${width} px`, () => {
+    test("Clients: search and filter the list, open a client beside it, move through their sections, and leave a private note", async ({ page }) => {
+      const problems = await open(page, width, "u_trainer_meera", "/t");
+      await nav(page, "Clients").click();
+      await expect(page.getByRole("heading", { name: "Clients", level: 1 })).toBeVisible();
+      const rows = page.getByRole("list", { name: "Your clients" }).getByRole("listitem");
+      await expect(rows.first()).toBeVisible();
+      expect(await page.locator("[data-zones]").getAttribute("data-zones")).toBe(width >= 1280 ? "3" : "2");
+      await noSideways(page, "Clients");
+
+      // Search keeps the list on screen and narrows it; the filter narrows it by what needs attention.
+      await page.getByRole("searchbox").fill("arjun");
+      await expect(rows).toHaveCount(1);
+      await page.getByRole("searchbox").fill("");
+      await page.getByRole("radio", { name: "Needs a plan" }).click();
+      await expect(rows.filter({ hasText: "Sneha Patil" })).toHaveCount(1);
+      await page.getByRole("radio", { name: "Everyone" }).click();
+
+      // The client opens in the detail zone and the list stays where it was.
+      await page.getByRole("searchbox").fill("arjun");
+      await rows.first().getByRole("link").click();
+      await expect(page).toHaveURL(/\/t\/clients\/mem_arjun\?q=arjun$/);
+      await expect(page.getByRole("heading", { name: "Arjun Kumar", level: 1 })).toBeVisible();
+      await expect(rows.first().getByRole("link")).toHaveAttribute("aria-current", "page");
+      const glance = page.getByRole("complementary", { name: "Client at a glance" });
+      await expect(glance).toContainText("Monthly Plus");
+      if (width >= 1280) {
+        // The glance is a third zone beside the profile; below that it is the top of the Overview tab.
+        const g = (await glance.boundingBox())!;
+        const prof = (await page.getByRole("article", { name: "Arjun Kumar, client" }).boundingBox())!;
+        expect(g.x).toBeGreaterThanOrEqual(prof.x + prof.width - 1);
+      }
+      await noSideways(page, "Client profile");
+
+      await page.getByRole("tab", { name: "Workouts" }).click();
+      await expect(page.getByRole("list", { name: "Recent workouts" }).getByRole("listitem").first()).toContainText(/Logged by/);
+      await page.getByRole("tab", { name: "Notes and reviews" }).click();
+      await page.getByRole("textbox", { name: "Private note" }).fill("Moved to the heavier block, watch the left shoulder.");
+      await page.getByRole("button", { name: "Save note" }).click();
+      await expect(page.getByRole("list", { name: "Notes and reviews" }).getByRole("listitem").first()).toContainText("Moved to the heavier block");
+
+      // Another client from the list, without leaving the screen.
+      await page.getByRole("searchbox").fill("");
+      await rows.nth(1).getByRole("link").click();
+      await expect(page).toHaveURL(/\/t\/clients\/mem_\w+/);
+      await expect(page.getByRole("heading", { level: 1 })).not.toHaveText("Arjun Kumar");
+      expect(problems).toEqual([]);
+    });
+
+    test("Clients: a client who needs a plan offers to build one and to start the assessment", async ({ page }) => {
+      await open(page, width, "u_trainer_meera", "/t/clients/mem_sneha");
+      await expect(page.getByRole("heading", { name: "Sneha Patil", level: 1 })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Build a plan" })).toHaveAttribute("href", "/t/library/programs?member=mem_sneha");
+      await expect(page.getByRole("link", { name: "Assessment and goals" })).toHaveAttribute("href", "/t/clients/mem_sneha/assessment");
+      await expect(page.getByText("No program yet.")).toBeVisible();
+    });
+  });
+}
