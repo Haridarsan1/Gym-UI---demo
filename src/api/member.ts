@@ -2,7 +2,7 @@ import { db } from "@/demo/db";
 import { assertCan, open } from "@/api/context";
 import { now } from "@/api/clock";
 import { ApiError } from "@/api/errors";
-import { amountDuePaise, isOverdue } from "@/domain/billing";
+import { amountDuePaise, isOverdue, isUnpaidCart } from "@/domain/billing";
 import { cancellationDeadline } from "@/domain/booking";
 import { creditBalance, type CreditBalance } from "@/domain/credits";
 import { addDays, daysBetween, eachDay, todayIST, weekStart } from "@/domain/dates";
@@ -183,7 +183,7 @@ export async function getToday(session: Session | null): Promise<TodayData> {
   // Next booking
   const upcoming = bookings.filter((b: Booking) => b.status === "booked" && b.startsAt > c.nowIso).sort((x, y) => x.startsAt.localeCompare(y.startsAt))[0];
   const newest = reviews.filter(sharedUnread).sort((x, y) => y.createdAt.localeCompare(x.createdAt))[0];
-  const open = invoices.filter((i) => i.status === "open" || i.status === "partially_paid").map((i) => ({ i, due: amountDuePaise(i, payments.filter((x) => x.invoiceId === i.id)) })).filter((x) => x.due > 0);
+  const open = invoices.filter((i) => (i.status === "open" || i.status === "partially_paid") && !isUnpaidCart(i, payments.filter((x) => x.invoiceId === i.id))).map((i) => ({ i, due: amountDuePaise(i, payments.filter((x) => x.invoiceId === i.id)) })).filter((x) => x.due > 0);
   const oldest = open.sort((x, y) => x.i.dueOn.localeCompare(y.i.dueOn))[0];
 
   return {

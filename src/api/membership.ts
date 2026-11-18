@@ -4,7 +4,7 @@ import { configureSimulation, getSimulation } from "@/demo/simulate";
 import { assertCan } from "@/api/context";
 import { ApiError } from "@/api/errors";
 import { openMember, type MemberContext } from "@/api/member";
-import { amountDuePaise, amountInWords, invoiceLines, invoiceTotals, isOverdue, paidPaise, placeOfSupplyFor, stateOfGstin, STATE_NAMES, SAC_FITNESS, taxBreakup } from "@/domain/billing";
+import { amountDuePaise, amountInWords, invoiceLines, invoiceTotals, isOverdue, isUnpaidCart, paidPaise, placeOfSupplyFor, stateOfGstin, STATE_NAMES, SAC_FITNESS, taxBreakup } from "@/domain/billing";
 import { creditBalance, type CreditBalance } from "@/domain/credits";
 import { addDays, daysBetween } from "@/domain/dates";
 import { currentMembership, includedInPlan } from "@/domain/membership";
@@ -132,9 +132,11 @@ async function loadAll(c: MemberContext) {
   return { member, tenant, memberships, invoices, payments, plans, ledger, branches, events };
 }
 
-function openInvoices(invoices: Invoice[], payments: Payment[]) {
+/** Invoices with money still to pay. A cart (see `isUnpaidCart`) is left out unless `withCarts`, which checkout uses to reuse it. */
+function openInvoices(invoices: Invoice[], payments: Payment[], withCarts = false) {
   return invoices
     .filter((i) => i.status === "open" || i.status === "partially_paid")
+    .filter((i) => withCarts || !isUnpaidCart(i, payments.filter((p) => p.invoiceId === i.id)))
     .map((i) => ({ i, due: amountDuePaise(i, payments.filter((p) => p.invoiceId === i.id)) }))
     .filter((x) => x.due > 0)
     .sort((a, b) => a.i.dueOn.localeCompare(b.i.dueOn));
@@ -176,7 +178,7 @@ export async function getMembership(session: Session | null): Promise<Membership
 
   const invoiceNumber = new Map(invoices.map((i) => [i.id, i.number]));
   const rows: InvoiceRow[] = invoices
-    .filter((i) => i.status !== "draft")
+    .filter((i) => i.status !== "draft" && !isUnpaidCart(i, payments.filter((p) => p.invoiceId === i.id)))
     .map((i) => {
       const mine = payments.filter((p) => p.invoiceId === i.id);
       const due = amountDuePaise(i, mine);
@@ -324,7 +326,7 @@ export async function startCheckout(session: Session | null, raw: CheckoutInput)
   return db.transaction("rw", db.tables, async () => {
     const { member, memberships, invoices, payments, plans, branches } = await loadAll(c);
     const current = currentMembership(memberships);
-    const owed = openInvoices(invoices, payments);
+    const owed = openInvoices(invoices, payments, true);
     let invoice: Invoice | undefined;
 
     if (input.kind === "invoice") {

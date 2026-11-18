@@ -120,7 +120,7 @@ function DemoScan() {
   const scan = useSimulateScan();
   const [error, setError] = useState<string>();
   return (
-    <section aria-labelledby="demo-scan-title" className="clay-lilac space-y-3 p-5">
+    <section aria-labelledby="demo-scan-title" className="clay-flat !bg-lilac-100 space-y-3 p-5">
       <h2 id="demo-scan-title" className="text-lg font-bold">Demo controls</h2>
       <p className="text-[0.95rem]">Scan this pass as the front door would. Scan twice within 10 minutes to see that the second scan uses no extra visit.</p>
       <Button3D variant="white" onClick={() => { setError(undefined); scan.mutate(undefined, { onError: (e) => setError(isApiError(e) ? e.message : "We couldn’t scan the pass. Try again.") }); }} disabled={scan.isPending}>

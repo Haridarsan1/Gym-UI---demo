@@ -218,7 +218,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
     if (persona.memberId === "mem_arjun") {
       [[-85, 90], [-57, 89], [-29, 87.5], [-1, 86]].forEach(([d, v]) => out.measurements.push(meas("waist", addDays(today, d!), v, "cm", persona.trainerId!)));
       out.measurements.push(meas("body_fat", addDays(today, -85), 24.5, "%", persona.trainerId!, { method: "Skinfold calipers" }), meas("body_fat", addDays(today, -1), 22.1, "%", persona.trainerId!, { method: "Skinfold calipers" }));
-      out.measurements.push(meas("strength_benchmark", addDays(today, -85), 50, "kg", persona.trainerId!, { exerciseId: "ex_bench_press" }), meas("strength_benchmark", addDays(today, -29), 62.5, "kg", persona.trainerId!, { exerciseId: "ex_bench_press" }));
+      out.measurements.push(meas("strength_benchmark", addDays(today, -85), 40, "kg", persona.trainerId!, { exerciseId: "ex_bench_press" }), meas("strength_benchmark", addDays(today, -29), 47.5, "kg", persona.trainerId!, { exerciseId: "ex_bench_press" }));
     }
 
     const goals: Goal[] = [];

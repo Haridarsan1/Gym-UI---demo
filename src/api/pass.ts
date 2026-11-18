@@ -2,7 +2,7 @@ import { db } from "@/demo/db";
 import { assertCan } from "@/api/context";
 import { ApiError } from "@/api/errors";
 import { openMember } from "@/api/member";
-import { amountDuePaise } from "@/domain/billing";
+import { amountDuePaise, isUnpaidCart } from "@/domain/billing";
 import { checkInDecision, enteredOk, whyNotValid, type DenyReason } from "@/domain/checkin";
 import { daysBetween } from "@/domain/dates";
 import { currentMembership } from "@/domain/membership";
@@ -85,7 +85,7 @@ export async function getPass(session: Session | null): Promise<PassData> {
   const covers = current ? current.terms.branchIds.includes(member.homeBranchId) : false;
   const noVisits = current?.terms.kind === "visit" && (current.visitsRemaining ?? 0) <= 0;
   const reason: DenyReason | undefined = bad?.reason ?? (!covers ? "branch" : noVisits ? "no_visits" : undefined);
-  const dues = invoices.filter((i) => (i.status === "open" || i.status === "partially_paid") && amountDuePaise(i, payments.filter((p) => p.invoiceId === i.id)) > 0).length;
+  const dues = invoices.filter((i) => (i.status === "open" || i.status === "partially_paid") && !isUnpaidCart(i, payments.filter((p) => p.invoiceId === i.id)) && amountDuePaise(i, payments.filter((p) => p.invoiceId === i.id)) > 0).length;
   const left = current?.endsOn ? daysBetween(c.today, current.endsOn) : undefined;
 
   const sorted = [...checkIns].sort((a, b) => b.at.localeCompare(a.at));
@@ -130,7 +130,7 @@ export async function simulateDoorScan(session: Session | null): Promise<ScanRes
       db.payments.where("memberId").equals(c.memberId).toArray(), db.staffRoles.where("tenantId").equals(c.tenantId).toArray(),
     ]);
     const current = currentMembership(memberships);
-    const dues = invoices.some((i) => (i.status === "open" || i.status === "partially_paid") && amountDuePaise(i, payments.filter((p) => p.invoiceId === i.id)) > 0);
+    const dues = invoices.some((i) => (i.status === "open" || i.status === "partially_paid") && !isUnpaidCart(i, payments.filter((p) => p.invoiceId === i.id)) && amountDuePaise(i, payments.filter((p) => p.invoiceId === i.id)) > 0);
     const d = checkInDecision({ membership: current, branchId: member.homeBranchId, today: c.today, nowIso: c.nowIso, recent, hasOpenDues: dues });
     const message = d.reason ? denyText(d.reason, current ? { startsOn: current.startsOn, endsOn: current.endsOn, freezeTo: current.freezes.at(-1)?.to } : undefined) : d.result === "repeat_scan" ? "You scanned a moment ago, so no extra visit was used." : "Checked in.";
     const door = staff.find((s) => s.role === "front_desk" && s.branchIds.includes(member.homeBranchId))?.userId ?? staff.find((s) => s.role === "owner")?.userId ?? c.principal.userId;

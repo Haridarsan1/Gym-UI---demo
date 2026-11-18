@@ -118,3 +118,10 @@ export const amountDuePaise = (invoice: Pick<Invoice, "totalPaise" | "status">, 
 /** “Overdue” is worked out, not stored (M02): unpaid money and a due date that has passed. */
 export const isOverdue = (invoice: Pick<Invoice, "totalPaise" | "status" | "dueOn">, payments: Array<Pick<Payment, "status" | "amountPaise">>, today: string): boolean =>
   invoice.dueOn < today && amountDuePaise(invoice, payments) > 0;
+
+/**
+ * An invoice the member started in their own checkout and has not tried to pay is a cart, not a bill: it isn’t owed, isn’t
+ * listed, and is replaced the next time they choose. Once a payment has been tried, even a declined one, it is a real open invoice.
+ */
+export const isUnpaidCart = (invoice: Pick<Invoice, "purpose" | "status">, payments: Array<Pick<Payment, "status">>): boolean =>
+  invoice.purpose?.selfServe === true && invoice.status === "open" && payments.length === 0;

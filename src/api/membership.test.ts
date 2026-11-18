@@ -348,3 +348,27 @@ describe("the tax receipt (M03)", () => {
     expect(await code(getReceipt(priya, inv.id))).toBe("not_found");
   });
 });
+
+describe("a checkout that was never paid is a cart, not a bill", () => {
+  it("is not owed, not listed and not shown as dues until a payment has been tried", async () => {
+    const co = await startCheckout(arjun, { kind: "sessions", sessions: 4 });
+    const cart = await getMembership(arjun);
+    expect(cart.dues).toBeUndefined();
+    expect(cart.invoices.map((i) => i.id)).not.toContain(co.invoiceId);
+    // The same checkout again reuses it instead of making another.
+    expect((await startCheckout(arjun, { kind: "sessions", sessions: 4 })).invoiceId).toBe(co.invoiceId);
+    // After a declined payment it is a real open invoice, so the member can see it and pay it.
+    configureSimulation({ paymentFails: true });
+    await payInvoice(arjun, { invoiceId: co.invoiceId, method: "upi", idempotencyKey: key() });
+    const after = await getMembership(arjun);
+    expect(after.dues).toMatchObject({ invoiceId: co.invoiceId, duePaise: 377_600 });
+    expect(after.invoices.find((i) => i.id === co.invoiceId)).toMatchObject({ status: "open", duePaise: 377_600 });
+  });
+
+  it("doesn’t stop a renewal or show on Today while it is only a cart", async () => {
+    await startCheckout(arjun, { kind: "renewal", planId: "pl_quarterly" });
+    expect((await getMembership(arjun)).renewal.options.length).toBeGreaterThan(0);
+    const { getToday } = await import("@/api/member");
+    expect((await getToday(arjun)).dues).toBeUndefined();
+  });
+});

@@ -13,7 +13,8 @@
     "e2e": "playwright test",
     "bundle-report": "node scripts/bundle-report.mjs",
     "e2e:pwa": "playwright test -c playwright.pwa.config.ts",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "m1:shots": "M1_SHOTS=1 playwright test e2e/m1-shots.spec.ts --project=phone && node scripts/contact-sheets.mjs docs/checkpoints/m1-final"
   },
   "dependencies": {
     "@fontsource/big-shoulders-display": "5.1.0",

@@ -63,8 +63,8 @@ describe("the Progress data", () => {
     expect(bench.points.length).toBeGreaterThan(8);
     expect(bench.points.map((x) => x.date)).toEqual([...bench.points.map((x) => x.date)].sort());
     const barbell = p.strength.find((s) => s.exerciseId === "ex_bench_press")!;
-    expect(barbell.points.some((x) => x.date === "2026-08-24" && x.value === 50)).toBe(true); // the trainer’s test, 85 days ago
-    expect(barbell.points.some((x) => x.date === "2026-10-19" && x.value === 62.5)).toBe(true);
+    expect(barbell.points.some((x) => x.date === "2026-08-24" && x.value === 40)).toBe(true); // the trainer’s test, 85 days ago
+    expect(barbell.points.some((x) => x.date === "2026-10-19" && x.value === 47.5)).toBe(true);
   });
 
   it("completion follows P03: the weekly numbers add up to the totals the workout rules give", async () => {

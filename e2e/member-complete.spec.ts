@@ -122,6 +122,7 @@ test.describe("Workout complete", () => {
     page.on("request", (r) => r.url().includes("confetti") && requests.push(r.url()));
     await doWorkout(page, {
       exercises: 2,
+      heavyBench: true, // 200 kg on the first bench set takes the member past the 55 kg target
       prepare: (p) => p.evaluate(() => new Promise<void>((resolve, reject) => {
         const open = indexedDB.open("ember-demo");
         open.onsuccess = () => {

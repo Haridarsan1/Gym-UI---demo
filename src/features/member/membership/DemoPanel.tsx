@@ -43,7 +43,7 @@ export function DemoPanel({ d }: { d: MembershipData }) {
   const made = event ? MADE[event.purpose] : undefined;
 
   return (
-    <section aria-labelledby="demo-title" className="clay-lilac space-y-5 p-5">
+    <section aria-labelledby="demo-title" className="clay-flat !bg-lilac-100 space-y-5 p-5">
       <div>
         <h2 id="demo-title" className="text-lg font-bold">Demo controls</h2>
         <p className="text-[0.95rem]">These controls are only in the demo. They show how payments stay safe.</p>
@@ -58,7 +58,7 @@ export function DemoPanel({ d }: { d: MembershipData }) {
         description="The demo gateway declines every payment. Nothing is charged and nothing is activated."
       />
 
-      <div className="border-t border-white/60 pt-4">
+      <div className="border-t border-lilac-300 pt-4">
         <h3 className="font-bold">Send a payment event again</h3>
         <p className="text-[0.95rem]">A payment gateway can send the same “payment succeeded” message twice. Replay the last one: it must not make a second payment or a second renewal.</p>
         {event && made ? (
