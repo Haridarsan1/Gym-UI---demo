@@ -1,10 +1,17 @@
 import { expect, type Page } from "@playwright/test";
 import { DEMO_ACCOUNTS } from "../src/app/demoAccounts";
 
+/** The moment the browser clock is set to in tests. */
+export const DEMO_NOW = new Date("2026-11-17T06:30:00.000Z");
+
 /** Signs in as one of the demo people by writing the session the login page would write, then opens `path`. */
 export async function signInAs(page: Page, userId: string, path = "/app") {
   const a = DEMO_ACCOUNTS.find((x) => x.userId === userId);
   if (!a) throw new Error(`No demo account ${userId}`);
+  // The sample gym is built relative to today and the specs name dates, so every run starts at 12:00 in India on 17 Nov 2026.
+  // Time then runs on normally from there.
+  await page.clock.install({ time: DEMO_NOW });
+  await page.clock.resume();
   await page.goto("/login");
   await page.evaluate(
     (s) => {

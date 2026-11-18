@@ -171,7 +171,7 @@ test.describe("Progress: Arjun", () => {
     expect(pct).toBeGreaterThan(0);
     expect(pct).toBeLessThan(100);
     await expect(weight).toContainText(/By \d+ \w{3} \d{4}, \d+ days to go\./);
-    const bench = goals.getByRole("listitem").filter({ hasText: "Bench press 60 kg" });
+    const bench = goals.getByRole("listitem").filter({ hasText: "Bench press 50 kg" });
     await expect(bench).toContainText("Achieved");
     await expect(bench.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
     await expect(bench).toContainText(/Achieved on \d+ \w{3} \d{4}\./);

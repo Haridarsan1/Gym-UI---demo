@@ -44,10 +44,20 @@ const TEMPLATES: Record<Template, { title: string; slots: Slot[] }> = {
 
 const half = (n: number) => Math.round(n * 2) / 2;
 
-/** Loads climb every week. The bench press gains about 2 kg a week, which is 20.5 kg in ten weeks. */
+const hash = (text: string): number => [...text].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7);
+
+/** Weeks a lift stays at one load before it goes up: 2, 3 or 4, different for each exercise so records don’t all land in one week. */
+const weeksPerStep = (exerciseId: string): number => 2 + (hash(exerciseId) % 3);
+/** The jump: 2.5 kg on the bench press, about 6% of the starting load (at least 1 kg) elsewhere. */
+const stepKg = (slot: Slot): number => (slot.ex === "ex_bench_press" ? 2.5 : Math.max(1, half(slot.base! * 0.06)));
+
+/**
+ * Loads rise in steps with plateaus between them: a lift holds its load for two to four weeks, then goes up one step. The first
+ * session at a new load is a personal record, so each main lift sets one every two to four weeks, not every session.
+ */
 function loadFor(slot: Slot, weekNo: number): number | undefined {
   if (!slot.base) return undefined;
-  return slot.ex === "ex_bench_press" ? half(slot.base + 2.05 * weekNo) : half(slot.base * (1 + 0.025 * weekNo));
+  return half(slot.base + stepKg(slot) * Math.floor(weekNo / weeksPerStep(slot.ex)));
 }
 
 function buildDays(pattern: Array<[number, Template]>, weeks: number, firstWeekNo: number): PlanDay[] {
@@ -132,6 +142,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
     const badInWeek = new Map<string, number>();
     const recent = addDays(weekStart(today), -35);
     const logs: WorkoutLog[] = [];
+    const heaviest = new Map<string, number>();
 
     for (const s of scheduled) {
       const roll = r.next();
@@ -149,6 +160,9 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
       const rx = s.day.prescriptions;
       const doneUpTo = status === "partial" ? Math.ceil(rx.length * 0.6) : status === "skipped" ? 0 : rx.length;
       const evening = r.next() < 0.5;
+      // About one session in ten is a lighter day: every main load drops by a tenth. The session that would set a record is never one.
+      const setsRecord = rx.some((p) => p.section === "main" && p.loadKg !== undefined && p.loadKg > (heaviest.get(p.exerciseId) ?? Infinity));
+      const lighter = status === "completed" && !setsRecord && hash(`${persona.memberId}${s.date}`) % 10 === 0;
       const entries = rx.map((p, idx) => {
         const alt = r.next() < 0.06 && p.section === "main" ? (DEMO_SUBS[p.exerciseId] ?? undefined) : undefined;
         return {
@@ -158,16 +172,20 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
             if (idx >= doneUpTo) return { setNumber: i + 1, skipped: true };
             const short = p.section === "main" && p.reps !== undefined && i === p.sets - 1 && r.next() < 0.18;
             const reps = typeof p.reps === "number" ? (short ? Math.max(1, p.reps - r.int(1, 2)) : p.reps) : undefined;
-            return { setNumber: i + 1, reps, loadKg: p.loadKg ? (alt ? half(p.loadKg * 0.9) : p.loadKg) : undefined, durationSec: p.durationSec, skipped: false, asPrescribed: !short && !alt };
+            return { setNumber: i + 1, reps, loadKg: p.loadKg ? (alt || lighter ? half(p.loadKg * 0.9) : p.loadKg) : undefined, durationSec: p.durationSec, skipped: false, asPrescribed: !short && !alt && !lighter };
           }),
         };
       });
+      for (const e of entries) for (const set of e.sets) if (!set.skipped && set.loadKg !== undefined && !e.substitutionFor) heaviest.set(e.exerciseId, Math.max(heaviest.get(e.exerciseId) ?? 0, set.loadKg));
+      const effortRoll = r.int(6, 9);
+      const noteRoll = r.next();
       const byTrainer = r.next() < 0.08;
       logs.push({
         id: `wl_${persona.memberId}_${s.date}`, tenantId: TENANT_ID, memberId: persona.memberId, planVersionId: s.version.id, weekIndex: s.day.weekIndex, dayIndex: s.day.dayIndex, scheduledOn: s.date,
         status: status as WorkoutLog["status"], startedAt: status === "skipped" ? undefined : at(s.date, evening ? "18:30" : "06:45"),
         completedAt: status === "skipped" ? undefined : at(s.date, evening ? "19:25" : "07:40"), entries,
-        effort: status === "skipped" ? undefined : r.int(6, 9), notes: status === "skipped" ? "Away for work." : r.next() < 0.1 ? "Felt strong today." : undefined,
+        effort: status === "skipped" ? undefined : lighter ? effortRoll - 3 : effortRoll,
+        notes: status === "skipped" ? "Away for work." : lighter ? "Light day, slept badly." : noteRoll < 0.1 ? "Felt strong today." : undefined,
         enteredBy: byTrainer ? persona.trainerId! : memberUser, enteredByRole: byTrainer ? "trainer" : "member", corrections: [], idempotencyKey: `seed-log-${persona.memberId}-${s.date}`,
       });
     }
@@ -209,7 +227,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
     };
     if (persona.memberId === "mem_arjun") {
       goal(1, { title: "Reach 78 kg", metric: "weight", unit: "kg", baseline: 82.4, target: 78, targetDate: addDays(today, 49), reviewEveryDays: 28, status: "active", history: [{ at: at(addDays(today, -84), "10:00"), by: persona.trainerId!, note: "Goal set at the first assessment." }] }, addDays(today, -84));
-      goal(2, { title: "Bench press 60 kg for three sets of ten", metric: "bench_press", unit: "kg", baseline: 40, target: 60, targetDate: addDays(today, -10), reviewEveryDays: 28, status: "achieved", history: [{ at: at(addDays(today, -84), "10:00"), by: persona.trainerId!, note: "Goal set at the first assessment." }, { at: at(addDays(today, -12), "19:30"), by: persona.trainerId!, note: "Achieved: 60.5 kg for 3 × 10." }] }, addDays(today, -84));
+      goal(2, { title: "Bench press 50 kg for three sets of ten", metric: "bench_press", unit: "kg", baseline: 40, target: 50, targetDate: addDays(today, -10), reviewEveryDays: 28, status: "achieved", history: [{ at: at(addDays(today, -84), "10:00"), by: persona.trainerId!, note: "Goal set at the first assessment." }, { at: at(addDays(today, -12), "19:30"), by: persona.trainerId!, note: "Achieved: 50 kg for 3 × 10." }] }, addDays(today, -84));
     } else if (persona.memberId === "mem_priya") {
       goal(1, { title: "Train three times a week", metric: "sessions_per_week", unit: "sessions", baseline: 1, target: 3, targetDate: addDays(today, 60), reviewEveryDays: 28, status: "active", history: [{ at: at(addDays(today, -29), "10:00"), by: persona.trainerId!, note: "Goal set." }] }, addDays(today, -29));
     } else if (persona.memberId === "mem_rahul") {
@@ -223,7 +241,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
       out.trainerReviews.push({ id: `rv_${persona.memberId}_${n}`, tenantId: TENANT_ID, memberId: persona.memberId, kind, authorId: persona.trainerId!, body, createdAt: at(date, "18:00"), ...extra });
     };
     if (persona.memberId === "mem_arjun") {
-      review(1, "shared_review", 10, "Strong block. Your bench press is up about 20 kg since we started and you have not missed a week. Keep your elbows tucked on the way down.", { readByMemberAt: at(addDays(today, -9), "07:10"), followUpOn: addDays(today, -1) });
+      review(1, "shared_review", 10, "Strong block. Your bench press is up 10 kg since we started, and you have not missed a week. Keep your elbows tucked on the way down.", { readByMemberAt: at(addDays(today, -9), "07:10"), followUpOn: addDays(today, -1) });
       review(2, "shared_review", 1, `New plan is live from ${formatDayMonth(addDays(today, -13))}. You hit at least three of four sessions every week, so I have raised the loads on the main lifts. Tell me how the heavier squats feel.`, {});
       review(3, "private_note", 12, "Left shoulder a little tight on overhead press. Watch it. Maybe swap in dumbbells if it flares up.");
       out.trainerReviews.push({ id: "rv_mem_arjun_4", tenantId: TENANT_ID, memberId: "mem_arjun", kind: "member_checkin", authorId: memberUser, body: "Good week.", effort: 7, recovery: 4, obstacles: "Work travel on Thursday.", createdAt: at(addDays(today, -6), "21:00") });

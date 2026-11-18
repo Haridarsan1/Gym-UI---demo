@@ -1,3 +1,4 @@
+import { now } from "@/api/clock";
 import { db } from "@/demo/db";
 import { SEED_VERSION } from "@/demo/version";
 import { ApiError } from "@/api/errors";
@@ -11,7 +12,7 @@ async function writeSeed(): Promise<void> {
   performance.mark("demo-seed-start");
   // Loaded only now: a device that already has the demo gym never downloads the generator.
   const { generateSeed } = await import("@/demo/seed");
-  const data = generateSeed();
+  const data = generateSeed(now());
   await db.transaction("rw", db.tables, async () => {
     const current = await db.meta.get(SEED_KEY);
     if (current?.value === SEED_VERSION) return; // another tab got there first

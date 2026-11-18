@@ -4,7 +4,7 @@ import { amountDuePaise, isOverdue, stateOfGstin, taxBreakup } from "@/domain/bi
 import { creditBalance } from "@/domain/credits";
 import { addDays, weekStart } from "@/domain/dates";
 import { earnedBadges } from "@/domain/badges";
-import { adherence, planFor, streakWeeks, weekStats } from "@/domain/metrics";
+import { adherence, detectPRs, planFor, streakWeeks, weekStats } from "@/domain/metrics";
 import { BadgeAward, Booking, CheckIn, Exercise, Goal, GymPolicies, Invoice, Measurement, MemberSettings, Payment, TrainerAvailability, TrainerReview, WorkoutLog, WorkoutPlanVersion } from "@/domain/types";
 
 const NOW = new Date("2026-11-17T06:30:00.000Z"); // 12:00 in India
@@ -92,11 +92,36 @@ describe("Arjun Kumar: a workout today, 12 weeks of history", () => {
     expect([bench.sets, bench.reps]).toEqual([3, 10]);
   });
 
-  it("raised the bench load about 20 kg across the ten-week first block", () => {
+  it("raises each main lift in steps with plateaus, not every week", () => {
     const first = versions("mem_arjun")[0]!;
-    const load = (w: number) => first.days.find((d) => d.weekIndex === w && d.title === "Push")!.prescriptions.find((p) => p.exerciseId === "ex_bench_press")!.loadKg!;
-    expect(load(0)).toBe(40);
-    expect(load(9) - load(0)).toBeCloseTo(18.5, 0);
+    const load = (ex: string, w: number) => first.days.find((d) => d.weekIndex === w && d.prescriptions.some((p) => p.exerciseId === ex))!.prescriptions.find((p) => p.exerciseId === ex)!.loadKg!;
+    expect(load("ex_bench_press", 0)).toBe(40);
+    const weeks = Array.from({ length: 10 }, (_, w) => load("ex_bench_press", w));
+    expect(weeks[9]! - weeks[0]!).toBeGreaterThanOrEqual(7.5);
+    const steps = weeks.filter((x, i) => i > 0 && x > weeks[i - 1]!).length;
+    expect(steps).toBeGreaterThanOrEqual(2);
+    expect(steps).toBeLessThan(9); // plateaus: some weeks repeat the load
+  });
+
+  it("sets a personal record on a main lift every two to four weeks, not every session", () => {
+    const all = logs("mem_arjun").sort((a, b) => a.scheduledOn.localeCompare(b.scheduledOn));
+    const dates = (ex: string) => all.flatMap((l, i) => (l.status !== "skipped" && detectPRs(all.slice(0, i), l).some((p) => p.exerciseId === ex) ? [l.scheduledOn] : []));
+    for (const ex of ["ex_bench_press", "ex_back_squat", "ex_deadlift"]) {
+      const d = dates(ex);
+      expect(d.length, ex).toBeGreaterThanOrEqual(3);
+      const sessions = all.filter((l) => l.entries.some((e) => e.exerciseId === ex)).length;
+      expect(d.length, ex).toBeLessThan(sessions / 1.8);
+      for (let i = 1; i < d.length; i++) expect((Date.parse(d[i]!) - Date.parse(d[i - 1]!)) / 86_400_000, `${ex} ${d[i - 1]} to ${d[i]}`).toBeLessThanOrEqual(42);
+    }
+    // Arjun’s most recent record is recent.
+    const last = all.flatMap((l, i) => (l.status !== "skipped" && detectPRs(all.slice(0, i), l).length ? [l.scheduledOn] : [])).pop()!;
+    expect((Date.parse(TODAY) - Date.parse(last)) / 86_400_000).toBeLessThanOrEqual(14);
+  });
+
+  it("has lighter sessions, which never set a record", () => {
+    const light = logs("mem_arjun").filter((l) => l.notes === "Light day, slept badly.");
+    expect(light.length).toBeGreaterThanOrEqual(1);
+    expect(logs("mem_arjun").filter((l) => l.status === "partial").length).toBeGreaterThanOrEqual(1);
   });
 
   it("logged most workouts, with completed, partial and skipped all present", () => {
