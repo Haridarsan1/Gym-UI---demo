@@ -213,3 +213,57 @@ test.describe("the last content scrolls clear of the tab bar and the raised butt
     await clear(page, "Workout complete");
   });
 });
+
+test.describe("no uppercase labels and no dot separators on Membership, the receipt, the pass and Me", () => {
+  const check = async (page: Page, where: string) => {
+    const shouted = await page.evaluate(() => [...document.querySelectorAll("main *, header *, [role='dialog'] *, nav *")].filter((e) => getComputedStyle(e).textTransform === "uppercase").map((e) => e.textContent?.slice(0, 40)));
+    expect(shouted, `${where}: uppercase text`).toEqual([]);
+    const text = await page.evaluate(() => [document.querySelector("main"), ...document.querySelectorAll("[role='dialog']")].map((e) => e?.textContent ?? "").join(" "));
+    expect(text, `${where}: dot separator`).not.toMatch(/[·•]/);
+    expect(text, `${where}: straight apostrophe in visible text`).not.toMatch(/\w'\w/);
+    expect(text, `${where}: exclamation mark`).not.toContain("!");
+  };
+
+  test("Membership, the renewal and payment sheets, the stamp and the demo controls", async ({ page }) => {
+    await signInAs(page, "u_member_arjun", "/m/membership");
+    await check(page, "Membership");
+    await page.getByRole("button", { name: "Renew membership" }).click();
+    await check(page, "Renew, choose");
+    await page.getByRole("dialog").getByRole("button", { name: "Continue to payment" }).click();
+    await check(page, "Renew, pay");
+    await page.getByRole("dialog").getByRole("button", { name: /^Pay ₹4,130$/ }).click();
+    await expect(page.locator(".stamp")).toBeVisible();
+    await check(page, "Renew, paid");
+    await page.getByRole("dialog").getByRole("button", { name: "Done" }).click();
+    await page.getByRole("button", { name: "Send this event again" }).click();
+    await check(page, "Membership after replay");
+  });
+
+  test("a declined payment, auto-renew, and the receipt", async ({ page }) => {
+    await signInAs(page, "u_member_arjun", "/m/membership");
+    await page.getByRole("button", { name: "Set up auto-renew" }).click();
+    await check(page, "Auto-renew");
+    await page.keyboard.press("Escape");
+    await page.getByRole("switch", { name: "Make payments fail" }).click();
+    await page.getByRole("button", { name: "Buy more sessions" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Continue to payment" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /^Pay ₹/ }).click();
+    await expect(page.getByRole("dialog").getByRole("alert")).toBeVisible();
+    await check(page, "Declined");
+    await page.keyboard.press("Escape");
+    await page.getByRole("list", { name: "Invoices" }).getByRole("listitem").filter({ hasText: "Paid" }).first().getByRole("link").click();
+    await expect(page.getByRole("heading", { name: "Tax invoice and receipt", level: 1 })).toBeVisible();
+    await check(page, "Receipt");
+  });
+
+  test("the pass and Me, with their sheets", async ({ page }) => {
+    await signInAs(page, "u_member_arjun", "/m/pass");
+    await expect(page.getByText("Ready to scan")).toBeVisible();
+    await check(page, "Pass");
+    await page.goto("/m/me");
+    await expect(page.getByRole("heading", { name: "Me", level: 1 })).toBeVisible();
+    await check(page, "Me");
+    await page.getByRole("button", { name: "Ask for deletion" }).click();
+    await check(page, "Deletion request");
+  });
+});

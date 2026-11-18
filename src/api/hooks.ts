@@ -7,6 +7,7 @@ import type { FeedbackInput } from "@/api/workoutSummary";
 import type { CheckInInput, MeasurementInput, PhotoInput } from "@/api/progress";
 import type { BookInput, CancelInput, RescheduleInput } from "@/api/bookings";
 import type { AutoRenewInput, CheckoutInput, PayInput } from "@/api/membership";
+import type { ConsentInput, RequestInput, SettingsInput } from "@/api/profile";
 import { isRetryable } from "@/api/errors";
 import { useSession } from "@/app/SessionContext";
 
@@ -23,6 +24,8 @@ const summaryApi = () => import("@/api/workoutSummary");
 const progressApi = () => import("@/api/progress");
 const bookingsApi = () => import("@/api/bookings");
 const membershipApi = () => import("@/api/membership");
+const passApi = () => import("@/api/pass");
+const profileApi = () => import("@/api/profile");
 
 const retry = (count: number, error: unknown) => count < 2 && isRetryable(error);
 
@@ -245,3 +248,39 @@ export const usePayInvoice = () => useMembershipMutation((api, session, input: P
 export const useReplayGatewayEvent = () => useMembershipMutation((api, session, eventId: string) => api.replayGatewayEvent(session, eventId));
 export const useSetAutoRenew = () => useMembershipMutation((api, session, input: AutoRenewInput) => api.setAutoRenew(session, input));
 export const useSetPaymentFailure = () => useMembershipMutation((api, session, on: boolean) => api.setDemoPaymentFailure(session, on));
+
+// ── Check-in pass ────────────────────────────────────────────────────────────────────────────────
+
+/** The pass and recent check-ins. Read again every few seconds while the screen is open, so the pass notices a scan (M05). */
+export function usePass() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["member", session?.userId, "pass"], queryFn: async () => (await passApi()).getPass(session), enabled: !!session, retry, staleTime: 0, refetchInterval: 4000, refetchIntervalInBackground: false });
+}
+
+/** Demo control: scan the pass at the door. */
+export function useSimulateScan() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: async () => (await passApi()).simulateDoorScan(session), onSettled: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId] }) });
+}
+
+// ── Me: profile, consent, preferences and data requests ──────────────────────────────────────────
+
+export function useProfile() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["member", session?.userId, "profile"], queryFn: async () => (await profileApi()).getProfile(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+function useProfileMutation<I, O>(fn: (api: typeof import("@/api/profile"), session: ReturnType<typeof useSession>["session"], input: I) => Promise<O>) {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: I) => fn(await profileApi(), session, input),
+    // Consent changes what Progress may show, so everything the member sees is read again.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId] }),
+  });
+}
+
+export const useSetConsent = () => useProfileMutation((api, session, input: ConsentInput) => api.setConsent(session, input));
+export const useSaveSettings = () => useProfileMutation((api, session, input: SettingsInput) => api.saveSettings(session, input));
+export const useRequestData = () => useProfileMutation((api, session, input: RequestInput) => api.requestData(session, input));

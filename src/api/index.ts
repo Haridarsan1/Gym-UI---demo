@@ -10,3 +10,5 @@ export type { CheckInView, GoalView, LoggedMeasurement, PhotoView, ProgressData,
 export type { BookingPolicy, BookingResult, BookingView, BookingsData, TrainerOption } from "@/api/bookings";
 export type { Slot } from "@/domain/slots";
 export type { CheckoutView, GatewayEventView, InvoiceRow, MembershipData, MembershipView, PayResult, PaymentRow, ReceiptData, RenewalOption, ReplayResult } from "@/api/membership";
+export type { CheckInView as PassCheckIn, PassData, ScanResult } from "@/api/pass";
+export type { ConsentView, ProfileData, RequestView } from "@/api/profile";
