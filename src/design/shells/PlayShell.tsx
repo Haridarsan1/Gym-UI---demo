@@ -86,7 +86,7 @@ export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer";
           />
         </>
       )}
-      <header className={cn("print-hide sticky top-0 z-30 border-b border-clay-line bg-clay-canvas/90 backdrop-blur", !immersive && "sm:hidden")}>
+      <header className="print-hide sticky top-0 z-30 border-b border-clay-line bg-clay-canvas/90 backdrop-blur sm:hidden">
         <div className="mx-auto flex h-16 max-w-2xl items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top,0px)]">
           {brand(false)}
           <AvatarMenu />

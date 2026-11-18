@@ -21,7 +21,8 @@ export function PreviewSheet({ date, onClose }: { date: string | null; onClose: 
   );
 }
 
-function PreviewBody({ date, onClose }: { date: string; onClose: () => void }) {
+/** The preview itself. Beside the path (768 px and up) it shows inline with no Close button. */
+export function PreviewBody({ date, onClose }: { date: string; onClose?: () => void }) {
   const query = useWorkout(date);
   return (
     <QueryBoundary query={query} errorTitle="We couldn’t open this workout" skeleton={<SkeletonRows rows={4} label="Loading workout" />}>
@@ -30,7 +31,7 @@ function PreviewBody({ date, onClose }: { date: string; onClose: () => void }) {
   );
 }
 
-function Preview({ w, onClose }: { w: WorkoutView; onClose: () => void }) {
+function Preview({ w, onClose }: { w: WorkoutView; onClose?: () => void }) {
   const close = useRef<HTMLButtonElement>(null);
   // The content arrives after the sheet opens, so move focus to Close once it is there.
   useEffect(() => close.current?.focus(), []);
@@ -46,9 +47,11 @@ function Preview({ w, onClose }: { w: WorkoutView; onClose: () => void }) {
             {w.exercises.filter((x) => x.prescription.section === "main").length} exercises, about {w.minutes} min. {w.versionName}, version {w.versionNumber}.
           </p>
         </div>
-        <button ref={close} type="button" onClick={onClose} aria-label="Close preview" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-clay-muted hover:bg-clay-lavender">
-          <X className="h-5 w-5" aria-hidden="true" />
-        </button>
+        {onClose && (
+          <button ref={close} type="button" onClick={onClose} aria-label="Close preview" className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full text-clay-muted hover:bg-clay-lavender">
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        )}
       </div>
       {sections.map(({ s, items }) => (
         <section key={s} aria-label={SECTION[s]} className="mt-5">

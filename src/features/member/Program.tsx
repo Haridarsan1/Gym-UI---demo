@@ -8,7 +8,8 @@ import { EmptyState } from "@/design/States";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonCard, SkeletonRows } from "@/design/Skeleton";
 import { addDays } from "@/domain/dates";
-import { PreviewSheet } from "@/features/member/program/PreviewSheet";
+import { MEDIA, useMediaQuery } from "@/design/useMediaQuery";
+import { PreviewBody, PreviewSheet } from "@/features/member/program/PreviewSheet";
 import { WeekPath } from "@/features/member/program/WeekPath";
 import { formatDate, formatDayMonth } from "@/lib/when";
 
@@ -39,7 +40,9 @@ function NoPlan() {
 function ProgramContent({ p }: { p: ProgramData }) {
   const currentIndex = Math.max(0, p.weeks.findIndex((w) => w.isCurrent));
   // Tapping a day on Today opens it here: its week, and its workout if it has one.
-  const wanted = useSearchParams()[0].get("date");
+  const [params, setParams] = useSearchParams();
+  const wanted = params.get("date");
+  const split = useMediaQuery(MEDIA.split);
   const wantedIndex = wanted ? p.weeks.findIndex((w) => w.days.some((d) => d.date === wanted)) : -1;
   const [index, setIndex] = useState(wantedIndex >= 0 ? wantedIndex : currentIndex);
   const [preview, setPreview] = useState<string | null>(() => (wanted && wantedIndex >= 0 && p.weeks[wantedIndex]!.days.some((d) => d.date === wanted && d.state !== "rest") ? wanted : null));
@@ -47,8 +50,17 @@ function ProgramContent({ p }: { p: ProgramData }) {
   useEffect(() => setIndex((i) => Math.min(i, p.weeks.length - 1)), [p.weeks.length]);
   const week = p.weeks[index]!;
   const end = addDays(week.weekStart, 6);
+  // From 768 px the selected day’s preview sits beside the path, and the selection is in the address (?date=).
+  // Nothing chosen yet: today’s workout, else the next one, else the first of the week.
+  const workoutDays = week.days.filter((d) => d.state !== "rest");
+  const fallback = (workoutDays.find((d) => d.state === "today") ?? workoutDays.find((d) => d.state === "upcoming") ?? workoutDays[0])?.date ?? null;
+  const shown = split ? (preview && workoutDays.some((d) => d.date === preview) ? preview : fallback) : null;
+  const open = (date: string) => {
+    setPreview(date);
+    if (split) setParams({ date }, { replace: true });
+  };
   return (
-    <>
+    <div className="space-y-5">
       <section aria-labelledby="plan-title" className="clay p-5">
         <p className="text-sm font-semibold text-clay-muted">Current plan</p>
         <h2 id="plan-title" className="mt-1 text-xl font-bold">{p.current!.name}</h2>
@@ -71,6 +83,7 @@ function ProgramContent({ p }: { p: ProgramData }) {
         )}
       </section>
 
+      <div className="grid items-start gap-6 md:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)]">
       <section aria-labelledby="week-label" className="space-y-4">
         <div className="flex items-center justify-between gap-2">
           <Button variant="ink" aria-label="Previous week" disabled={index === 0} onClick={() => setIndex(index - 1)} className="!h-11 !w-11 !p-0">
@@ -91,10 +104,16 @@ function ProgramContent({ p }: { p: ProgramData }) {
             Back to this week
           </button>
         )}
-        <WeekPath days={week.days} onOpen={setPreview} />
+        <WeekPath days={week.days} onOpen={open} selected={shown} inline={split} />
       </section>
-      <PreviewSheet date={preview} onClose={() => setPreview(null)} />
-    </>
+      {split && (
+        <section aria-label="Selected workout" className="clay min-w-0 p-6 md:sticky md:top-6">
+          {shown ? <PreviewBody date={shown} /> : <p className="text-clay-muted">Pick a workout on the path to see its exercises.</p>}
+        </section>
+      )}
+      </div>
+      {!split && <PreviewSheet date={preview} onClose={() => setPreview(null)} />}
+    </div>
   );
 }
 

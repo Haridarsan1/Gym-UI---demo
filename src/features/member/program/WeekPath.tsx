@@ -17,10 +17,10 @@ const LOOK: Record<Exclude<ProgramDayState, "rest">, { icon: LucideIcon; label: 
  * One week as a path: a line down the left with a round marker for each day. Workout days open a preview; rest days
  * are quiet markers, so the path still reads as a week.
  */
-export function WeekPath({ days, onOpen }: { days: ProgramDay[]; onOpen: (date: string) => void }) {
+export function WeekPath({ days, onOpen, selected, inline }: { days: ProgramDay[]; onOpen: (date: string) => void; selected?: string | null; inline?: boolean }) {
   return (
     <ol className="relative space-y-3 before:absolute before:bottom-6 before:left-[1.65rem] before:top-6 before:w-1 before:rounded-full before:bg-lilac-100 before:content-['']" aria-label="Days of the week">
-      {days.map((d) => (d.state === "rest" ? <RestRow key={d.date} date={d.date} /> : <WorkoutRow key={d.date} day={d} state={d.state} onOpen={onOpen} />))}
+      {days.map((d) => (d.state === "rest" ? <RestRow key={d.date} date={d.date} /> : <WorkoutRow key={d.date} day={d} state={d.state} onOpen={onOpen} selected={selected === d.date} inline={inline} />))}
     </ol>
   );
 }
@@ -38,16 +38,17 @@ function RestRow({ date }: { date: string }) {
   );
 }
 
-function WorkoutRow({ day, state, onOpen }: { day: ProgramDay; state: Exclude<ProgramDayState, "rest">; onOpen: (date: string) => void }) {
+function WorkoutRow({ day, state, onOpen, selected, inline }: { day: ProgramDay; state: Exclude<ProgramDayState, "rest">; onOpen: (date: string) => void; selected: boolean; inline?: boolean }) {
   const look = LOOK[state];
   const Icon = look.icon;
   return (
     <li className="relative">
       <button
         type="button"
-        aria-haspopup="dialog"
+        aria-haspopup={inline ? undefined : "dialog"}
+        aria-current={selected ? "true" : undefined}
         onClick={() => onOpen(day.date)}
-        className={cn("clay-flat flex min-h-[4.5rem] w-full items-center gap-4 p-3 pr-4 text-left transition-transform active:scale-[0.99]", look.card)}
+        className={cn("clay-flat flex min-h-[4.5rem] w-full cursor-pointer items-center gap-4 p-3 pr-4 text-left transition-transform hover:-translate-y-0.5 active:scale-[0.99]", look.card, selected && "ring-2 ring-lilac-500")}
       >
         <span aria-hidden="true" className={cn("relative z-10 grid h-11 w-11 shrink-0 place-items-center rounded-full", look.node)}>
           <Icon className="h-5 w-5" />
