@@ -11,6 +11,8 @@ import { BookSheet } from "@/features/member/bookings/BookSheet";
 import { PastCard, UpcomingCard } from "@/features/member/bookings/BookingCard";
 import { CancelSheet } from "@/features/member/bookings/CancelSheet";
 import { Chips } from "@/features/member/progress/MetricCard";
+import { MEDIA, useMediaQuery } from "@/design/useMediaQuery";
+import { BookFlow } from "@/features/member/bookings/BookFlow";
 import { formatWeekdayDate } from "@/lib/when";
 
 const PAST_SHOWN = 6;
@@ -37,6 +39,7 @@ function BookingsContent({ d }: { d: BookingsData }) {
   const [booking, setBooking] = useState<{ reschedule?: BookingView } | null>(params.get("book") ? {} : null);
   const [cancel, setCancel] = useState<BookingView | null>(null);
   const [allPast, setAllPast] = useState(false);
+  const desktop = useMediaQuery(MEDIA.desktop);
   const noCredits = d.credits.available === 0;
   const close = () => {
     setBooking(null);
@@ -85,6 +88,12 @@ function BookingsContent({ d }: { d: BookingsData }) {
         {noCredits && d.blockedReason && <p className="mt-2 text-sm text-clay-muted">{d.blockedReason}</p>}
       </section>
 
+      {desktop && booking !== null && (
+        <section aria-label={booking.reschedule ? "Move your session" : "Book a session"} className="clay p-6">
+          <BookFlow key={booking.reschedule?.id ?? "new"} layout="split" reschedule={booking.reschedule} credits={d.credits.available} policy={d.policy} onClose={close} />
+        </section>
+      )}
+
       <Chips
         label="Which sessions"
         value={tab}
@@ -98,7 +107,7 @@ function BookingsContent({ d }: { d: BookingsData }) {
             {noCredits ? "Buy more sessions to book your next one." : "Book a session with your trainer. You will see its free-cancellation time before you confirm."}
           </EmptyState>
         ) : (
-          <ol className="space-y-4" aria-label="Upcoming sessions">
+          <ol className="grid items-start gap-4 md:grid-cols-2" aria-label="Upcoming sessions">
             {d.upcoming.map((b) => (
               <li key={b.id}>
                 <UpcomingCard b={b} policy={d.policy} nowIso={d.nowIso} onReschedule={() => setBooking({ reschedule: b })} onCancel={() => setCancel(b)} />
@@ -110,7 +119,7 @@ function BookingsContent({ d }: { d: BookingsData }) {
         <EmptyState icon={CalendarPlus} title="No past sessions yet">Sessions you attend, cancel or miss are listed here, newest first.</EmptyState>
       ) : (
         <>
-          <ol className="space-y-3" aria-label="Past sessions">
+          <ol className="grid gap-3 md:grid-cols-2" aria-label="Past sessions">
             {past.map((b) => (
               <li key={b.id}>
                 <PastCard b={b} />
@@ -125,7 +134,7 @@ function BookingsContent({ d }: { d: BookingsData }) {
         </>
       )}
 
-      <BookSheet open={booking !== null} reschedule={booking?.reschedule} credits={d.credits.available} policy={d.policy} onClose={close} />
+      <BookSheet open={booking !== null && !desktop} reschedule={booking?.reschedule} credits={d.credits.available} policy={d.policy} onClose={close} />
       <CancelSheet booking={cancelling} policy={d.policy} nowIso={d.nowIso} onClose={() => setCancel(null)} />
     </>
   );
