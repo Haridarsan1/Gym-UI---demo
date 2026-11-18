@@ -78,27 +78,31 @@ function ProgressContent({ data }: { data: ProgressData }) {
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-3 md:flex md:items-center md:justify-between md:gap-4 md:space-y-0">
         <Chips label="Date range" value={key} options={RANGES.map((r) => ({ value: r.key, label: r.label }))} onChange={setKey} />
-        <Button3D variant="white" className="w-full" onClick={() => open("weight")}>
+        <Button3D variant="white" className="w-full md:w-auto" onClick={() => open("weight")}>
           <Scale className="h-5 w-5" aria-hidden="true" />
           Log your weight or a measurement
         </Button3D>
       </div>
       <KeyStats data={data} range={range} />
+      <div className="grid items-start gap-5 lg:grid-cols-2">
       {plan.linked.map((c) => chart(c))}
       <CompletionCard data={data} range={range} />
       {plan.rest.length > 0 && (
-        <details open={more} onToggle={(e) => setMore(e.currentTarget.open)} className="clay-flat px-5">
+        <details open={more} onToggle={(e) => setMore(e.currentTarget.open)} className="clay-flat px-5 lg:col-span-2">
           <summary className="flex min-h-[3.5rem] cursor-pointer items-center justify-between gap-3 text-lg font-bold">
             More charts
             <span className="text-sm font-semibold text-clay-muted">{plan.rest.length}</span>
           </summary>
-          <div className="space-y-5 pb-5">{plan.rest.map((slot) => chart({ slot }))}</div>
+          <div className="grid items-start gap-5 pb-5 lg:grid-cols-2">{plan.rest.map((slot) => chart({ slot }))}</div>
         </details>
       )}
-      <RecordsShelf data={data} />
-      <Goals goals={data.goals} />
+      </div>
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <RecordsShelf data={data} />
+        <Goals goals={data.goals} />
+      </div>
       <Photos />
       <LogSheet open={logging !== null} initialKind={logging ?? lastKind} data={data} onClose={close} />
     </>

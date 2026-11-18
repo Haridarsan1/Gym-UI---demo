@@ -24,7 +24,7 @@ export function KeyStats({ data, range }: { data: ProgressData; range: Range }) 
   ];
   return (
     <section aria-label="Key stats">
-      <dl className="grid grid-cols-2 gap-3">
+      <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {tiles.map((t) => (
           <div key={t.label} className="clay-flat p-4">
             <dt className="text-sm font-semibold text-clay-muted">{t.label}</dt>
