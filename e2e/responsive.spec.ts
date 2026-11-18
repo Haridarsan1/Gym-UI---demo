@@ -127,16 +127,18 @@ test.describe("member screens at every width", () => {
     expect(Math.abs(week.x - workout.x)).toBeLessThan(2);
   });
 
-  test("Program shows the selected day beside the path from 768 px, with no dialog, and the address follows", async ({ page }) => {
+  test("Program shows the selected day beside the path from 1024 px, with no dialog, and the address follows; tablets open a side panel", async ({ page }) => {
     await at(page, 1440, "u_member_arjun", "/m/program");
     await expect(page.getByRole("region", { name: "Selected workout" })).toBeVisible();
     await page.getByRole("button", { name: /Preview Pull/ }).click();
     await expect(page.getByRole("region", { name: "Selected workout" }).getByRole("heading", { name: "Pull", level: 2 })).toBeVisible();
     await expect(page).toHaveURL(/date=\d{4}-\d{2}-\d{2}/);
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await at(page, 390, "u_member_arjun", "/m/program");
-    await page.getByRole("button", { name: /Preview Pull/ }).click();
-    await expect(page.getByRole("dialog", { name: "Workout preview" })).toBeVisible();
+    for (const width of [390, 768]) {
+      await at(page, width, "u_member_arjun", "/m/program");
+      await page.getByRole("button", { name: /Preview Pull/ }).click();
+      await expect(page.getByRole("dialog", { name: "Workout preview" })).toBeVisible();
+    }
   });
 });
 

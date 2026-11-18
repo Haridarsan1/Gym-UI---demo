@@ -42,7 +42,7 @@ function ProgramContent({ p }: { p: ProgramData }) {
   // Tapping a day on Today opens it here: its week, and its workout if it has one.
   const [params, setParams] = useSearchParams();
   const wanted = params.get("date");
-  const split = useMediaQuery(MEDIA.split);
+  const split = useMediaQuery(MEDIA.desktop);
   const wantedIndex = wanted ? p.weeks.findIndex((w) => w.days.some((d) => d.date === wanted)) : -1;
   const [index, setIndex] = useState(wantedIndex >= 0 ? wantedIndex : currentIndex);
   const [preview, setPreview] = useState<string | null>(() => (wanted && wantedIndex >= 0 && p.weeks[wantedIndex]!.days.some((d) => d.date === wanted && d.state !== "rest") ? wanted : null));
@@ -50,7 +50,7 @@ function ProgramContent({ p }: { p: ProgramData }) {
   useEffect(() => setIndex((i) => Math.min(i, p.weeks.length - 1)), [p.weeks.length]);
   const week = p.weeks[index]!;
   const end = addDays(week.weekStart, 6);
-  // From 768 px the selected day’s preview sits beside the path, and the selection is in the address (?date=).
+  // From 1024 px the selected day’s preview sits beside the path (tablets open it in a side panel), and the selection is in the address (?date=).
   // Nothing chosen yet: today’s workout, else the next one, else the first of the week.
   const workoutDays = week.days.filter((d) => d.state !== "rest");
   const fallback = (workoutDays.find((d) => d.state === "today") ?? workoutDays.find((d) => d.state === "upcoming") ?? workoutDays[0])?.date ?? null;
@@ -83,7 +83,7 @@ function ProgramContent({ p }: { p: ProgramData }) {
         )}
       </section>
 
-      <div className="grid items-start gap-6 md:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)]">
       <section aria-labelledby="week-label" className="space-y-4">
         <div className="flex items-center justify-between gap-2">
           <Button variant="ink" aria-label="Previous week" disabled={index === 0} onClick={() => setIndex(index - 1)} className="!h-11 !w-11 !p-0">
@@ -107,7 +107,7 @@ function ProgramContent({ p }: { p: ProgramData }) {
         <WeekPath days={week.days} onOpen={open} selected={shown} inline={split} />
       </section>
       {split && (
-        <section aria-label="Selected workout" className="clay min-w-0 p-6 md:sticky md:top-6">
+        <section aria-label="Selected workout" className="clay min-w-0 p-6 lg:sticky lg:top-6">
           {shown ? <PreviewBody date={shown} /> : <p className="text-clay-muted">Pick a workout on the path to see its exercises.</p>}
         </section>
       )}

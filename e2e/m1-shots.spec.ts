@@ -10,7 +10,7 @@ import { doWorkout, readStore, signInAs } from "./helpers";
 const WIDTH = Number(process.env.SHOT_WIDTH ?? 390);
 const HEIGHT = WIDTH < 640 ? 844 : WIDTH < 1024 ? 1024 : 900;
 const OUT = process.env.SHOT_OUT ?? (WIDTH === 390 ? "docs/checkpoints/m1-final/screens" : `docs/checkpoints/m1-5/${WIDTH}/screens`);
-const SPLIT = WIDTH >= 768;
+const SPLIT = WIDTH >= 1024;
 const INLINE_BOOKING = WIDTH >= 1024;
 const SHOTS: Array<{ key: string; caption: string }> = JSON.parse(readFileSync("e2e/m1-shots.json", "utf8"));
 
@@ -53,7 +53,7 @@ test("Program and the workout session", async ({ page }) => {
   await ready(page, "Program");
   await shot(page, "program");
   await page.getByRole("button", { name: /Preview Upper body and core/ }).click();
-  // From 768 px the preview sits beside the path; on phones it is a sheet.
+  // From 1024 px the preview sits beside the path; on phones and tablets it is a sheet.
   await expect(SPLIT ? region(page, "Selected workout") : dialog(page, "Workout preview")).toBeVisible();
   await shot(page, "program-preview");
   if (!SPLIT) await page.keyboard.press("Escape");
