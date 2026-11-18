@@ -80,7 +80,7 @@ async function loadDay(session: Session | null, date: string, access: "read" | "
   assertCan(c.principal, access === "write" ? "workoutlog.write" : "workoutlog.read", c.resource);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new ApiError("invalid", "That isn’t a valid workout date.");
   const [versions, logs, memberships] = await Promise.all([
-    db.workoutPlanVersions.where("memberId").equals(c.memberId).toArray(),
+    db.workoutPlanVersions.where("memberId").equals(c.memberId).filter((v) => v.status === "published").toArray(),
     db.workoutLogs.where("memberId").equals(c.memberId).toArray(),
     db.memberships.where("memberId").equals(c.memberId).toArray(),
   ]);
@@ -264,7 +264,7 @@ export async function getProgram(session: Session | null): Promise<ProgramData> 
   assertCan(c.principal, "workoutplan.read", c.resource);
   assertCan(c.principal, "workoutlog.read", c.resource);
   const [allVersions, logs, users] = await Promise.all([
-    db.workoutPlanVersions.where("memberId").equals(c.memberId).toArray(),
+    db.workoutPlanVersions.where("memberId").equals(c.memberId).filter((v) => v.status === "published").toArray(),
     db.workoutLogs.where("memberId").equals(c.memberId).toArray(),
     db.users.where("tenantId").equals(c.tenantId).toArray(),
   ]);

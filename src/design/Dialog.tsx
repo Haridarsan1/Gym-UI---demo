@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/format";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+/** The dialogs that are open, last on top. */
+const OPEN: HTMLElement[] = [];
 
 /**
  * A modal layer for the command palette and the “More” sheet. It traps focus, closes on Escape or a tap outside,
@@ -10,6 +12,8 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
  */
 export function Dialog({ open, onClose, label, placement = "center", children, className }: { open: boolean; onClose: () => void; label: string; placement?: "center" | "bottom" | "top" | "right"; children: ReactNode; className?: string }) {
   const panel = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -20,7 +24,20 @@ export function Dialog({ open, onClose, label, placement = "center", children, c
     if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
     // With nothing to focus yet (content still loading) the panel itself takes focus, so Escape and Tab stay inside.
     (panel.current?.querySelector<HTMLElement>("[data-autofocus]") ?? panel.current?.querySelector<HTMLElement>(FOCUSABLE) ?? panel.current)?.focus();
+    // Escape closes the top-most dialog even when focus has dropped to the page (the focused control was removed when a step
+    // finished). Each open dialog is on a stack so only the one on top answers.
+    const me = panel.current;
+    if (me) OPEN.push(me);
+    const onDocKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || OPEN.at(-1) !== me || me?.contains(document.activeElement)) return; // inside, the panel’s own handler closes it
+      e.stopPropagation();
+      closeRef.current();
+    };
+    document.addEventListener("keydown", onDocKey);
     return () => {
+      document.removeEventListener("keydown", onDocKey);
+      const i = OPEN.lastIndexOf(me!);
+      if (i >= 0) OPEN.splice(i, 1);
       document.body.style.overflow = prevOverflow;
       document.body.style.paddingRight = "";
       before?.focus?.();

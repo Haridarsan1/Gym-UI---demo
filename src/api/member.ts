@@ -117,7 +117,7 @@ export async function getToday(session: Session | null): Promise<TodayData> {
     db.tenants.get(c.tenantId),
     db.memberships.where("memberId").equals(c.memberId).toArray(),
     db.trainerAssignments.where("memberId").equals(c.memberId).toArray(),
-    db.workoutPlanVersions.where("memberId").equals(c.memberId).toArray(),
+    db.workoutPlanVersions.where("memberId").equals(c.memberId).filter((v) => v.status === "published").toArray(),
     db.workoutLogs.where("memberId").equals(c.memberId).toArray(),
     db.creditLedger.where("memberId").equals(c.memberId).toArray(),
     db.bookings.where("memberId").equals(c.memberId).toArray(),

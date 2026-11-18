@@ -76,7 +76,7 @@ export async function getProgress(session: Session | null): Promise<ProgressData
   const [rows, logs, versions, checkIns, memberships, goals, consents, users] = await Promise.all([
     db.measurements.where("memberId").equals(c.memberId).toArray(),
     db.workoutLogs.where("memberId").equals(c.memberId).toArray(),
-    db.workoutPlanVersions.where("memberId").equals(c.memberId).toArray(),
+    db.workoutPlanVersions.where("memberId").equals(c.memberId).filter((v) => v.status === "published").toArray(),
     db.checkIns.where("memberId").equals(c.memberId).toArray(),
     db.memberships.where("memberId").equals(c.memberId).toArray(),
     db.goals.where("memberId").equals(c.memberId).toArray(),

@@ -409,3 +409,159 @@ for (const width of WIDTHS) {
     });
   });
 }
+
+for (const width of WIDTHS) {
+  test.describe(`trainer program builder at ${width} px`, () => {
+    test("Program builder: build a client’s first program, drag to reorder, preview as the client, and publish", async ({ page }) => {
+      const problems = await open(page, width, "u_trainer_meera", "/t");
+      await nav(page, "Clients").click();
+      await page.getByRole("searchbox").fill("sneha");
+      await page.getByRole("list", { name: "Your clients" }).getByRole("link").first().click();
+      await page.getByRole("link", { name: "Build a plan" }).click();
+      await expect(page.getByRole("heading", { name: "Program for Sneha Patil", level: 1 })).toBeVisible();
+      expect(await page.locator("[data-zones]").getAttribute("data-zones")).toBe(width >= 1280 ? "3" : "2");
+      await noSideways(page, "Builder");
+
+      // Weeks and days on the left, the open day beside them.
+      const navZ = (await page.getByRole("navigation", { name: "Weeks and days" }).boundingBox())!;
+      const dayZ = (await page.getByRole("region", { name: /^Week 1,/ }).boundingBox())!;
+      expect(dayZ.x).toBeGreaterThanOrEqual(navZ.x + navZ.width - 1);
+
+      const items = page.getByRole("list", { name: "Exercises in this workout" }).getByRole("listitem");
+      const addFrom = async (name: string, section: "Warm-up" | "Main" | "Cool-down" = "Main") => {
+        if (width >= 1280) {
+          // The library is a zone of its own: one click, no dialog.
+          const lib = page.getByRole("region", { name: "Add an exercise" });
+          await lib.getByRole("radio", { name: section }).click();
+          await lib.getByRole("searchbox", { name: "Search the library" }).fill(name);
+          await lib.getByRole("button", { name: `Add ${name}` }).click();
+          await expect(page.getByRole("dialog")).toHaveCount(0);
+        } else {
+          await page.getByRole("button", { name: "Add exercise" }).click();
+          const d = page.getByRole("dialog", { name: "Add an exercise" });
+          const b = (await d.boundingBox())!;
+          expect(b.x + b.width).toBeGreaterThan(width - 2); // a side panel
+          await d.getByRole("radio", { name: section }).click();
+          await d.getByRole("searchbox", { name: "Search the library" }).fill(name);
+          await d.getByRole("button", { name: `Add ${name}` }).click();
+          await page.keyboard.press("Escape");
+        }
+      };
+      await addFrom("Goblet squat");
+      await addFrom("Dumbbell bench press");
+      await addFrom("Plank");
+      await expect(items).toHaveCount(3);
+
+      // Drag the last exercise to the top with the mouse: the row follows the pointer, and the order changes when it is dropped.
+      // Put the first row a good way below the top edge, so dragging never trips the page’s own edge scrolling.
+      await items.first().evaluate((el) => window.scrollBy(0, el.getBoundingClientRect().top - 280));
+      const handle = items.nth(2).getByRole("button", { name: /^Drag to reorder/ });
+      const target = (await items.first().boundingBox())!;
+      const hb = (await handle.boundingBox())!;
+      await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2 - 20, { steps: 4 });
+      await page.mouse.move(hb.x + hb.width / 2, target.y + 10, { steps: 12 });
+      await expect(items.nth(2)).toHaveAttribute("data-dragging", "true");
+      await page.mouse.up();
+      await expect(items.first()).toContainText("Plank");
+      await expect(items.nth(1)).toContainText("Goblet squat");
+
+      // The buttons do it too, for anyone who can’t drag.
+      await page.waitForTimeout(400); // the dropped row finishes settling
+      await items.nth(2).getByRole("button", { name: /^Move .* up$/ }).click();
+      await expect(items.nth(1)).toContainText("Dumbbell bench press");
+
+      await page.getByLabel("Program name").fill("Getting started");
+      await page.getByLabel("Workout name").fill("Full body");
+
+      // Preview as the client, in a side panel.
+      await page.getByRole("button", { name: "Preview as member" }).click();
+      const p = page.getByRole("dialog", { name: "Preview as member" });
+      const pb = (await p.boundingBox())!;
+      expect(pb.x + pb.width).toBeGreaterThan(width - 2);
+      await expect(p.getByRole("article", { name: "Workout preview" })).toContainText("Plank");
+      await p.getByRole("button", { name: "Back to the builder" }).click();
+
+      // The template picker, in a side panel too; “Keep mine” leaves the work alone.
+      await page.getByRole("button", { name: "Use a template" }).click();
+      const t = page.getByRole("dialog", { name: "Choose a template" });
+      await t.getByRole("button", { name: "Use Push, pull, legs" }).click();
+      await t.getByRole("button", { name: "Keep mine" }).click();
+      await expect(t.getByRole("list", { name: "Templates" })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(t).toHaveCount(0);
+      await expect(items).toHaveCount(3);
+
+      // Publish: a centred confirmation, then the new version.
+      await page.getByRole("button", { name: "Publish version 1" }).click();
+      const c = page.getByRole("dialog", { name: "Publish program" });
+      const cb = (await c.boundingBox())!;
+      expect(Math.abs(cb.x + cb.width / 2 - width / 2)).toBeLessThan(2);
+      await c.getByRole("button", { name: "Publish version 1" }).click();
+      const done = page.getByRole("dialog", { name: "Version published" });
+      await expect(done.getByRole("heading", { name: "Version 1 is published" })).toBeVisible();
+      await done.getByRole("link", { name: "Back to Sneha" }).click();
+      await expect(page.getByRole("list", { name: "Program versions" })).toContainText("Version 1: Getting started (current)");
+      expect(problems).toEqual([]);
+    });
+
+    test("Program builder: revise a client’s program, save a draft, and publish the next version", async ({ page }) => {
+      await open(page, width, "u_trainer_meera", "/t/clients/mem_arjun");
+      await page.getByRole("link", { name: "Revise plan" }).click();
+      await expect(page.getByRole("heading", { name: "Program for Arjun Kumar", level: 1 })).toBeVisible();
+      await expect(page.getByText("Version 2 is current. You are building version 3.")).toBeVisible();
+      const items = page.getByRole("list", { name: "Exercises in this workout" }).getByRole("listitem");
+      await items.first().getByLabel("Sets").fill("5");
+      await page.getByRole("button", { name: "Save draft" }).click();
+      await expect(page.getByText("Draft saved")).toBeVisible();
+      await page.getByRole("button", { name: "Publish version 3" }).click();
+      await page.getByRole("dialog", { name: "Publish program" }).getByRole("button", { name: "Publish version 3" }).click();
+      await expect(page.getByRole("dialog", { name: "Version published" })).toContainText("Version 2, “Strength and size block”, stays as it was");
+      await page.getByRole("dialog", { name: "Version published" }).getByRole("link", { name: "Back to Arjun" }).click();
+      await expect(page.getByRole("list", { name: "Program versions" }).getByRole("listitem")).toHaveCount(3);
+    });
+  });
+
+  test.describe(`trainer templates at ${width} px`, () => {
+    test("Templates: reach them from the library, open one beside the list, share it, and create another", async ({ page }) => {
+      const problems = await open(page, width, "u_trainer_meera", "/t");
+      await nav(page, "Exercises").click();
+      await page.getByRole("link", { name: "Templates" }).click();
+      await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
+      expect(await page.locator("[data-zones]").getAttribute("data-zones")).toBe(width >= 1280 ? "3" : "2");
+      const list = page.getByRole("list", { name: "Template list" }).getByRole("listitem");
+      await expect(list).toHaveCount(3);
+      await list.filter({ hasText: "Upper and core" }).getByRole("link").click();
+      await expect(page.getByRole("heading", { name: "Upper and core, twice a week", level: 2 })).toBeVisible();
+      await expect(list.filter({ hasText: "Upper and core" }).getByRole("link")).toHaveAttribute("aria-current", "page");
+      if (width >= 1280) {
+        const a = (await page.getByRole("complementary", { name: "Template actions" }).boundingBox())!;
+        const d = (await page.getByRole("article", { name: "Upper and core, twice a week" }).boundingBox())!;
+        expect(a.x).toBeGreaterThanOrEqual(d.x + d.width - 1);
+      }
+      await page.getByRole("switch", { name: "Share with the gym" }).click();
+      await expect(list.filter({ hasText: "Upper and core" })).toContainText("Shared");
+      await noSideways(page, "Templates");
+
+      await page.getByRole("link", { name: "New template" }).click();
+      await page.getByLabel("Template name").fill("Quick strength");
+      const lib = width >= 1280 ? page.getByRole("region", { name: "Add an exercise" }) : null;
+      if (lib) {
+        await lib.getByRole("searchbox", { name: "Search the library" }).fill("Goblet squat");
+        await lib.getByRole("button", { name: "Add Goblet squat" }).click();
+      } else {
+        await page.getByRole("button", { name: "Add exercise" }).click();
+        const d = page.getByRole("dialog", { name: "Add an exercise" });
+        await d.getByRole("searchbox", { name: "Search the library" }).fill("Goblet squat");
+        await d.getByRole("button", { name: "Add Goblet squat" }).click();
+        await page.keyboard.press("Escape");
+      }
+      await page.getByRole("button", { name: "Save template" }).click();
+      await expect(page.getByText("Template saved")).toBeVisible();
+      await page.getByRole("link", { name: "Templates" }).first().click();
+      await expect(page.getByRole("list", { name: "Template list" }).getByRole("listitem")).toHaveCount(4);
+      expect(problems).toEqual([]);
+    });
+  });
+}

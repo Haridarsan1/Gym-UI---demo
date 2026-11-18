@@ -208,6 +208,9 @@ test.describe("trainer screens at every width", () => {
     { path: "/t/clients/mem_arjun", h1: "Arjun Kumar", zones: true },
     { path: "/t/clients/mem_arjun/assessment", h1: "Assessment and goals", zones: true },
     { path: "/t/library", h1: "Exercises", zones: true },
+    { path: "/t/library/programs?member=mem_arjun", h1: "Program for Arjun Kumar", zones: true },
+    { path: "/t/library/templates", h1: "Templates", zones: true },
+    { path: "/t/library/templates?t=tpl_full3", h1: /^(Templates|Full body, three days)$/, zones: true },
     // On a phone the open exercise is the whole screen, so its name is the h1; beside the list the screen’s title is.
     { path: "/t/library?ex=ex_bench_press", h1: /^(Exercises|Barbell bench press)$/, zones: true },
   ];

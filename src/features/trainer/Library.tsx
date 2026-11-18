@@ -1,8 +1,8 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, BookOpen, Plus, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, Plus, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useExercises } from "@/api/hooks";
 import type { LibraryParams } from "@/api/library";
-import { Button3D } from "@/design/Button3D";
+import { Button3D, Button3DLink } from "@/design/Button3D";
 import { ThreeZone } from "@/design/layout/ThreeZone";
 import { useSplit, useWide } from "@/design/useMediaQuery";
 import { CATEGORIES } from "@/features/trainer/library/labels";
@@ -57,6 +57,12 @@ export default function Library() {
       )}
     </div>
   );
+  const links = (
+    <nav aria-label="Library sections" className="flex flex-wrap gap-2">
+      <Button3DLink to="/t/library/programs" size="md" variant="white"><Sparkles className="h-5 w-5" aria-hidden="true" />Build a program</Button3DLink>
+      <Button3DLink to="/t/library/templates" size="md" variant="white"><FileText className="h-5 w-5" aria-hidden="true" />Templates</Button3DLink>
+    </nav>
+  );
   const list = (
     <ExerciseList
       params={params} selectedId={ex} linkSuffix={suffix} onSearch={(q) => set({ q: q || undefined })}
@@ -74,7 +80,7 @@ export default function Library() {
   const detail = ex ? <ExerciseDetailView id={ex} canWrite={canWrite} linkSuffix={suffix} /> : <Placeholder />;
 
   if (!split) {
-    if (!ex) return <div className="space-y-4">{header}{list}{form}</div>;
+    if (!ex) return <div className="space-y-4">{header}{links}{list}{form}</div>;
     return (
       <div>
         <Link to={back} className="mb-3 inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-xl pr-3 font-semibold text-clay-muted hover:text-clay-ink"><ArrowLeft className="h-5 w-5" aria-hidden="true" />Exercises</Link>
@@ -86,6 +92,7 @@ export default function Library() {
   return (
     <div className="space-y-4">
       {header}
+      {links}
       <ThreeZone
         listWidth={wide ? "minmax(13rem,15rem)" : "minmax(16rem,20rem)"}
         list={wide ? <FilterZone params={params} onChange={onFilters} /> : list}

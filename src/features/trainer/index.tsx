@@ -8,6 +8,8 @@ const implemented = {
   client: lazy(() => import("@/features/trainer/Clients")),
   assessment: lazy(() => import("@/features/trainer/Assessment")),
   exercises: lazy(() => import("@/features/trainer/Library")),
+  builder: lazy(() => import("@/features/trainer/Builder")),
+  templates: lazy(() => import("@/features/trainer/Templates")),
 };
 
 export default function TrainerArea() {

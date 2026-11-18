@@ -17,7 +17,7 @@ const byTime = (a: WorkoutLog, b: WorkoutLog) => (a.completedAt ?? a.scheduledOn
 /** Everything the badge rules and the streak need, worked out from the member’s own records. */
 async function loadFacts(memberId: string, tenantId: string, today: string) {
   const [versions, memberships, goals, checkIns, policy] = await Promise.all([
-    db.workoutPlanVersions.where("memberId").equals(memberId).toArray(),
+    db.workoutPlanVersions.where("memberId").equals(memberId).filter((v) => v.status === "published").toArray(),
     db.memberships.where("memberId").equals(memberId).toArray(),
     db.goals.where("memberId").equals(memberId).toArray(),
     db.checkIns.where("memberId").equals(memberId).toArray(),

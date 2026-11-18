@@ -388,3 +388,51 @@ export function useExerciseActions() {
     archive: useMutation({ mutationFn: async (i: { id: string; archived: boolean }) => (await libraryApi()).setExerciseArchived(session, i), onSuccess: refresh }),
   };
 }
+
+const programsApi = () => import("@/api/programs");
+const templatesApi = () => import("@/api/templates");
+
+/** What the builder opens with for a client: their current version, any draft, and the earliest start date. Always read fresh. */
+export function useProgramSource(memberId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["trainer", session?.userId, "program", memberId], queryFn: async () => (await programsApi()).getProgramSource(session, memberId!), enabled: !!session && !!memberId, retry, staleTime: 0, gcTime: 0, refetchOnWindowFocus: false });
+}
+
+/** Saving a draft, discarding it, and publishing. Publishing changes the client’s profile, Today and the clients list. */
+export function useProgramActions() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  const api = programsApi;
+  const refresh = () => Promise.all(["client", "clients", "today", "program"].map((k) => queryClient.invalidateQueries({ queryKey: ["trainer", session?.userId, k] })));
+  return {
+    saveDraft: useMutation({ mutationFn: async (i: import("@/api/programs").ProgramInput) => (await api()).saveProgramDraft(session, i), retry, retryDelay: 400 }),
+    discard: useMutation({ mutationFn: async (memberId: string) => (await api()).discardProgramDraft(session, memberId), onSuccess: refresh }),
+    publish: useMutation({ mutationFn: async (i: import("@/api/programs").PublishInput) => (await api()).publishProgram(session, i), onSuccess: refresh }),
+  };
+}
+
+/** The templates a trainer can start from: their own and the gym’s shared ones. */
+export function useTemplates(archived = false) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["templates", session?.userId, "list", archived], queryFn: async () => (await templatesApi()).listTemplates(session, { archived }), enabled: !!session, retry, staleTime: 5_000 });
+}
+export function useTemplate(id: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["templates", session?.userId, "one", id], queryFn: async () => (await templatesApi()).getTemplate(session, id!), enabled: !!session && !!id, retry, staleTime: 0, gcTime: 0 });
+}
+export function useTemplateActions() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["templates", session?.userId] });
+  return {
+    save: useMutation({ mutationFn: async (i: import("@/api/templates").TemplateInput) => (await templatesApi()).saveTemplate(session, i), onSuccess: refresh }),
+    archive: useMutation({ mutationFn: async (i: { id: string; archived: boolean }) => (await templatesApi()).setTemplateArchived(session, i), onSuccess: refresh }),
+    share: useMutation({ mutationFn: async (i: { id: string; shared: boolean }) => (await templatesApi()).setTemplateShared(session, i), onSuccess: refresh }),
+  };
+}
+
+/** Reads one template’s days on demand, when a trainer picks it. */
+export function useTemplateLoader() {
+  const { session } = useSession();
+  return async (id: string) => (await templatesApi()).getTemplate(session, id);
+}
