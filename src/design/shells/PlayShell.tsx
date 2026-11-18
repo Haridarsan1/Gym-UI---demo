@@ -33,7 +33,7 @@ export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer";
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[80] focus:rounded-full focus:bg-white focus:px-4 focus:py-2">
         Skip to content
       </a>
-      <header className="sticky top-0 z-30 border-b border-clay-line bg-clay-canvas/90 backdrop-blur">
+      <header className="print-hide sticky top-0 z-30 border-b border-clay-line bg-clay-canvas/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-2xl items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top,0px)]">
           <Link to={AREA_PATH[area]} className="flex min-w-0 items-center gap-2.5" aria-label="Home">
             {gym ? (
@@ -55,7 +55,7 @@ export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer";
         <Outlet />
       </main>
       {!immersive && (
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
+      <nav aria-label="Main" className="print-hide fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
         <div className="clay mx-auto grid max-w-md grid-cols-5 items-end !rounded-3xl px-1 pb-1 pt-1">
           {left.map((s) => (
             <NavLink key={s.id} to={screenPath(area, s)} end={s.path === ""} className={tab}>

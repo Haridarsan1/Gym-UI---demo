@@ -54,7 +54,11 @@ export const Membership = z.object({
   canceledEffectiveOn: isoDate.optional(),
   cancelReason: z.string().optional(),
   autoRenew: z.boolean(),
+  /** What an auto-renew charge is taken from, chosen when the member opted in. */
+  autoRenewMethod: z.enum(["upi", "card"]).optional(),
   renewsMembershipId: id.optional(),
+  /** The invoice that bought this membership. One invoice buys at most one membership, however many times its payment event arrives. */
+  invoiceId: id.optional(),
   createdAt: isoDateTime,
 });
 export type Membership = z.infer<typeof Membership>;
@@ -70,6 +74,18 @@ export const InvoiceLine = z.object({
 });
 
 export type InvoiceLine = z.infer<typeof InvoiceLine>;
+
+/**
+ * What an invoice buys, so that paying it does the right thing exactly once: a renewal starts the next membership, a
+ * sessions invoice adds training credits. Left out for invoices the front desk writes by hand (M3).
+ */
+export const InvoicePurpose = z.object({
+  kind: z.enum(["renewal", "sessions"]),
+  planId: id.optional(),
+  sessions: z.number().int().positive().optional(),
+  /** Made by the member’s own checkout, not sent by the gym. Choosing another plan replaces it, and it doesn’t stop a renewal. */
+  selfServe: z.boolean().optional(),
+});
 
 export const Invoice = z.object({
   id,
@@ -89,11 +105,12 @@ export const Invoice = z.object({
   taxPaise: paise,
   totalPaise: paise,
   status: InvoiceStatus,
+  purpose: InvoicePurpose.optional(),
   createdAt: isoDateTime,
 });
 export type Invoice = z.infer<typeof Invoice>;
 
-export const PaymentMethod = z.enum(["cash", "upi", "card", "transfer", "online"]);
+export const PaymentMethod = z.enum(["cash", "upi", "card", "netbanking", "transfer", "online"]);
 export const PaymentStatus = z.enum(["pending", "succeeded", "failed"]);
 
 export const Payment = z.object({
@@ -112,6 +129,8 @@ export const Payment = z.object({
   reference: z.string().optional(),
   /** Id of the gateway event that created this payment. A repeated event must not create a second payment (M04). */
   gatewayEventId: z.string().optional(),
+  /** Why a failed payment failed, in words for the member. */
+  failureReason: z.string().optional(),
   idempotencyKey,
   reconciliation: z.object({ status: z.enum(["unmatched", "matched", "flagged"]), note: z.string().optional(), settlementId: z.string().optional() }),
 });

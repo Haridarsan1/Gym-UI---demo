@@ -269,3 +269,32 @@ a:active > .day-bubble { transform: scale(0.94); }
 @media (prefers-reduced-motion: reduce) {
   .day-bubble[data-today="true"] { animation: none; }
 }
+
+/* The confirmation stamp after a payment: it lands with a short thud. With reduced motion it is simply there. No confetti, as money is involved. */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 3px solid currentColor;
+  border-radius: 0.85rem;
+  padding: 0.3rem 1rem;
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  transform: rotate(-5deg);
+  animation: stamp-in 0.42s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+@keyframes stamp-in {
+  from { opacity: 0; transform: rotate(-12deg) scale(1.7); }
+  to { opacity: 1; transform: rotate(-5deg) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stamp { animation: none; }
+}
+
+/* A tax receipt printed or saved as PDF: only the receipt, on white, without the app around it. */
+@media print {
+  body { background: #ffffff !important; }
+  .print-hide { display: none !important; }
+  .receipt-sheet { box-shadow: none !important; border: 0 !important; padding: 0 !important; }
+}

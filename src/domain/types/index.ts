@@ -1,7 +1,7 @@
 import { AuditEvent, Branch, Consent, Member, SaasPlan, StaffRole, Tenant, TrainerAssignment, User } from "./core";
 import { CreditLedgerEntry, Invoice, Membership, MembershipPlan, Payment, Refund } from "./billing";
 import { Booking, CheckIn, GymClass } from "./ops";
-import { BadgeAward, EmailLogEntry, GymPolicies, MemberSettings, TrainerAvailability, TrainerReview } from "./supporting";
+import { BadgeAward, DataRequest, EmailLogEntry, GatewayEvent, GymPolicies, MemberSettings, TrainerAvailability, TrainerReview } from "./supporting";
 import { Exercise, Goal, Measurement, WorkoutLog, WorkoutPlanVersion } from "./training";
 
 export * from "./common";
@@ -46,4 +46,6 @@ export const SUPPORTING_RECORDS = {
   trainerAvailability: TrainerAvailability,
   gymPolicies: GymPolicies,
   emailLogEntry: EmailLogEntry,
+  gatewayEvent: GatewayEvent,
+  dataRequest: DataRequest,
 } as const;

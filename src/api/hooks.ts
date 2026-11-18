@@ -6,6 +6,7 @@ import type { DraftInput, SubmitInput } from "@/api/workout";
 import type { FeedbackInput } from "@/api/workoutSummary";
 import type { CheckInInput, MeasurementInput, PhotoInput } from "@/api/progress";
 import type { BookInput, CancelInput, RescheduleInput } from "@/api/bookings";
+import type { AutoRenewInput, CheckoutInput, PayInput } from "@/api/membership";
 import { isRetryable } from "@/api/errors";
 import { useSession } from "@/app/SessionContext";
 
@@ -21,6 +22,7 @@ const workoutApi = () => import("@/api/workout");
 const summaryApi = () => import("@/api/workoutSummary");
 const progressApi = () => import("@/api/progress");
 const bookingsApi = () => import("@/api/bookings");
+const membershipApi = () => import("@/api/membership");
 
 const retry = (count: number, error: unknown) => count < 2 && isRetryable(error);
 
@@ -212,3 +214,34 @@ function useBookingMutation<I, O>(fn: (api: typeof import("@/api/bookings"), ses
 export const useBookSession = () => useBookingMutation((api, session, input: BookInput) => api.bookSession(session, input));
 export const useCancelBooking = () => useBookingMutation((api, session, input: CancelInput) => api.cancelBooking(session, input));
 export const useRescheduleBooking = () => useBookingMutation((api, session, input: RescheduleInput) => api.rescheduleBooking(session, input));
+
+// ── Membership, payment and receipts ─────────────────────────────────────────────────────────────
+
+/** Plan, dues, renewal options, invoices and payments. Read fresh each visit: money changes. */
+export function useMembership() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["member", session?.userId, "membership"], queryFn: async () => (await membershipApi()).getMembership(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+export function useReceipt(invoiceId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["member", session?.userId, "receipt", invoiceId], queryFn: async () => (await membershipApi()).getReceipt(session, invoiceId!), enabled: !!session && !!invoiceId, retry, staleTime: 0 });
+}
+
+function useMembershipMutation<I, O>(fn: (api: typeof import("@/api/membership"), session: ReturnType<typeof useSession>["session"], input: I) => Promise<O>) {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: I) => fn(await membershipApi(), session, input),
+    // Whatever happened, what the member sees about money, sessions and the plan is read again.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["member", session?.userId] }),
+  });
+}
+
+/** Opens a payment: for an open invoice, a renewal or a pack of sessions. Makes the invoice for the last two. */
+export const useStartCheckout = () => useMembershipMutation((api, session, input: CheckoutInput) => api.startCheckout(session, input));
+/** Pays through the simulated gateway. The same key sent again after a dropped connection charges once. */
+export const usePayInvoice = () => useMembershipMutation((api, session, input: PayInput) => api.payInvoice(session, input));
+export const useReplayGatewayEvent = () => useMembershipMutation((api, session, eventId: string) => api.replayGatewayEvent(session, eventId));
+export const useSetAutoRenew = () => useMembershipMutation((api, session, input: AutoRenewInput) => api.setAutoRenew(session, input));
+export const useSetPaymentFailure = () => useMembershipMutation((api, session, on: boolean) => api.setDemoPaymentFailure(session, on));

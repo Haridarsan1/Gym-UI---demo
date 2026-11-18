@@ -12,18 +12,38 @@ export interface InvoiceTotals {
   totalPaise: number;
 }
 
+export interface LineBreakdown {
+  /** Quantity times unit price, before any discount. */
+  basePaise: number;
+  discountPaise: number;
+  /** What tax is charged on: the base less this line’s share of the discount. */
+  taxablePaise: number;
+  taxPaise: number;
+}
+
 /**
- * Invoice totals. The discount is spread over the lines in proportion to their value before tax is worked out, so tax is
- * charged on what the member actually pays. Every figure is whole paise.
+ * Each line’s value, share of the discount, taxable value and tax. The discount is spread over the lines in proportion to
+ * their value before tax is worked out, so tax is charged on what the member actually pays. Every figure is whole paise.
  */
-export function invoiceTotals(lines: Array<Pick<InvoiceLine, "quantity" | "unitPaise" | "taxRateBp">>, discountPaise = 0): InvoiceTotals {
+export function invoiceLines(lines: Array<Pick<InvoiceLine, "quantity" | "unitPaise" | "taxRateBp">>, discountPaise = 0): LineBreakdown[] {
   const bases = lines.map(lineBase);
   const subtotal = bases.reduce((n, b) => n + b, 0);
   const discount = Math.min(Math.max(discountPaise, 0), subtotal);
   const shares = bases.map((b) => (subtotal ? Math.floor((discount * b) / subtotal) : 0));
   let left = discount - shares.reduce((n, s) => n + s, 0);
   for (let i = 0; left > 0 && i < shares.length; i++, left--) shares[i]! += 1;
-  const tax = lines.reduce((n, l, i) => n + Math.round(((bases[i]! - shares[i]!) * l.taxRateBp) / 10000), 0);
+  return lines.map((l, i) => {
+    const taxable = bases[i]! - shares[i]!;
+    return { basePaise: bases[i]!, discountPaise: shares[i]!, taxablePaise: taxable, taxPaise: Math.round((taxable * l.taxRateBp) / 10000) };
+  });
+}
+
+/** Invoice totals from the lines and a discount. */
+export function invoiceTotals(lines: Array<Pick<InvoiceLine, "quantity" | "unitPaise" | "taxRateBp">>, discountPaise = 0): InvoiceTotals {
+  const rows = invoiceLines(lines, discountPaise);
+  const subtotal = rows.reduce((n, r) => n + r.basePaise, 0);
+  const discount = rows.reduce((n, r) => n + r.discountPaise, 0);
+  const tax = rows.reduce((n, r) => n + r.taxPaise, 0);
   return { subtotalPaise: subtotal, discountPaise: discount, taxPaise: tax, totalPaise: subtotal - discount + tax };
 }
 

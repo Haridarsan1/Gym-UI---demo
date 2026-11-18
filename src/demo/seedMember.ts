@@ -249,7 +249,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
       review(1, "shared_review", 20, "Nice start. Three sessions a week is the goal, and you are close. Let us look again in a month.", { readByMemberAt: at(addDays(today, -19), "08:00") });
     }
     out.memberSettings.push({
-      id: `set_${persona.memberId}`, tenantId: TENANT_ID, memberId: persona.memberId, email: { bookingReminders: true, workoutUpdates: true, renewalReminders: true }, soundOn: false, hapticsOn: true, updatedAt: at(addDays(today, -30), "10:00"),
+      id: `set_${persona.memberId}`, tenantId: TENANT_ID, memberId: persona.memberId, email: { bookingReminders: true, workoutUpdates: true, renewalReminders: true, inactivityPrompts: true }, soundOn: false, hapticsOn: true, updatedAt: at(addDays(today, -30), "10:00"),
     });
 
     // ── Badges: exactly what the rules say this member has earned, so nothing celebrates twice ──────
@@ -266,13 +266,13 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
     for (const badge of earnedBadges(facts)) out.badgeAwards.push({ id: `bd_${persona.memberId}_${badge}`, tenantId: TENANT_ID, memberId: persona.memberId, badge, awardedAt: at(addDays(today, -2), "08:00") });
 
     // ── Invoices and payments: one per membership, paid, plus a few specials ────────────────────────
-    const invoiceFor = (m: Membership | null, description: string, unitPaise: number, quantity: number, issuedOn: string, dueOn: string, opts: { place?: string; method?: Payment["method"]; paid?: boolean } = {}) => {
+    const invoiceFor = (m: Membership | null, description: string, unitPaise: number, quantity: number, issuedOn: string, dueOn: string, opts: { place?: string; method?: Payment["method"]; paid?: boolean; purpose?: Invoice["purpose"] } = {}) => {
       const lines = [{ description, quantity, unitPaise, taxRateBp: 1800 }];
       const totals = invoiceTotals(lines);
       const n = invoiceNo++;
       const inv: Invoice = {
         id: `inv_${String(n).padStart(4, "0")}`, tenantId: TENANT_ID, number: `INV-2026-${String(n).padStart(4, "0")}`, memberId: persona.memberId, membershipId: m?.id, branchId: persona.branchId,
-        placeOfSupply: placeOfSupplyFor(branchStates.get(persona.branchId)!), issuedOn, dueOn, lines, ...totals, status: opts.paid === false ? "open" : "paid", createdAt: at(issuedOn, "10:00"),
+        placeOfSupply: placeOfSupplyFor(branchStates.get(persona.branchId)!), issuedOn, dueOn, lines, ...totals, status: opts.paid === false ? "open" : "paid", ...(opts.purpose ? { purpose: opts.purpose } : {}), createdAt: at(issuedOn, "10:00"),
       };
       out.invoices.push(inv);
       if (opts.paid !== false) {
@@ -291,7 +291,7 @@ export function buildMemberData(input: MemberSeedInput): MemberSeed {
     }
     if (persona.memberId === "mem_priya") {
       // The next month’s invoice has been sent and its due date has passed: ₹2,950 overdue by four days.
-      invoiceFor(null, "Monthly membership renewal", 250_000, 1, addDays(today, -14), addDays(today, -4), { paid: false });
+      invoiceFor(null, "Monthly membership renewal", 250_000, 1, addDays(today, -14), addDays(today, -4), { paid: false, purpose: { kind: "renewal", planId: persona.planId } });
     }
 
     // ── Training credits and bookings (Arjun’s personal-training pack) ──────────────────────────────

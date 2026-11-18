@@ -40,6 +40,9 @@ const GRANTS = {
   "invoice.read": { owner: O, branch_manager: B, front_desk: B, finance: B, member: W },
   "invoice.create": { owner: O, branch_manager: B, front_desk: B, finance: B },
   "dues.read": { owner: O, branch_manager: B, front_desk: B, finance: B },
+  /** A member paying their own invoice, renewing, or buying sessions through the online gateway. */
+  "payment.pay": { member: W },
+  "membership.autorenew": { member: W },
   "payment.record": { owner: O, branch_manager: B, front_desk: B, finance: B },
   "refund.create": { owner: O, branch_manager: B, finance: B },
   "reconciliation.manage": { owner: O, finance: B },

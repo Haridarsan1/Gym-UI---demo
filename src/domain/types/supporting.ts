@@ -39,14 +39,14 @@ export const MemberSettings = z.object({
   id,
   tenantId: id,
   memberId: id,
-  email: z.object({ bookingReminders: z.boolean(), workoutUpdates: z.boolean(), renewalReminders: z.boolean() }),
+  email: z.object({ bookingReminders: z.boolean(), workoutUpdates: z.boolean(), renewalReminders: z.boolean(), inactivityPrompts: z.boolean() }),
   soundOn: z.boolean(),
   hapticsOn: z.boolean(),
   updatedAt: isoDateTime,
 });
 export type MemberSettings = z.infer<typeof MemberSettings>;
 
-export const EmailTemplate = z.enum(["booking_confirmed", "booking_canceled", "booking_rescheduled"]);
+export const EmailTemplate = z.enum(["booking_confirmed", "booking_canceled", "booking_rescheduled", "payment_receipt", "membership_renewed", "sessions_purchased", "data_request"]);
 
 /**
  * Why: O04 says every message the gym sends is logged with its outcome, and messages are email only (confirmed decision). The
@@ -58,6 +58,8 @@ export const EmailLogEntry = z.object({
   tenantId: id,
   memberId: id,
   bookingId: id.optional(),
+  /** The invoice a payment email is about. */
+  invoiceId: id.optional(),
   template: EmailTemplate,
   /** The address it went to, if the member has one. */
   to: z.string().optional(),
@@ -121,3 +123,41 @@ export const GymPolicies = z.object({
   membersMayChooseTrainer: z.boolean(),
 });
 export type GymPolicies = z.infer<typeof GymPolicies>;
+
+/**
+ * Why: M04 says provider events are processed idempotently. The gateway sends “payment succeeded” and may send it again;
+ * the event’s own id is stored so a repeat is recognised and changes nothing. `deliveries` counts how many times it arrived,
+ * which the demo control shows next to the one payment and one renewal it made.
+ */
+export const GatewayEvent = z.object({
+  id,
+  tenantId: id,
+  memberId: id,
+  invoiceId: id,
+  type: z.enum(["payment.succeeded", "payment.failed"]),
+  method: z.enum(["upi", "card", "netbanking"]),
+  amountPaise: z.number().int().nonnegative(),
+  reference: z.string(),
+  paymentId: id,
+  receivedAt: isoDateTime,
+  deliveries: z.number().int().positive(),
+  lastDeliveredAt: isoDateTime,
+});
+export type GatewayEvent = z.infer<typeof GatewayEvent>;
+
+/**
+ * Why: S04 says members can ask for their data and for deletion, and the gym fulfils them under its retention policy. This
+ * is the request; the owner console handles it in M4. Asking again while one is open returns the open one.
+ */
+export const DataRequest = z.object({
+  id,
+  tenantId: id,
+  memberId: id,
+  kind: z.enum(["export", "deletion"]),
+  status: z.enum(["requested", "in_progress", "completed", "declined"]),
+  requestedAt: isoDateTime,
+  requestedBy: id,
+  note: z.string().optional(),
+  idempotencyKey: z.string().min(8),
+});
+export type DataRequest = z.infer<typeof DataRequest>;

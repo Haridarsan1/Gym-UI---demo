@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import type {
   AuditEvent, BadgeAward, Booking, EmailLogEntry, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
-  MembershipPlan, MemberSettings, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerReview, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
+  MembershipPlan, MemberSettings, GatewayEvent, DataRequest, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerReview, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
 } from "@/domain/types";
 
 export interface MetaRow {
@@ -48,6 +48,8 @@ export class EmberDB extends Dexie {
   trainerAvailability!: EntityTable<TrainerAvailability, "id">;
   gymPolicies!: EntityTable<GymPolicies, "id">;
   emailLog!: EntityTable<EmailLogEntry, "id">;
+  gatewayEvents!: EntityTable<GatewayEvent, "id">;
+  dataRequests!: EntityTable<DataRequest, "id">;
   meta!: EntityTable<MetaRow, "key">;
   idempotency!: EntityTable<IdempotencyRow, "key">;
 
@@ -94,6 +96,12 @@ export class EmberDB extends Dexie {
     this.version(3).stores({
       bookings: "id, tenantId, memberId, trainerId, startsAt, &slotKey, &idempotencyKey",
       emailLog: "id, tenantId, memberId, template, sentAt",
+    });
+    // Version 4 (M1, Membership and Me): gateway events (M04, one row per event id) and data requests (S04).
+    this.version(4).stores({
+      memberships: "id, tenantId, memberId, status, invoiceId",
+      gatewayEvents: "id, tenantId, memberId, invoiceId",
+      dataRequests: "id, tenantId, memberId, kind, status",
     });
   }
 }

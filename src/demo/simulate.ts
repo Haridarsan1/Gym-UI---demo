@@ -6,10 +6,12 @@ export interface Simulation {
   maxMs: number;
   /** 0 to 1. The share of calls that fail with a network error. */
   failureRate: number;
+  /** Demo control: the simulated payment gateway declines every payment, so failed payments can be shown. */
+  paymentFails: boolean;
 }
 
 const KEY = "ember.demo.simulation";
-const DEFAULTS: Simulation = { minMs: 60, maxMs: 180, failureRate: 0 };
+const DEFAULTS: Simulation = { minMs: 60, maxMs: 180, failureRate: 0, paymentFails: false };
 let current: Simulation | null = null;
 
 /** Read each time, so changing the setting (from the demo controls or a test) takes effect on the next call. */

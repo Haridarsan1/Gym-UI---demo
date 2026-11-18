@@ -63,6 +63,8 @@ export interface TodayData {
     /** Visit passes: visits still to use. */
     visitsRemaining: number | null;
     frozenUntil?: string;
+    /** A renewal already paid for that starts after this membership ends. */
+    renewedFrom?: string;
   } | null;
   plan:
     | { state: "no_plan" }
@@ -137,6 +139,7 @@ export async function getToday(session: Session | null): Promise<TodayData> {
     ? {
         status: current.status, planName: current.terms.name, startsOn: current.startsOn, endsOn: current.endsOn, daysLeft: current.endsOn ? daysBetween(c.today, current.endsOn) : undefined,
         visitsRemaining: current.visitsRemaining, frozenUntil: current.status === "frozen" ? freeze?.to : undefined,
+        renewedFrom: memberships.filter((m) => m.status === "scheduled" && m.id !== current.id).sort((a, b) => a.startsOn.localeCompare(b.startsOn))[0]?.startsOn,
       }
     : null;
 

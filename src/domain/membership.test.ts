@@ -27,3 +27,16 @@ describe("assignmentOn", () => {
     expect(assignmentOn(rows, "2025-12-31")).toBeUndefined();
   });
 });
+
+import { includedInPlan } from "@/domain/membership";
+
+describe("what a plan includes", () => {
+  const all = ["Andheri", "Bandra", "Powai"];
+  it("says time plans give unlimited visits for their length, with training and classes", () => {
+    expect(includedInPlan({ kind: "time", durationDays: 30, ptCredits: 2, classEntitlements: 8 }, all, all)).toEqual(["Unlimited visits for 30 days", "Every branch", "2 personal-training sessions", "8 classes"]);
+  });
+  it("names the branches when the plan doesn’t cover all of them, and counts the visits of a pass", () => {
+    expect(includedInPlan({ kind: "visit", visits: 20, durationDays: 90 }, all, ["Andheri", "Powai"])).toEqual(["20 visits, to use within 90 days", "Branches: Andheri and Powai"]);
+    expect(includedInPlan({ kind: "visit", visits: 10 }, all, ["Andheri"])).toEqual(["10 visits", "Branch: Andheri"]);
+  });
+});

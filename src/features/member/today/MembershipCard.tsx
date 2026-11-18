@@ -27,6 +27,7 @@ export function MembershipCard({ t }: { t: TodayData }) {
         </p>
       )}
       {m.visitsRemaining !== null && <p className="mt-1 text-[0.95rem] text-clay-muted">{m.visitsRemaining} {m.visitsRemaining === 1 ? "visit" : "visits"} left</p>}
+      {m.renewedFrom && <p className="mt-1 text-[0.95rem] text-status-active-fg">Renewed: your next period starts {formatDate(m.renewedFrom)}.</p>}
       <Link to="/m/membership" className="mt-2 inline-flex min-h-[2.75rem] items-center font-semibold underline underline-offset-4">
         Membership and receipts
       </Link>

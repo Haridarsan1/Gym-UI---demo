@@ -9,3 +9,4 @@ export type { WorkoutSummary } from "@/api/workoutSummary";
 export type { CheckInView, GoalView, LoggedMeasurement, PhotoView, ProgressData, ProgressMeasurement, ReviewView } from "@/api/progress";
 export type { BookingPolicy, BookingResult, BookingView, BookingsData, TrainerOption } from "@/api/bookings";
 export type { Slot } from "@/domain/slots";
+export type { CheckoutView, GatewayEventView, InvoiceRow, MembershipData, MembershipView, PayResult, PaymentRow, ReceiptData, RenewalOption, ReplayResult } from "@/api/membership";

@@ -6,7 +6,8 @@ import { formatDate, formatDayMonth, formatRupees } from "@/lib/when";
 /** Things that need attention before anything else, each with the action to take. Calm: money and access are never shown in red. */
 export function Notices({ t }: { t: TodayData }) {
   const m = t.membership;
-  const endsSoon = m?.status === "active" && m.daysLeft !== undefined && m.daysLeft >= 0 && m.daysLeft <= 7;
+  // A renewal that is already paid for needs no reminder.
+  const endsSoon = m?.status === "active" && m.daysLeft !== undefined && m.daysLeft >= 0 && m.daysLeft <= 7 && !m.renewedFrom;
   // With money owed, Pay is the only button; the renewal comes after it is paid.
   const ending = endsSoon && !t.dues;
   return (
