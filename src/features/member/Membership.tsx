@@ -53,8 +53,10 @@ function MembershipContent({ d }: { d: MembershipData }) {
   const canRenew = d.renewal.options.length > 0;
   const shownInvoices = d.invoices.filter((i) => i.status !== "void");
 
+  // Desktop: the plan and what you can do with it on the left, the money on the right.
   return (
-    <>
+    <div className="grid items-start gap-5 lg:grid-cols-2 lg:gap-8">
+      <div className="min-w-0 space-y-5">
       {d.dues && (
         <aside aria-label="Payment due" className="rounded-2xl bg-status-pending-bg px-4 py-4 text-status-pending-fg">
           <div className="flex items-start gap-3">
@@ -97,7 +99,9 @@ function MembershipContent({ d }: { d: MembershipData }) {
       )}
 
       {m && <AutoRenewCard d={d} />}
+      </div>
 
+      <div className="min-w-0 space-y-5">
       <Chips
         label="Money"
         value={tab}
@@ -107,9 +111,10 @@ function MembershipContent({ d }: { d: MembershipData }) {
       {tab === "invoices" ? <InvoiceList invoices={d.invoices} /> : <PaymentHistory payments={d.payments} />}
 
       {DEMO_MODE && <DemoPanel d={d} />}
+      </div>
 
       <CheckoutSheet intent={intent} d={d} onClose={close} />
-    </>
+    </div>
   );
 }
 

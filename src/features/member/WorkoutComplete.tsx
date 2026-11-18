@@ -77,8 +77,8 @@ function Celebration({ s, celebrate }: { s: WorkoutSummary; celebrate: boolean }
         if (!done && !(e.target as HTMLElement).closest("button, a, input, textarea, label")) advance();
       }}
     >
-      <div aria-live="polite" className="space-y-4">
-        <ResultPart s={s} pop={pop} />
+      <div aria-live="polite" className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0">
+        <div className="lg:col-span-2"><ResultPart s={s} pop={pop} /></div>
         {s.volumeKg > 0 && (!volumeStage || step > stages.indexOf(volumeStage)) && <VolumePart kg={s.volumeKg} pop={pop} running={running("volume")} ms={volumeStage?.ms ?? 0} />}
         {s.records.slice(0, records).map((r) => (
           <RecordPart key={r.exerciseId} r={r} pop={pop} />
@@ -103,8 +103,9 @@ function Celebration({ s, celebrate }: { s: WorkoutSummary; celebrate: boolean }
       )}
 
       {done && (
-        <>
+        <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0">
           {!skipped && <Feedback date={s.date} effort={s.effort} recovery={s.recovery} />}
+          <div className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <Button3DLink to="/m" size="lg" className="flex-1">
               Done
@@ -116,7 +117,8 @@ function Celebration({ s, celebrate }: { s: WorkoutSummary; celebrate: boolean }
               See your program
             </Link>
           </p>
-        </>
+          </div>
+        </div>
       )}
     </div>
   );

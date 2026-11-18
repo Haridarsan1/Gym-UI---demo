@@ -37,7 +37,8 @@ function MeContent({ p }: { p: ProfileData }) {
   }, [hash]);
 
   return (
-    <>
+    <div className="grid items-start gap-5 lg:grid-cols-2 lg:gap-8">
+      <div className="min-w-0 space-y-5">
       <section aria-labelledby="profile-title" className="clay p-5">
         <div className="flex items-center gap-4">
           <Avatar name={p.name} className="h-14 w-14 shrink-0" />
@@ -55,9 +56,12 @@ function MeContent({ p }: { p: ProfileData }) {
         <p className="mt-3 text-sm text-clay-muted">To change your details, ask the front desk.</p>
       </section>
       <ConsentCard consents={p.consents} />
+      </div>
+      <div className="min-w-0 space-y-5">
       <PreferencesCard p={p} />
       <DataRequests p={p} />
-    </>
+      </div>
+    </div>
   );
 }
 

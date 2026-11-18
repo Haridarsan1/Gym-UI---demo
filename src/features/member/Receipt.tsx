@@ -18,7 +18,7 @@ export default function Receipt() {
   const { invoiceId } = useParams();
   const query = useReceipt(invoiceId);
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-3xl space-y-4">
       <Link to="/m/membership" className="print-hide -ml-1 inline-flex min-h-[2.75rem] items-center gap-1 font-semibold text-ember-700">
         <ChevronLeft className="h-5 w-5" aria-hidden="true" />
         Membership

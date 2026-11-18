@@ -50,8 +50,8 @@ function ReviewsContent({ reviews, checkIns }: { reviews: ReviewView[]; checkIns
     }
   }, [wasNew, markRead]);
   return (
-    <>
-      <section aria-labelledby="shared-title" className="space-y-3">
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-8">
+      <section aria-labelledby="shared-title" className="min-w-0 space-y-3">
         <h2 id="shared-title" className="text-lg font-bold">Shared with you</h2>
         {reviews.length === 0 ? (
           <EmptyState icon={MessageSquareText} title="No reviews yet">When your trainer shares a review of your progress it appears here, newest first.</EmptyState>
@@ -65,7 +65,7 @@ function ReviewsContent({ reviews, checkIns }: { reviews: ReviewView[]; checkIns
                     {wasNew.has(r.id) && <span className="rounded-full bg-lilac-100 px-2.5 py-1 text-xs font-bold text-lilac-700">New</span>}
                   </div>
                   <p className="text-sm text-clay-muted">{formatDate(istDateOf(r.createdAt))}</p>
-                  <p className="mt-2 text-[0.95rem] leading-relaxed">{r.body}</p>
+                  <p className="mt-2 max-w-[70ch] text-[0.95rem] leading-relaxed">{r.body}</p>
                   {r.followUpOn && <p className="mt-2 text-sm font-semibold">Follow-up {r.followUpOn < istDateOf(new Date().toISOString()) ? "was" : "is"} on {formatDate(r.followUpOn)}.</p>}
                 </article>
               </li>
@@ -73,6 +73,7 @@ function ReviewsContent({ reviews, checkIns }: { reviews: ReviewView[]; checkIns
           </ol>
         )}
       </section>
+      <div className="min-w-0 space-y-5">
       <CheckInForm />
       <section aria-labelledby="mine-title" className="space-y-3">
         <h2 id="mine-title" className="text-lg font-bold">Your check-ins</h2>
@@ -90,6 +91,7 @@ function ReviewsContent({ reviews, checkIns }: { reviews: ReviewView[]; checkIns
           </ol>
         )}
       </section>
-    </>
+      </div>
+    </div>
   );
 }

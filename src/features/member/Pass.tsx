@@ -45,8 +45,10 @@ function PassContent({ d }: { d: PassData }) {
     }
   }, [entered, scanned]);
 
+  // Desktop: the pass in a centred card on the left, recent check-ins beside it.
   return (
-    <>
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-10">
+      <div className="min-w-0 space-y-5">
       <section aria-labelledby="pass-title" className="clay p-5">
         <h2 id="pass-title" className="sr-only">Your pass</h2>
         {scanned ? (
@@ -91,6 +93,9 @@ function PassContent({ d }: { d: PassData }) {
         <Switch id="stay-awake" checked={awake} onChange={setAwake} label="Keep my screen on" description="While this pass is open, your screen stays awake so it doesn’t go dark at the door." />
       </section>
 
+      </div>
+
+      <div className="min-w-0 space-y-5">
       <section aria-labelledby="recent-title" className="space-y-3">
         <h2 id="recent-title" className="text-lg font-bold">Recent check-ins</h2>
         {d.recent.length === 0 ? (
@@ -111,7 +116,8 @@ function PassContent({ d }: { d: PassData }) {
       </section>
 
       {DEMO_MODE && <DemoScan />}
-    </>
+      </div>
+    </div>
   );
 }
 
