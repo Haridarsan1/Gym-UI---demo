@@ -278,19 +278,24 @@ function SlotPicker({ part = "all", schedule, date, onDate, onPick, current }: {
   const firstFree = days.find((d) => d.slots.some((s) => !s.taken))?.date;
   const chosen = days.find((d) => d.date === date) ?? days.find((d) => d.date === firstFree) ?? days[0];
   if (!chosen) return <p className="mt-2 rounded-2xl bg-clay-lavender px-4 py-4">This trainer has no sessions in the next two weeks. Choose another trainer.</p>;
+  // Phones: one scrolling row that snaps to a chip, fades out on the right and keeps room after the last chip so none is cut
+  // mid-word once scrolled to the end. From 768 px every available day is shown in a wrapping grid instead.
   const daysEl = (
-      <div role="radiogroup" aria-label="Day" className={cn("no-scrollbar -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-1", part === "days" && "flex-wrap overflow-visible")}>
+    <div className="relative">
+      <div role="radiogroup" aria-label="Day" className="no-scrollbar -mx-1 mt-1 flex snap-x snap-mandatory scroll-px-1 gap-2 overflow-x-auto px-1 pb-1 pr-12 md:snap-none md:flex-wrap md:overflow-visible md:pr-1">
         {days.map((d) => {
           const free = d.slots.filter((s) => !s.taken).length;
           const on = d.date === chosen.date;
           return (
-            <button key={d.date} type="button" role="radio" aria-checked={on} onClick={() => onDate(d.date)} className={cn("flex min-h-[3.25rem] shrink-0 flex-col items-center justify-center rounded-2xl px-4 text-sm font-semibold", on ? "bg-clay-ink text-white" : "bg-clay-lavender")}>
+            <button key={d.date} type="button" role="radio" aria-checked={on} onClick={() => onDate(d.date)} className={cn("flex min-h-[3.25rem] shrink-0 snap-start flex-col items-center justify-center rounded-2xl px-4 text-sm font-semibold", on ? "bg-clay-ink text-white" : "bg-clay-lavender")}>
               <span>{formatWeekdayDate(d.date)}</span>
               <span className={cn("text-xs", on ? "text-white/80" : "text-clay-muted")}>{free} free</span>
             </button>
           );
         })}
       </div>
+      <div aria-hidden="true" data-fade="days" className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white to-transparent md:hidden" />
+    </div>
   );
   const timesEl = (
       <ul aria-label={`Times on ${formatWeekdayDate(chosen.date)}`} className={cn("grid grid-cols-3 gap-2 xl:grid-cols-4", part === "all" && "mt-3")}>

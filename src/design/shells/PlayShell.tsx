@@ -14,7 +14,7 @@ import { AREA_PATH, ROLE_LABEL } from "@/domain/roles";
 import type { ScreenDef } from "@/app/screens";
 import { cn } from "@/lib/format";
 
-const entry = (area: "member" | "trainer", s: ScreenDef): NavEntry => ({ id: s.id, to: screenPath(area, s), label: s.label ?? s.title, short: railLabel(s), icon: s.icon, end: s.path === "" });
+const entry = (area: "member" | "trainer", s: ScreenDef): NavEntry => ({ id: s.id, to: screenPath(area, s), label: s.label ?? s.title, side: s.side, short: railLabel(s), icon: s.icon, end: s.path === "" });
 
 /**
  * Shell for the member and trainer apps, one navigation pattern for each width:
@@ -36,7 +36,7 @@ export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer";
   const raisedDef = raisedAction(area, todaysWorkout);
   const RaisedIcon = area === "trainer" ? ListChecks : raisedDef.to.includes("workout") ? Dumbbell : QrCode;
   const short = area === "trainer" ? "Log" : raisedDef.label.startsWith("Start") ? "Start" : raisedDef.label.startsWith("Continue") ? "Continue" : "Pass";
-  const raised: RaisedNav = { label: raisedDef.label, short, to: raisedDef.to, icon: RaisedIcon };
+  const raised: RaisedNav = { label: raisedDef.label, side: raisedDef.label.replace(/ today’s workout$/, " workout") === raisedDef.label ? undefined : raisedDef.label.replace(/ today’s workout$/, " workout"), short, to: raisedDef.to, icon: RaisedIcon };
   const groups: NavGroup[] = [
     { items: tabs.map((s) => entry(area, s)) },
     { items: menuFor(area, can).map((s) => entry(area, s)).filter((e) => e.to !== raised.to) },

@@ -82,6 +82,82 @@ test.describe("navigation pattern by width", () => {
   }
 });
 
+test.describe("sidebar labels", () => {
+  for (const width of [1024, 1440] as const) {
+    for (const [who, userId, path] of [
+      ["member", "u_member_arjun", "/m"],
+      ["trainer", "u_trainer_meera", "/t"],
+      ["front desk", "u_desk_andheri", "/desk"],
+      ["finance", "u_finance", "/desk/finance/invoices"],
+      ["owner", "u_owner", "/owner"],
+      ["platform admin", "u_admin", "/admin"],
+    ] as const) {
+      test(`every ${who} sidebar label fits on one line at ${width} px`, async ({ page }) => {
+        await at(page, width, userId, path);
+        const wrapped = await page.evaluate(() =>
+          [...document.querySelectorAll<HTMLElement>("aside:not([hidden]) nav a")]
+            .filter((a) => a.offsetParent !== null)
+            .filter((a) => {
+              // One line: no taller than a single 44 px row (raised button included), and nothing overflowing sideways.
+              const r = a.getBoundingClientRect();
+              return r.height > 56 || a.scrollWidth > a.clientWidth + 1;
+            })
+            .map((a) => (a.getAttribute("aria-label") ?? a.textContent ?? "").trim()),
+        );
+        expect(wrapped, "sidebar entries that wrap or overflow").toEqual([]);
+      });
+    }
+  }
+
+  test("shortened sidebar labels keep their full wording as the accessible name and in a tooltip", async ({ page }) => {
+    await at(page, 1440, "u_member_arjun", "/m");
+    const side = page.locator("aside:visible");
+    await expect(side.getByRole("link", { name: "Start today’s workout" })).toHaveText("Start workout");
+    const me = side.getByRole("link", { name: "Profile, consent and preferences" });
+    await expect(me).toHaveText("Profile and settings");
+    await me.hover();
+    await expect(page.getByRole("tooltip", { name: "Profile, consent and preferences" })).toBeVisible();
+  });
+});
+
+test.describe("booking days", () => {
+  test("on a phone the days scroll in one row with a right-edge fade and snapping, and the last chip clears the fade", async ({ page }) => {
+    await at(page, 390, "u_member_arjun", "/m/bookings");
+    await page.getByRole("button", { name: "Book a session" }).first().click();
+    const d = page.getByRole("dialog", { name: "Book a session" });
+    await d.getByRole("button", { name: /Meera Joshi/ }).click();
+    const group = d.getByRole("radiogroup", { name: "Day" });
+    await expect(group.getByRole("radio").first()).toBeVisible();
+    expect(await group.evaluate((el) => getComputedStyle(el).scrollSnapType)).toMatch(/x/);
+    expect(await group.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+    await expect(d.locator('[data-fade="days"]')).toBeVisible();
+    await group.evaluate((el) => (el.scrollLeft = el.scrollWidth));
+    const last = (await group.getByRole("radio").last().boundingBox())!;
+    const fade = (await d.locator('[data-fade="days"]').boundingBox())!;
+    expect(last.x + last.width, "the last chip sits under the fade").toBeLessThanOrEqual(fade.x + 1);
+    // The row is never taller than one line of chips.
+    expect((await group.boundingBox())!.height).toBeLessThan(90);
+  });
+
+  for (const width of [768, 1024] as const) {
+    test(`at ${width} px every available day is shown in a wrapping grid, with no scrolling row`, async ({ page }) => {
+      await at(page, width, "u_member_arjun", "/m/bookings");
+      await page.getByRole("button", { name: "Book a session" }).first().click();
+      const flow = width >= 1024 ? page.getByRole("region", { name: "Book a session" }) : page.getByRole("dialog", { name: "Book a session" });
+      await flow.getByRole("button", { name: /Meera Joshi/ }).click();
+      const group = flow.getByRole("radiogroup", { name: "Day" });
+      await expect(group.getByRole("radio").first()).toBeVisible();
+      expect(await group.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      await expect(flow.locator('[data-fade="days"]')).toBeHidden();
+      const box = (await group.boundingBox())!;
+      for (const chip of await group.getByRole("radio").all()) {
+        const b = (await chip.boundingBox())!;
+        expect(b.x + b.width, "a chip is clipped").toBeLessThanOrEqual(box.x + box.width + 1);
+      }
+    });
+  }
+});
+
 test.describe("owner and admin shells at every width", () => {
   for (const [who, userId, path, h1] of [
     ["owner", "u_owner", "/owner", "Dashboard"],

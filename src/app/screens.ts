@@ -30,6 +30,8 @@ export interface ScreenDef {
   label?: string;
   /** One short word for the narrow navigation rail on tablets. Falls back to `label`, then `title`. */
   short?: string;
+  /** A shorter label for the sidebar, where a long one would wrap. The full `label` stays the accessible name and the tooltip. */
+  side?: string;
   /** Path inside the area. "" is the area home. */
   path: string;
   /** Requirement IDs from docs/REQUIREMENTS.md. */
@@ -60,7 +62,7 @@ const member: ScreenDef[] = [
   { id: "receipt", title: "Tax receipt", path: "membership/invoices/:invoiceId", req: ["M03"], summary: "One invoice as an Indian tax receipt: the gym’s details and GSTIN, CGST and SGST, the total in words and the payments, with Save as PDF.", action: "invoice.read", icon: ReceiptText, place: "sub", parent: "membership" },
   { id: "pass", title: "Check-in pass", label: "Check-in pass", path: "pass", req: ["M05"], summary: "Your personal QR code for the front desk, and your last check-ins.", action: "checkin.read", icon: QrCode, place: "menu" },
   { id: "reviews", title: "Reviews and check-ins", label: "Reviews", path: "progress/reviews", req: ["P04", "T06"], summary: "Reviews your trainer shared with you, and a short form to tell them about effort, recovery and anything in the way. Reached from Progress.", action: "review.read", icon: Star, place: "sub", parent: "progress" },
-  { id: "me", title: "Me", label: "Profile, consent and preferences", short: "Me", path: "me", req: ["S04", "O04"], summary: "Your profile, what you have agreed to (photos, assessments, marketing), how we contact you, and a request for your data.", action: "member.read", icon: UserCog, place: "menu" },
+  { id: "me", title: "Me", label: "Profile, consent and preferences", side: "Profile and settings", short: "Me", path: "me", req: ["S04", "O04"], summary: "Your profile, what you have agreed to (photos, assessments, marketing), how we contact you, and a request for your data.", action: "member.read", icon: UserCog, place: "menu" },
 ];
 
 const trainer: ScreenDef[] = [

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import { Button3DLink } from "@/design/Button3D";
+import { Tooltip } from "@/design/Tooltip";
 import { cn } from "@/lib/format";
 
 export interface NavEntry {
@@ -11,6 +12,8 @@ export interface NavEntry {
   label: string;
   /** One short word for the narrow rail. */
   short: string;
+  /** Shorter text for the sidebar. `label` is then the accessible name and the tooltip. */
+  side?: string;
   icon: LucideIcon;
   end?: boolean;
 }
@@ -20,6 +23,8 @@ export interface NavGroup {
 }
 export interface RaisedNav {
   label: string;
+  /** Shorter text for the full-width sidebar button. `label` stays the accessible name. */
+  side?: string;
   short: string;
   to: string;
   icon: LucideIcon;
@@ -73,9 +78,9 @@ export function NavSidebar({ brand, raised, groups, footer, className }: { brand
       <div className="px-5 pb-4 pt-6">{brand}</div>
       <nav aria-label="Main" className="flex flex-1 flex-col overflow-y-auto px-3 pb-4">
         {raised && (
-          <Button3DLink to={raised.to} haptic className="mb-4 w-full justify-center gap-2">
+          <Button3DLink to={raised.to} haptic aria-label={raised.side ? raised.label : undefined} title={raised.side ? raised.label : undefined} className="mb-4 w-full justify-center gap-2 whitespace-nowrap">
             <raised.icon className="h-5 w-5" aria-hidden="true" />
-            {raised.label}
+            {raised.side ?? raised.label}
           </Button3DLink>
         )}
         {groups.map((g, i) => (
@@ -84,10 +89,19 @@ export function NavSidebar({ brand, raised, groups, footer, className }: { brand
             <ul>
               {g.items.map((e) => (
                 <li key={e.id}>
-                  <NavLink to={e.to} end={e.end} className={item}>
-                    <e.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                    {e.label}
-                  </NavLink>
+                  {e.side ? (
+                    <Tooltip label={e.label} side="right">
+                      <NavLink to={e.to} end={e.end} aria-label={e.label} className={(s) => cn(item(s), "w-full")}>
+                        <e.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                        <span className="whitespace-nowrap">{e.side}</span>
+                      </NavLink>
+                    </Tooltip>
+                  ) : (
+                    <NavLink to={e.to} end={e.end} className={item}>
+                      <e.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                      <span className="whitespace-nowrap">{e.label}</span>
+                    </NavLink>
+                  )}
                 </li>
               ))}
             </ul>
