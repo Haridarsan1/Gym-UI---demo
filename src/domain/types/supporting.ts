@@ -117,5 +117,7 @@ export const GymPolicies = z.object({
   /** How far ahead members can book. */
   bookingHorizonDays: z.number().int().min(1).max(60),
   sessionMinutes: z.number().int().min(15).max(180),
+  /** “Members can book sessions with other trainers”. Off by default: members book only with the trainer they are assigned to. */
+  membersMayChooseTrainer: z.boolean(),
 });
 export type GymPolicies = z.infer<typeof GymPolicies>;

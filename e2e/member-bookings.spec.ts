@@ -35,6 +35,16 @@ test.describe("Bookings: Arjun", () => {
     await expect(page.getByRole("radio", { name: "Upcoming (1)" })).toHaveAttribute("aria-checked", "true");
   });
 
+  test("when the gym lets members choose, the other trainers follow the member’s own", async ({ page }) => {
+    await changeStore(page, "gymPolicies", `(v) => ({ ...v, membersMayChooseTrainer: true })`);
+    await page.getByRole("button", { name: "Book a session" }).click();
+    const trainers = sheet(page).getByRole("list", { name: "Trainers" }).getByRole("listitem");
+    await expect(trainers.first()).toContainText("Meera Joshi");
+    await expect(trainers.first()).toContainText("Your trainer");
+    expect(await trainers.count()).toBeGreaterThanOrEqual(2);
+    await expect(trainers.nth(1)).not.toContainText("Your trainer");
+  });
+
   test("books a session in three steps: trainer (their own first), day, slot; then confirms with the cost and deadline", async ({ page }) => {
     await page.getByRole("button", { name: "Book a session" }).click();
     const d = sheet(page);
@@ -42,7 +52,9 @@ test.describe("Bookings: Arjun", () => {
     await expect(trainers.first()).toContainText("Meera Joshi");
     await expect(trainers.first()).toContainText("Your trainer");
     await expect(trainers.first()).toContainText(/Next free \w{3} \d+ \w{3}, \d+:\d{2} (am|pm)/);
-    expect(await trainers.count()).toBeGreaterThanOrEqual(2);
+    // The gym’s default: members book only with their own trainer.
+    await expect(trainers).toHaveCount(1);
+    await expect(d.getByText("Sessions with your trainer at Andheri.")).toBeVisible();
     await trainers.first().getByRole("button").click();
     const days = d.getByRole("radiogroup", { name: "Day" }).getByRole("radio");
     await expect(days.first()).toBeVisible();

@@ -27,10 +27,12 @@ export interface BookingPolicy {
   noShowConsumesCredit: boolean;
   bookingHorizonDays: number;
   sessionMinutes: number;
+  /** Members may book with trainers other than their own. */
+  membersMayChooseTrainer: boolean;
 }
 
-const DEFAULT_POLICY: BookingPolicy = { cancellationCutoffHours: 12, lateCancelConsumesCredit: true, noShowConsumesCredit: true, bookingHorizonDays: 14, sessionMinutes: 60 };
-const policyOf = (p: GymPolicies | undefined): BookingPolicy => (p ? { cancellationCutoffHours: p.cancellationCutoffHours, lateCancelConsumesCredit: p.lateCancelConsumesCredit, noShowConsumesCredit: p.noShowConsumesCredit, bookingHorizonDays: p.bookingHorizonDays, sessionMinutes: p.sessionMinutes } : DEFAULT_POLICY);
+const DEFAULT_POLICY: BookingPolicy = { cancellationCutoffHours: 12, lateCancelConsumesCredit: true, noShowConsumesCredit: true, bookingHorizonDays: 14, sessionMinutes: 60, membersMayChooseTrainer: false };
+const policyOf = (p: GymPolicies | undefined): BookingPolicy => (p ? { cancellationCutoffHours: p.cancellationCutoffHours, lateCancelConsumesCredit: p.lateCancelConsumesCredit, noShowConsumesCredit: p.noShowConsumesCredit, bookingHorizonDays: p.bookingHorizonDays, sessionMinutes: p.sessionMinutes, membersMayChooseTrainer: p.membersMayChooseTrainer ?? false } : DEFAULT_POLICY);
 
 export interface BookingView {
   id: string;
@@ -142,8 +144,8 @@ async function scheduleFor(env: Env, trainerId: string, excludeBookingId?: strin
   return { days, branch, hasAvailability: here.length > 0 };
 }
 
-/** Trainers the member can book at their home branch, their own trainer first. */
-export async function getTrainerOptions(session: Session | null): Promise<{ trainers: TrainerOption[]; branchName: string; policy: BookingPolicy }> {
+/** Trainers the member can book at their home branch: their own trainer, then the others when the gym allows choosing. */
+export async function getTrainerOptions(session: Session | null): Promise<{ trainers: TrainerOption[]; branchName: string; policy: BookingPolicy; hasAssignedTrainer: boolean }> {
   const env = await loadEnv(session);
   const { c, member, policy } = env;
   const [availability, users, assignments, branch] = await Promise.all([
@@ -153,22 +155,35 @@ export async function getTrainerOptions(session: Session | null): Promise<{ trai
     db.branches.get(member.homeBranchId),
   ]);
   const assigned = assignmentOn(assignments, c.today)?.trainerId;
-  const ids = [...new Set(availability.filter((a) => a.branchId === member.homeBranchId).map((a) => a.trainerId))];
+  // Unless the gym lets members choose, the only trainer on offer is their own.
+  const ids = [...new Set(availability.filter((a) => a.branchId === member.homeBranchId).map((a) => a.trainerId))].filter((id) => policy.membersMayChooseTrainer || id === assigned);
   const trainers: TrainerOption[] = [];
   for (const id of ids) {
     const { days } = await scheduleFor(env, id);
     trainers.push({ trainerId: id, name: users.find((u) => u.id === id)?.name ?? "Trainer", assigned: id === assigned, branchName: branch?.name ?? "", nextFree: nextFree(days, c.nowIso, 1)[0]?.startsAt });
   }
   trainers.sort((a, b) => Number(b.assigned) - Number(a.assigned) || a.name.localeCompare(b.name));
-  return { trainers, branchName: branch?.name ?? "", policy };
+  return { trainers, branchName: branch?.name ?? "", policy, hasAssignedTrainer: assigned !== undefined };
 }
 
 /** One trainer’s days and slots in the booking window, with the ones already booked marked taken. */
 export async function getTrainerSchedule(session: Session | null, trainerId: string, excludeBookingId?: string): Promise<{ trainerId: string; trainerName: string; branchName: string; days: Array<{ date: string; slots: Slot[] }>; nowIso: string }> {
   const env = await loadEnv(session);
+  const existing = excludeBookingId ? (await db.bookings.get(excludeBookingId))?.trainerId : undefined;
+  await assertTrainerAllowed(env, trainerId, existing);
   const [user, s] = await Promise.all([db.users.get(trainerId), scheduleFor(env, trainerId, excludeBookingId)]);
   if (!user || !s.hasAvailability) throw new ApiError("not_found", "That trainer has no sessions to book at your branch. Choose another trainer.");
   return { trainerId, trainerName: user.name, branchName: s.branch?.name ?? "", days: s.days, nowIso: env.c.nowIso };
+}
+
+/**
+ * When the gym doesn’t let members choose, only the assigned trainer can be booked. A session already with another trainer
+ * (the policy was off after it was made) can still be moved with that trainer.
+ */
+async function assertTrainerAllowed(env: Env, trainerId: string, keepTrainerId?: string): Promise<void> {
+  if (env.policy.membersMayChooseTrainer || trainerId === keepTrainerId) return;
+  const assigned = assignmentOn(await db.trainerAssignments.where("memberId").equals(env.c.memberId).toArray(), env.c.today)?.trainerId;
+  if (trainerId !== assigned) throw new ApiError("forbidden", "Your gym books sessions with your own trainer. Choose your trainer to continue.");
 }
 
 // ── Writing ─────────────────────────────────────────────────────────────────────────────────────
@@ -230,6 +245,7 @@ export async function bookSession(session: Session | null, raw: BookInput): Prom
     const ledger = await db.creditLedger.where("memberId").equals(c.memberId).toArray();
     if (!canReserve(creditBalance(ledger), PT_CREDIT_COST)) throw new ApiError("conflict", NO_CREDITS);
 
+    await assertTrainerAllowed(env, input.trainerId);
     const user = await db.users.get(input.trainerId);
     const { days, branch, hasAvailability } = await scheduleFor(env, input.trainerId);
     if (!user || !hasAvailability) throw new ApiError("not_found", "That trainer has no sessions to book at your branch. Choose another trainer.");
@@ -319,6 +335,7 @@ export async function rescheduleBooking(session: Session | null, raw: Reschedule
     if (!canReschedule(b.startsAt, policy.cancellationCutoffHours, c.nowIso)) {
       throw new ApiError("forbidden", `Moving a session is free until ${exactWhen(deadline)}, and that time has passed. You can keep this session or cancel it under the late terms.`);
     }
+    await assertTrainerAllowed(env, input.trainerId, b.trainerId);
     const user = await db.users.get(input.trainerId);
     const { days, branch, hasAvailability } = await scheduleFor(env, input.trainerId, b.id);
     if (!user || !hasAvailability) throw new ApiError("not_found", "That trainer has no sessions to book at your branch. Choose another trainer.");

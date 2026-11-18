@@ -115,9 +115,14 @@ export function BookSheet({ open, reschedule, credits, policy, onClose }: { open
 
       {step === "trainer" && (
         <QueryBoundary query={options} errorTitle="We couldn’t load the trainers" skeleton={<SkeletonRows rows={3} label="Loading trainers" />}>
-          {({ trainers, branchName }) => (
+          {({ trainers, branchName, policy: rules, hasAssignedTrainer }) => (
             <div className="mt-3">
-              <p className="text-sm text-clay-muted">Sessions at {branchName}.</p>
+              <p className="text-sm text-clay-muted">{rules.membersMayChooseTrainer ? `Sessions at ${branchName}. Your trainer is listed first.` : `Sessions with your trainer at ${branchName}.`}</p>
+              {trainers.length === 0 && (
+                <p className="mt-2 rounded-2xl bg-clay-lavender px-4 py-4">
+                  {hasAssignedTrainer ? "Your trainer has no sessions to book at your branch yet. Ask the front desk." : "You don’t have a trainer yet. Ask the front desk to assign one, then you can book."}
+                </p>
+              )}
               <ul className="mt-2 space-y-2" aria-label="Trainers">
                 {trainers.map((t) => (
                   <li key={t.trainerId}>

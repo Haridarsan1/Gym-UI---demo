@@ -43,9 +43,11 @@ const ADITYA = "u_trainer_aditya";
 beforeEach(async () => {
   setNow(new Date(NOON));
   await resetDemo();
+  await setChoice(true); // the seeded default is off; most tests below need a member to be able to book any trainer
 });
 afterAll(() => setNow(null));
 
+const setChoice = (on: boolean) => db.gymPolicies.toCollection().modify({ membersMayChooseTrainer: on });
 const book = (s: Session | null, trainerId: string, startsAt: string, key = `k-${Math.random().toString(36).slice(2)}-xxxx`) => bookSession(s, { trainerId, startsAt, idempotencyKey: key });
 const balance = async (memberId: string) => creditBalance(await db.creditLedger.where("memberId").equals(memberId).toArray());
 const giveCredits = (memberId: string, n: number) => db.creditLedger.add({ id: `cr_${memberId}_buy`, tenantId: "t_pulse", memberId, kind: "purchase", credits: n, createdBy: "u_desk_andheri", createdAt: NOON, idempotencyKey: `buy-${memberId}` });
@@ -84,6 +86,45 @@ describe("choosing a trainer, a day and a slot", () => {
 
   it("refuses a trainer who has no sessions at the member’s branch", async () => {
     expect(await code(getTrainerSchedule(arjun, "u_trainer_farah"))).toBe("not_found");
+  });
+});
+
+describe("trainer choice policy", () => {
+  it("is off in the seeded gym", async () => {
+    await resetDemo();
+    expect((await db.gymPolicies.toArray())[0]!.membersMayChooseTrainer).toBe(false);
+  });
+
+  it("off: the member sees only their own trainer", async () => {
+    await setChoice(false);
+    const { trainers, hasAssignedTrainer, policy } = await getTrainerOptions(arjun);
+    expect(trainers.map((t) => t.trainerId)).toEqual([MEERA]);
+    expect(trainers[0]!.assigned).toBe(true);
+    expect([hasAssignedTrainer, policy.membersMayChooseTrainer]).toEqual([true, false]);
+  });
+
+  it("off: another trainer’s slots can’t be read, booked or moved to", async () => {
+    await setChoice(false);
+    expect(await code(getTrainerSchedule(arjun, ADITYA))).toBe("forbidden");
+    expect(await code(book(arjun, ADITYA, "2026-11-17T11:30:00.000Z"))).toBe("forbidden");
+    expect(await balance("mem_arjun")).toEqual({ available: 5, reserved: 1, consumed: 2 });
+    const r = await book(arjun, MEERA, WED_6PM);
+    expect(await code(rescheduleBooking(arjun, { bookingId: r.bookingId, trainerId: ADITYA, startsAt: "2026-11-17T11:30:00.000Z", idempotencyKey: "move-key-9001" }))).toBe("forbidden");
+    expect(await code(getTrainerSchedule(arjun, MEERA))).toBe("resolved");
+  });
+
+  it("off: a session already with another trainer can still be moved with that trainer", async () => {
+    const r = await book(arjun, ADITYA, WED_6PM);
+    await setChoice(false);
+    expect(await code(rescheduleBooking(arjun, { bookingId: r.bookingId, trainerId: ADITYA, startsAt: WED_7PM, idempotencyKey: "move-key-9002" }))).toBe("resolved");
+  });
+
+  it("on: the assigned trainer comes first and the others follow", async () => {
+    await setChoice(true);
+    const { trainers } = await getTrainerOptions(arjun);
+    expect(trainers.map((t) => t.trainerId)).toEqual([MEERA, ADITYA, "u_trainer_vikrant"]);
+    expect(trainers.map((t) => t.assigned)).toEqual([true, false, false]);
+    expect(await code(book(arjun, ADITYA, "2026-11-17T11:30:00.000Z"))).toBe("resolved");
   });
 });
 
