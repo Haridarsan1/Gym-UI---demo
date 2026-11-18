@@ -6,7 +6,7 @@ import { useSyncExternalStore } from "react";
  */
 export type Breakpoint = "phone" | "tablet" | "desktop";
 
-export const MEDIA = { tablet: "(min-width: 640px)", desktop: "(min-width: 1024px)", split: "(min-width: 768px)" } as const;
+export const MEDIA = { tablet: "(min-width: 640px)", desktop: "(min-width: 1024px)", split: "(min-width: 768px)", wide: "(min-width: 1280px)" } as const;
 
 function subscribe(query: string, notify: () => void) {
   const list = window.matchMedia(query);
@@ -31,3 +31,6 @@ export function useBreakpoint(): Breakpoint {
 
 /** From 768 px a list and its detail sit side by side (see ListDetail). */
 export const useSplit = () => useMediaQuery(MEDIA.split);
+
+/** From 1280 px the trainer screens show three zones: a list, its detail and a context panel (see ThreeZone). */
+export const useWide = () => useMediaQuery(MEDIA.wide);

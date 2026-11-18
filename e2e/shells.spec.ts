@@ -36,7 +36,7 @@ test.describe("first open of the app", () => {
 test.describe("each role lands in its own home", () => {
   const landings: Array<[string, string, string | RegExp]> = [
     ["u_member_arjun", "/m", /^Good (morning|afternoon|evening), Arjun$/],
-    ["u_trainer_meera", "/t", "Today"],
+    ["u_trainer_meera", "/t", /^Good (morning|afternoon|evening), Meera$/],
     ["u_desk_andheri", "/desk", "Check-in"],
     ["u_finance", "/desk/finance/invoices", "Invoices and payments"],
     ["u_owner", "/owner", "Dashboard"],

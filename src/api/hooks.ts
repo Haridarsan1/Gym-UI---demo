@@ -26,6 +26,8 @@ const bookingsApi = () => import("@/api/bookings");
 const membershipApi = () => import("@/api/membership");
 const passApi = () => import("@/api/pass");
 const profileApi = () => import("@/api/profile");
+/** The trainer app’s reads load with the trainer area, not with the member app or the marketing site. */
+const trainerApi = () => import("@/api/trainer");
 
 const retry = (count: number, error: unknown) => count < 2 && isRetryable(error);
 
@@ -284,3 +286,9 @@ function useProfileMutation<I, O>(fn: (api: typeof import("@/api/profile"), sess
 export const useSetConsent = () => useProfileMutation((api, session, input: ConsentInput) => api.setConsent(session, input));
 export const useSaveSettings = () => useProfileMutation((api, session, input: SettingsInput) => api.saveSettings(session, input));
 export const useRequestData = () => useProfileMutation((api, session, input: RequestInput) => api.requestData(session, input));
+
+/** The trainer’s Today (T07): sessions, overdue reviews, missed workouts, expiring credits and clients waiting for a plan. */
+export function useTrainerToday() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["trainer", session?.userId, "today"], queryFn: async () => (await trainerApi()).getTrainerToday(session), enabled: !!session, retry, staleTime: 15_000 });
+}

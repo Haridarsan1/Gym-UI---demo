@@ -200,6 +200,43 @@ test.describe("owner and admin shells at every width", () => {
   }
 });
 
+test.describe("trainer screens at every width", () => {
+  /** Every trainer screen, as it is built: its address, its h1 and whether it uses the three-zone layout. Add each new screen here. */
+  const TRAINER_SCREENS: Array<{ path: string; h1: string | RegExp; zones: boolean }> = [{ path: "/t", h1: /^Good (morning|afternoon|evening), Meera$/, zones: true }];
+  for (const width of WIDTHS) {
+    test(`no sideways scroll, a capped width, the right zones and 44 px targets at ${width} px`, async ({ page }) => {
+      for (const { path, h1, zones } of TRAINER_SCREENS) {
+        await at(page, width, "u_trainer_meera", path);
+        await expect(page.getByRole("heading", { name: h1, level: 1 })).toBeVisible();
+        expect(await hasHorizontalScroll(page), `${path} scrolls sideways`).toBe(false);
+        expect((await box(page, "main")).width, `${path} is wider than 1200 px`).toBeLessThanOrEqual(1200);
+        if (zones) {
+          // Phones: one column. 768 to 1279 px: list and detail. From 1280 px: list, detail and context.
+          const expected = width < 768 ? 0 : width < 1280 ? 2 : 3;
+          const found = await page.locator("[data-zones]").count();
+          expect(found === 0 ? 0 : Number(await page.locator("[data-zones]").first().getAttribute("data-zones")), `${path} zones at ${width} px`).toBe(expected);
+          if (expected) {
+            // Zones sit side by side and none is clipped by the window.
+            const cells = await page.locator("[data-zones] > div").evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { x: r.x, right: r.right, w: r.width }; }));
+            for (let i = 1; i < cells.length; i++) expect(cells[i]!.x, `zone ${i + 1} sits right of zone ${i}`).toBeGreaterThanOrEqual(cells[i - 1]!.right - 1);
+            for (const c of cells) expect(c.right).toBeLessThanOrEqual(width + 1);
+          }
+        }
+        if (width < 1024) {
+          const small = await page.evaluate(() =>
+            [...document.querySelectorAll<HTMLElement>("a, button, [role=radio], [role=switch], input:not([type=hidden])")]
+              .filter((el) => el.offsetParent !== null && !el.closest("p, li > p, summary") && !el.classList.contains("sr-only"))
+              .map((el) => ({ el, r: el.getBoundingClientRect() }))
+              .filter(({ r }) => r.width > 0 && r.height > 0 && (r.height < 43.5 || r.width < 43.5))
+              .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 30)}" ${Math.round(r.width)}x${Math.round(r.height)}`),
+          );
+          expect(small, `${path} has small touch targets`).toEqual([]);
+        }
+      }
+    });
+  }
+});
+
 test.describe("member screens at every width", () => {
   const SCREENS: Array<[string, string | RegExp]> = [
     ["/m", /^Good (morning|afternoon|evening)/],

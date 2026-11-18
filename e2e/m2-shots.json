@@ -1,0 +1,9 @@
+[
+  { "key": "today-sessions", "caption": "Today: sessions" },
+  { "key": "today-reviews", "caption": "Today: reviews overdue" },
+  { "key": "today-missed", "caption": "Today: missed workouts" },
+  { "key": "today-credits", "caption": "Today: credits expiring" },
+  { "key": "today-plans", "caption": "Today: waiting for a plan" },
+  { "key": "today-client", "caption": "Today: a client picked from a list" },
+  { "key": "today-quiet", "caption": "Today: a quiet day (empty list)" }
+]

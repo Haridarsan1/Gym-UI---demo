@@ -10,7 +10,7 @@ test.describe("email and password", () => {
     ["rohit.sethi@pulsefitness.in", "/owner", "Dashboard", "branch manager"],
     ["pooja.nair@pulsefitness.in", "/desk", "Check-in", "front desk"],
     ["deepa.menon@pulsefitness.in", "/desk/finance/invoices", "Invoices and payments", "finance"],
-    ["meera.joshi@pulsefitness.in", "/t", "Today", "trainer"],
+    ["meera.joshi@pulsefitness.in", "/t", /^Good (morning|afternoon|evening), Meera$/, "trainer"],
     ["arjun.kumar@example.in", "/m", /^Good (morning|afternoon|evening), Arjun$/, "member"],
     ["admin@ember.example", "/admin", "Tenants", "platform admin"],
   ];
@@ -137,7 +137,7 @@ test.describe("try the demo as", () => {
     [/^Branch manager/, "/owner", "Dashboard"],
     [/^Front desk/, "/desk", "Check-in"],
     [/^Finance/, "/desk/finance/invoices", "Invoices and payments"],
-    [/^Trainer/, "/t", "Today"],
+    [/^Trainer/, "/t", /^Good (morning|afternoon|evening), Meera$/],
     [/^Member/, "/m", /^Good (morning|afternoon|evening), Arjun$/],
   ];
   for (const [label, url, title] of roles) {
@@ -182,7 +182,7 @@ test.describe("session", () => {
     await fastDemo(page);
     await page.goto("/login");
     await page.getByRole("button", { name: /^Trainer/ }).click();
-    await expect(heading(page, "Today")).toBeVisible();
+    await expect(heading(page, /^Good (morning|afternoon|evening), Meera$/)).toBeVisible();
     await page.goto("/login");
     await expect(page.getByText("You’re signed in as Meera Joshi.")).toBeVisible();
     await page.getByRole("link", { name: "Open your dashboard" }).click();

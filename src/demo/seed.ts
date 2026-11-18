@@ -6,6 +6,7 @@ import type {
 } from "@/domain/types";
 import { rng } from "@/demo/rng";
 import { PERSONAS } from "@/demo/personas";
+import { buildRoster } from "@/demo/seedTrainer";
 import { buildMemberData } from "@/demo/seedMember";
 import { EXERCISES } from "@/demo/exercises";
 
@@ -277,13 +278,15 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
   // Training, billing and activity for the sample members. Everyone else gets this in the milestone that first shows it.
   const memberData = buildMemberData({ today, r, branches, members, memberships, membershipPlans, deskFor });
+  // The trainers’ books of clients (M2): plans, logs, reviews and today’s sessions for everyone else with a trainer.
+  const roster = buildRoster({ today, members, memberships, trainerAssignments, availability, deskFor });
 
   return {
     tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,
-    creditLedger: [...creditLedger, ...memberData.creditLedger],
-    invoices: memberData.invoices, payments: memberData.payments, refunds: [], classes: [], bookings: memberData.bookings, checkIns: memberData.checkIns,
-    exercises: EXERCISES, workoutPlanVersions: memberData.workoutPlanVersions, workoutLogs: memberData.workoutLogs, goals: memberData.goals,
-    measurements: memberData.measurements, auditEvents: [], trainerReviews: memberData.trainerReviews, memberSettings: memberData.memberSettings,
+    creditLedger: [...creditLedger, ...memberData.creditLedger, ...roster.creditLedger],
+    invoices: memberData.invoices, payments: memberData.payments, refunds: [], classes: [], bookings: [...memberData.bookings, ...roster.bookings], checkIns: memberData.checkIns,
+    exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: memberData.goals,
+    measurements: memberData.measurements, auditEvents: [], trainerReviews: [...memberData.trainerReviews, ...roster.trainerReviews], memberSettings: memberData.memberSettings,
     badgeAwards: memberData.badgeAwards, trainerAvailability: availability, gymPolicies: [policies],
   };
 }

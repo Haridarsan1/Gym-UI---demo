@@ -1,6 +1,11 @@
+import { lazy } from "react";
 import { AreaRoutes } from "@/app/AreaRoutes";
 
-/** Trainer area. Screens built in this area’s milestone are added to `implemented`, keyed by screen id. */
+/** Trainer area. Each screen is a separate file, loaded when the trainer opens it. Keys are screen ids from src/app/screens.ts. */
+const implemented = {
+  today: lazy(() => import("@/features/trainer/Today")),
+};
+
 export default function TrainerArea() {
-  return <AreaRoutes area="trainer" />;
+  return <AreaRoutes area="trainer" implemented={implemented} />;
 }

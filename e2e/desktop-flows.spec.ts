@@ -168,3 +168,77 @@ for (const width of WIDTHS) {
     });
   });
 }
+
+/**
+ * Trainer journeys at 1440 px (three zones: lists, the chosen list, the client at a glance) and 768 px (the lists beside the
+ * chosen list). Driven through the sidebar or rail. Add each trainer journey here as its screen is built.
+ */
+for (const width of WIDTHS) {
+  test.describe(`trainer flows at ${width} px`, () => {
+    test("Today: see the day, move between the five lists, and open a client", async ({ page }) => {
+      const problems = await open(page, width, "u_trainer_meera", "/t");
+      await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Meera$/, level: 1 })).toBeVisible();
+      await expect(page.getByText(/^4 sessions today, 3 still to come\./)).toBeVisible();
+      await noSideways(page, "Today");
+
+      // Sessions come first, with the next one marked.
+      const menu = page.getByRole("navigation", { name: "Your day" });
+      await expect(menu.getByRole("button", { name: /Sessions today/ })).toHaveAttribute("aria-current", "true");
+      const sessions = page.getByRole("list", { name: "Sessions today" }).getByRole("listitem");
+      await expect(sessions).toHaveCount(4);
+      await expect(sessions.nth(1)).toContainText("Next");
+
+      // Each list in the menu opens in the detail zone, with its own heading and clients.
+      for (const [title, reason] of [["Reviews overdue", /overdue$/], ["Missed workouts", /Missed \d of \d workouts in 7 days/], ["Credits expiring", /expire/], ["Waiting for a plan", /Waiting|Assigned today/]] as const) {
+        await menu.getByRole("button", { name: new RegExp(title) }).click();
+        await expect(menu.getByRole("button", { name: new RegExp(title) })).toHaveAttribute("aria-current", "true");
+        await expect(page.getByRole("heading", { name: title, level: 2 })).toBeVisible();
+        await expect(page.getByRole("list", { name: title }).getByRole("listitem").first()).toContainText(reason);
+        await noSideways(page, title);
+      }
+
+      await menu.getByRole("button", { name: /Missed workouts/ }).click();
+      const first = page.getByRole("list", { name: "Missed workouts" }).getByRole("listitem").first();
+      if (width >= 1280) {
+        // Three zones: picking a client shows them at a glance, and the address remembers the list.
+        expect(await page.locator("[data-zones]").getAttribute("data-zones")).toBe("3");
+        const second = page.getByRole("list", { name: "Missed workouts" }).getByRole("listitem").nth(1);
+        const name = (await second.locator(".font-semibold").first().textContent())!;
+        await second.getByRole("button").click();
+        const glance = page.getByRole("complementary", { name: "Client at a glance" });
+        await expect(glance.getByRole("heading", { name, level: 2 })).toBeVisible();
+        await expect(glance).toContainText(/Missed \d of \d workouts in the last 7 days/);
+        await expect(page).toHaveURL(/show=missed/);
+        await glance.getByRole("link", { name: new RegExp(`^Open ${name.split(" ")[0]}`) }).click();
+      } else {
+        expect(await page.locator("[data-zones]").getAttribute("data-zones")).toBe("2");
+        await first.getByRole("link").click();
+      }
+      await expect(page).toHaveURL(/\/t\/clients\/mem_\d+$/);
+
+      // The sidebar or rail leads back.
+      await nav(page, "Clients").click();
+      await expect(page).toHaveURL(/\/t\/clients$/);
+      await nav(page, "Today").click();
+      await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Meera$/, level: 1 })).toBeVisible();
+      expect(problems).toEqual([]);
+    });
+
+    test("Today: on a wide screen the next session’s client is already at a glance", async ({ page }) => {
+      test.skip(width < 1280, "The context zone starts at 1280 px");
+      await open(page, width, "u_trainer_meera", "/t");
+      const next = page.getByRole("list", { name: "Sessions today" }).getByRole("listitem").nth(1);
+      const name = (await next.locator(".font-semibold").first().textContent())!;
+      await expect(page.getByRole("complementary", { name: "Client at a glance" }).getByRole("heading", { name, level: 2 })).toBeVisible();
+      await expect(page.getByRole("complementary", { name: "Client at a glance" })).toContainText(/Session today at 5:00 pm/);
+    });
+
+    test("Today: a quiet list says what it is for", async ({ page }) => {
+      await open(page, width, "u_trainer_kavya", "/t");
+      await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Kavya$/, level: 1 })).toBeVisible();
+      await page.getByRole("navigation", { name: "Your day" }).getByRole("button", { name: /Credits expiring/ }).click();
+      await expect(page.getByText("No credits about to expire")).toBeVisible();
+      await noSideways(page, "Quiet list");
+    });
+  });
+}

@@ -16,7 +16,7 @@ import { formatDayMonth } from "@/lib/when";
  * looks current: Arjun always has a workout today, a plan that changed 13 days ago, and a booking tomorrow.
  */
 
-type Template = "push" | "pull" | "legs" | "upper" | "fullA" | "fullB";
+export type Template = "push" | "pull" | "legs" | "upper" | "fullA" | "fullB";
 interface Slot {
   ex: string;
   section: Prescription["section"];
@@ -33,7 +33,7 @@ const warm = (ex: string, duration: number): Slot => ({ ex, section: "warmup", s
 const cool = (ex: string, duration: number): Slot => ({ ex, section: "cooldown", sets: 1, duration });
 const main = (ex: string, sets: number, reps: number, base: number, rest: number, cue?: string): Slot => ({ ex, section: "main", sets, reps, base, rest, cue });
 
-const TEMPLATES: Record<Template, { title: string; slots: Slot[] }> = {
+export const TEMPLATES: Record<Template, { title: string; slots: Slot[] }> = {
   push: { title: "Push", slots: [warm("ex_cat_cow", 60), warm("ex_arm_circles", 45), main("ex_bench_press", 3, 10, 40, 90, "Pause the bar on your chest for a beat."), main("ex_incline_db", 3, 10, 14, 75), main("ex_ohp", 3, 8, 25, 90), main("ex_lateral_raise", 3, 12, 6, 60), main("ex_tricep_pushdown", 3, 12, 25, 60), cool("ex_chest_stretch", 60)] },
   pull: { title: "Pull", slots: [warm("ex_foam_roll", 60), main("ex_deadlift", 3, 5, 70, 120, "Keep the bar close to your legs."), main("ex_barbell_row", 3, 10, 45, 90), main("ex_lat_pulldown", 3, 10, 45, 75), main("ex_face_pull", 3, 15, 15, 60), main("ex_bicep_curl", 3, 12, 10, 60), cool("ex_chest_stretch", 60)] },
   legs: { title: "Legs", slots: [warm("ex_cat_cow", 60), main("ex_back_squat", 3, 8, 60, 120, "Knees track over your toes."), main("ex_leg_press", 3, 12, 100, 90), main("ex_rdl", 3, 10, 50, 90), main("ex_lunge", 3, 10, 12, 60), main("ex_calf_raise", 3, 15, 40, 45), cool("ex_hip_flexor_stretch", 60)] },
@@ -44,7 +44,7 @@ const TEMPLATES: Record<Template, { title: string; slots: Slot[] }> = {
 
 const half = (n: number) => Math.round(n * 2) / 2;
 
-const hash = (text: string): number => [...text].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7);
+export const hash = (text: string): number => [...text].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7);
 
 /** Weeks a lift stays at one load before it goes up: 2, 3 or 4, different for each exercise so records don’t all land in one week. */
 const weeksPerStep = (exerciseId: string): number => 2 + (hash(exerciseId) % 3);
@@ -60,7 +60,7 @@ function loadFor(slot: Slot, weekNo: number): number | undefined {
   return half(slot.base + stepKg(slot) * Math.floor(weekNo / weeksPerStep(slot.ex)));
 }
 
-function buildDays(pattern: Array<[number, Template]>, weeks: number, firstWeekNo: number): PlanDay[] {
+export function buildDays(pattern: Array<[number, Template]>, weeks: number, firstWeekNo: number): PlanDay[] {
   const days: PlanDay[] = [];
   for (let w = 0; w < weeks; w++) {
     pattern.forEach(([offset, tpl], dayIndex) => {
