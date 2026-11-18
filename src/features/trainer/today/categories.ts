@@ -43,7 +43,7 @@ export function categoriesFor(t: TrainerTodayData): Category[] {
       empty: { title: "No sessions today", body: "Sessions your clients book with you appear here, in time order." },
     },
     {
-      key: "reviews", title: "Reviews overdue", icon: ClipboardCheck, hint: "Due about every four weeks",
+      key: "reviews", title: "Reviews overdue", icon: ClipboardCheck, hint: "On each client’s own cadence",
       rows: t.overdueReviews.map((r) => ({ id: r.memberId, memberId: r.memberId, name: r.name, detail: r.reason, trailing: `${plural(r.daysOver, "day")} overdue`, tone: "plain" })),
       empty: { title: "Every review is up to date", body: "A client appears here when their next review date has passed." },
     },

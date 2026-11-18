@@ -103,7 +103,7 @@ export const TrainerAvailability = z.object({
 export type TrainerAvailability = z.infer<typeof TrainerAvailability>;
 
 /**
- * Why: the booking, cancellation and streak rules are the gym’s choice (M02, T04, O02), not constants in code. The owner
+ * Why: the booking, cancellation, streak and trainer-dashboard rules are the gym’s choice (M02, T04, T07, O02), not constants in code. The owner
  * edits them in M4 (Policies). One row per gym.
  */
 export const GymPolicies = z.object({
@@ -121,6 +121,14 @@ export const GymPolicies = z.object({
   sessionMinutes: z.number().int().min(15).max(180),
   /** “Members can book sessions with other trainers”. Off by default: members book only with the trainer they are assigned to. */
   membersMayChooseTrainer: z.boolean(),
+  /** How often a client is reviewed when none of their goals sets its own cadence (T02). */
+  reviewCadenceDays: z.number().int().min(7).max(180),
+  /** The trainer’s Today lists a client who missed at least this many scheduled workouts… */
+  missedWorkoutsThreshold: z.number().int().min(1).max(14),
+  /** …within this many days before today (T07). */
+  missedWorkoutsWindowDays: z.number().int().min(3).max(28),
+  /** Training credits count as expiring this many days before their pack ends (T07). */
+  creditExpiryWarningDays: z.number().int().min(1).max(90),
 });
 export type GymPolicies = z.infer<typeof GymPolicies>;
 

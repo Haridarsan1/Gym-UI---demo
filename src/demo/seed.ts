@@ -6,6 +6,7 @@ import type {
 } from "@/domain/types";
 import { rng } from "@/demo/rng";
 import { PERSONAS } from "@/demo/personas";
+import { TRAINER_POLICY_DEFAULTS } from "@/domain/trainerToday";
 import { buildRoster } from "@/demo/seedTrainer";
 import { buildMemberData } from "@/demo/seedMember";
 import { EXERCISES } from "@/demo/exercises";
@@ -84,7 +85,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
   const policies: GymPolicies = {
     id: `pol_${TENANT_ID}`, tenantId: TENANT_ID, cancellationCutoffHours: 12, lateCancelConsumesCredit: true, noShowConsumesCredit: true,
-    streakThresholdPercent: 75, bookingHorizonDays: 14, sessionMinutes: 60, membersMayChooseTrainer: false,
+    streakThresholdPercent: 75, bookingHorizonDays: 14, sessionMinutes: 60, membersMayChooseTrainer: false, ...TRAINER_POLICY_DEFAULTS,
   };
 
   // Trainers take sessions 6 to 11 am and 5 to 9 pm. With two branches they alternate: first on Mon, Wed, Fri, second on Tue, Thu, Sat.
@@ -285,7 +286,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,
     creditLedger: [...creditLedger, ...memberData.creditLedger, ...roster.creditLedger],
     invoices: memberData.invoices, payments: memberData.payments, refunds: [], classes: [], bookings: [...memberData.bookings, ...roster.bookings], checkIns: memberData.checkIns,
-    exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: memberData.goals,
+    exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: [...memberData.goals, ...roster.goals],
     measurements: memberData.measurements, auditEvents: [], trainerReviews: [...memberData.trainerReviews, ...roster.trainerReviews], memberSettings: memberData.memberSettings,
     badgeAwards: memberData.badgeAwards, trainerAvailability: availability, gymPolicies: [policies],
   };

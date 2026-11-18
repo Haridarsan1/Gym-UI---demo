@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DEMO_ACCOUNTS } from "@/app/demoAccounts";
 import type { Session } from "@/app/session";
 import { setNow } from "@/api/clock";
 import { isApiError } from "@/api/errors";
 import { getTrainerToday } from "@/api/trainer";
+import { db } from "@/demo/db";
 import { resetDemo } from "@/demo";
 
 const as = (userId: string): Session => {
@@ -49,7 +50,7 @@ describe("Trainer Today: Coach Meera", () => {
     expect(days).toEqual([...days].sort((a, b) => b - a));
     for (const r of t.overdueReviews) {
       expect(r.daysOver).toBeGreaterThan(0);
-      expect(["Follow-up date has passed", "Four weeks since the last review", "No review yet"]).toContain(r.reason);
+      expect(r.reason).toMatch(/^(Follow-up date has passed|Reviewed every (14|28|42) days|No review yet)$/);
     }
   });
 
@@ -90,5 +91,55 @@ describe("Trainer Today: Coach Meera", () => {
     expect(await code(getTrainerToday(as("u_desk_andheri")))).toBe("forbidden");
     expect(await code(getTrainerToday(as("u_owner")))).toBe("forbidden");
     expect(await code(getTrainerToday(null))).toBe("unauthenticated");
+  });});
+
+describe("Trainer Today: the client’s cadence and the gym’s policies", () => {
+  beforeEach(async () => {
+    await resetDemo();
+  });
+
+  it("reviews a client on the cadence their goal sets, and the gym’s default only when no goal sets one", async () => {
+    const before = await getTrainerToday(as("u_trainer_meera"));
+    const target = before.overdueReviews.find((r) => r.reason === "Reviewed every 28 days") ?? before.overdueReviews.find((r) => r.reason.startsWith("Reviewed every"))!;
+    // Stretch that client’s goal to a 180-day cadence: they are no longer overdue.
+    await db.goals.where("memberId").equals(target.memberId).modify({ reviewEveryDays: 180 });
+    const stretched = await getTrainerToday(as("u_trainer_meera"));
+    expect(stretched.overdueReviews.some((r) => r.memberId === target.memberId)).toBe(false);
+    // Close the goal and the gym’s default (28 days) applies again.
+    await db.goals.where("memberId").equals(target.memberId).modify({ status: "closed" });
+    const fallback = await getTrainerToday(as("u_trainer_meera"));
+    expect(fallback.overdueReviews.find((r) => r.memberId === target.memberId)?.reason).toBe("Reviewed every 28 days");
+    // …and a different default changes the answer.
+    await db.gymPolicies.toCollection().modify({ reviewCadenceDays: 365 });
+    const lax = await getTrainerToday(as("u_trainer_meera"));
+    expect(lax.overdueReviews.some((r) => r.memberId === target.memberId)).toBe(false);
+  });
+
+  it("says what cadence made a review due", async () => {
+    const t = await getTrainerToday(as("u_trainer_meera"));
+    const cadences = new Set(t.overdueReviews.map((r) => r.reason));
+    expect([...cadences].every((c) => /^(Follow-up date has passed|Reviewed every (14|28|42) days|No review yet)$/.test(c))).toBe(true);
+  });
+
+  it("lists missed workouts by the gym’s threshold and window", async () => {
+    const base = await getTrainerToday(as("u_trainer_meera"));
+    await db.gymPolicies.toCollection().modify({ missedWorkoutsThreshold: 3 });
+    const strict = await getTrainerToday(as("u_trainer_meera"));
+    expect(strict.missed.length).toBeLessThanOrEqual(base.missed.length);
+    for (const m of strict.missed) expect(m.missed).toBeGreaterThanOrEqual(3);
+    await db.gymPolicies.toCollection().modify({ missedWorkoutsThreshold: 1, missedWorkoutsWindowDays: 14 });
+    const wide = await getTrainerToday(as("u_trainer_meera"));
+    expect(wide.missed.length).toBeGreaterThan(base.missed.length);
+  });
+
+  it("flags expiring credits by the gym’s warning period", async () => {
+    const base = await getTrainerToday(as("u_trainer_meera"));
+    await db.gymPolicies.toCollection().modify({ creditExpiryWarningDays: 1 });
+    const none = await getTrainerToday(as("u_trainer_meera"));
+    expect(none.expiring.length).toBeLessThanOrEqual(base.expiring.length);
+    await db.gymPolicies.toCollection().modify({ creditExpiryWarningDays: 90 });
+    const many = await getTrainerToday(as("u_trainer_meera"));
+    expect(many.expiring.length).toBeGreaterThanOrEqual(base.expiring.length);
+    for (const e of many.expiring) expect(e.daysLeft).toBeLessThanOrEqual(90);
   });
 });

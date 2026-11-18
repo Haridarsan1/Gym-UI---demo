@@ -74,10 +74,10 @@ export function Navbar() {
               ))}
             </ul>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <ButtonLink to="/login" variant="clay" size="lg">
+              <ButtonLink to="/login" variant="clay" size="lg" onClick={() => setOpen(false)}>
                 Log in
               </ButtonLink>
-              <ButtonLink to="/signup" variant="primary" size="lg">
+              <ButtonLink to="/signup" variant="primary" size="lg" onClick={() => setOpen(false)}>
                 Start free trial
               </ButtonLink>
             </div>
