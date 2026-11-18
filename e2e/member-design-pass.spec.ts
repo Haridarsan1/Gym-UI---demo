@@ -180,7 +180,7 @@ test.describe("the last content scrolls clear of the tab bar and the raised butt
     await page.waitForTimeout(150);
     const m = await page.evaluate(() => {
       const last = document.querySelector("main")!.lastElementChild as HTMLElement;
-      const nav = document.querySelector("nav[aria-label='Main']")!;
+      const nav = [...document.querySelectorAll("nav[aria-label='Main']")].find((n) => (n as HTMLElement).offsetParent !== null || getComputedStyle(n).position === "fixed" && getComputedStyle(n).display !== "none")!;
       const tops = [nav.firstElementChild!.getBoundingClientRect().top, ...[...nav.querySelectorAll(".btn3d")].map((b) => b.getBoundingClientRect().top)];
       return { bottom: last.getBoundingClientRect().bottom, barTop: Math.min(...tops) };
     });

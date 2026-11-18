@@ -1,0 +1,209 @@
+import { expect, test, type Page } from "@playwright/test";
+import { hasHorizontalScroll, signInAs } from "./helpers";
+
+/**
+ * Every area follows the same responsive rules (CLAUDE.md, “Responsive rules”): the navigation pattern for each width,
+ * no sideways scroll, a capped content width, and sheets that become side panels. They run once, in the desktop project
+ * (the phone project ignores this file), and set their own viewport.
+ */
+
+const WIDTHS = [360, 390, 768, 1024, 1440] as const;
+const HEIGHT = (w: number) => (w < 640 ? 800 : w < 1024 ? 1024 : 900);
+
+async function at(page: Page, width: number, userId: string, path: string) {
+  await page.setViewportSize({ width, height: HEIGHT(width) });
+  await signInAs(page, userId, path);
+}
+
+const box = async (page: Page, selector: string) => (await page.locator(selector).first().boundingBox())!;
+
+test.describe("navigation pattern by width", () => {
+  for (const [who, userId, path, raisedName] of [
+    ["member", "u_member_arjun", "/m", /^(Start|Continue) today’s workout$/],
+    ["trainer", "u_trainer_meera", "/t", /Log session/],
+  ] as const) {
+    for (const width of WIDTHS) {
+      test(`${who} at ${width} px`, async ({ page }) => {
+        await at(page, width, userId, path);
+        const navs = page.locator('nav[aria-label="Main"]:visible');
+        await expect(navs).toHaveCount(1);
+        const b = (await navs.first().boundingBox())!;
+        const raised = navs.first().getByRole("link", { name: raisedName });
+        await expect(raised).toBeVisible();
+        if (width < 640) {
+          // Phone: a bar along the bottom with the raised action standing above it.
+          expect(b.y + b.height).toBeGreaterThan(HEIGHT(width) - 4);
+          expect(b.width).toBeLessThan(width + 1);
+          const r = (await raised.boundingBox())!;
+          expect(r.y).toBeLessThan(b.y + b.height / 2);
+        } else if (width < 1024) {
+          // Tablet: a rail down the left, about 88 px wide, with the raised action as its first item.
+          expect(b.x).toBe(0);
+          expect(b.width).toBeGreaterThan(80);
+          expect(b.width).toBeLessThan(100);
+          expect(b.height).toBeGreaterThan(HEIGHT(width) - 4);
+          const r = (await raised.boundingBox())!;
+          for (const link of await navs.first().getByRole("link").all()) {
+            if ((await link.getAttribute("aria-label")) === "Home" || link === raised) continue;
+            expect(r.y).toBeLessThanOrEqual((await link.boundingBox())!.y);
+          }
+          await expect(raised).toHaveClass(/btn3d/);
+        } else {
+          // Desktop: a full sidebar with the gym’s name, the raised action as a full-width button, and the account menu.
+          expect(b.x).toBe(0);
+          expect(b.width).toBeGreaterThan(240);
+          const side = page.locator("aside:visible");
+          await expect(side.getByText("Pulse Fitness")).toBeVisible();
+          await expect(side.getByRole("button", { name: /^Account menu/ })).toBeVisible();
+          const r = (await raised.boundingBox())!;
+          expect(r.width).toBeGreaterThan(b.width - 40);
+        }
+        expect(await hasHorizontalScroll(page)).toBe(false);
+      });
+    }
+  }
+
+  for (const width of WIDTHS) {
+    test(`front desk at ${width} px`, async ({ page }) => {
+      await at(page, width, "u_desk_andheri", "/desk");
+      const navs = page.locator('nav[aria-label="Main"]:visible');
+      await expect(navs).toHaveCount(1);
+      const b = (await navs.first().boundingBox())!;
+      if (width < 640) expect(b.y + b.height).toBeGreaterThan(HEIGHT(width) - 4);
+      else if (width < 1024) {
+        expect(b.x).toBe(0);
+        expect(b.width).toBeLessThan(100);
+      } else {
+        expect(b.x).toBe(0);
+        expect(b.width).toBeGreaterThan(240);
+      }
+      expect(await hasHorizontalScroll(page)).toBe(false);
+    });
+  }
+});
+
+test.describe("member screens at every width", () => {
+  const SCREENS: Array<[string, string | RegExp]> = [
+    ["/m", /^Good (morning|afternoon|evening)/],
+    ["/m/program", "Program"],
+    ["/m/progress", "Progress"],
+    ["/m/progress/reviews", "Reviews and check-ins"],
+    ["/m/bookings", "Bookings"],
+    ["/m/membership", "Membership"],
+    ["/m/pass", "Check-in pass"],
+    ["/m/me", "Me"],
+  ];
+  for (const width of WIDTHS) {
+    test(`no sideways scroll, a capped width and 44 px targets at ${width} px`, async ({ page }) => {
+      for (const [path, h1] of SCREENS) {
+        await at(page, width, "u_member_arjun", path);
+        await expect(page.getByRole("heading", { name: h1, level: 1 })).toBeVisible();
+        expect(await hasHorizontalScroll(page), `${path} scrolls sideways`).toBe(false);
+        const main = await box(page, "main");
+        expect(main.width, `${path} content is wider than 1200 px`).toBeLessThanOrEqual(1200);
+        if (width >= 1024) expect(main.width, `${path} is a phone-width column on a wide screen`).toBeGreaterThan(Math.min(width - 288, 1100) * 0.9);
+        if (width < 1024) {
+          // Touch widths: every visible button and link is at least 44 px tall and wide, except links inside a line of text.
+          const small = await page.evaluate(() =>
+            [...document.querySelectorAll<HTMLElement>("a, button, [role=radio], [role=switch], input:not([type=hidden])")]
+              .filter((el) => el.offsetParent !== null && !el.closest("p, li > p, summary") && !el.classList.contains("sr-only"))
+              .map((el) => ({ el, r: el.getBoundingClientRect() }))
+              .filter(({ r }) => r.width > 0 && r.height > 0 && (r.height < 43.5 || r.width < 43.5))
+              .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 30)}" ${Math.round(r.width)}x${Math.round(r.height)}`),
+          );
+          expect(small, `${path} has small touch targets`).toEqual([]);
+        }
+      }
+    });
+  }
+
+  test("Today is two columns on desktop and the week strip sits under the workout", async ({ page }) => {
+    await at(page, 1440, "u_member_arjun", "/m");
+    const workout = await box(page, 'section[aria-labelledby="hero-title"]');
+    const sessions = await box(page, 'section[aria-labelledby="sessions-title"]');
+    const week = await box(page, 'section[aria-labelledby="week-title"]');
+    expect(sessions.x).toBeGreaterThan(workout.x + workout.width);
+    expect(week.y).toBeGreaterThan(workout.y + workout.height);
+    expect(Math.abs(week.x - workout.x)).toBeLessThan(2);
+  });
+
+  test("Program shows the selected day beside the path from 768 px, with no dialog, and the address follows", async ({ page }) => {
+    await at(page, 1440, "u_member_arjun", "/m/program");
+    await expect(page.getByRole("region", { name: "Selected workout" })).toBeVisible();
+    await page.getByRole("button", { name: /Preview Pull/ }).click();
+    await expect(page.getByRole("region", { name: "Selected workout" }).getByRole("heading", { name: "Pull", level: 2 })).toBeVisible();
+    await expect(page).toHaveURL(/date=\d{4}-\d{2}-\d{2}/);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await at(page, 390, "u_member_arjun", "/m/program");
+    await page.getByRole("button", { name: /Preview Pull/ }).click();
+    await expect(page.getByRole("dialog", { name: "Workout preview" })).toBeVisible();
+  });
+});
+
+test.describe("sheets", () => {
+  test("a detail sheet is a bottom sheet on a phone and a side panel from 640 px", async ({ page }) => {
+    await at(page, 390, "u_member_arjun", "/m/progress");
+    await page.getByRole("button", { name: "Log your weight or a measurement" }).click();
+    const phone = page.getByRole("dialog", { name: "Log a measurement" });
+    await expect(phone).toBeVisible();
+    let b = (await phone.boundingBox())!;
+    expect(b.y + b.height).toBeGreaterThan(800 - 2);
+    expect(b.y).toBeGreaterThan(40);
+    for (const width of [768, 1440]) {
+      await at(page, width, "u_member_arjun", "/m/progress");
+      await page.getByRole("button", { name: "Log your weight or a measurement" }).click();
+      const panel = page.getByRole("dialog", { name: "Log a measurement" });
+      await expect(panel).toBeVisible();
+      b = (await panel.boundingBox())!;
+      expect(b.x + b.width).toBeGreaterThan(width - 2);
+      expect(b.x).toBeGreaterThan(width - 520);
+      expect(b.height).toBeGreaterThan(HEIGHT(width) - 4);
+      await page.keyboard.press("Escape");
+      await expect(panel).toHaveCount(0);
+    }
+  });
+
+  test("a confirmation is a bottom sheet on a phone and a centred dialog from 640 px", async ({ page }) => {
+    for (const width of [390, 768, 1440]) {
+      await at(page, width, "u_member_arjun", "/m/bookings");
+      await page.getByRole("button", { name: "Cancel session" }).click();
+      const d = page.getByRole("dialog", { name: "Cancel session" });
+      await expect(d).toBeVisible();
+      const b = (await d.boundingBox())!;
+      if (width < 640) expect(b.y + b.height).toBeGreaterThan(HEIGHT(width) - 2);
+      else {
+        expect(Math.abs(b.x + b.width / 2 - width / 2)).toBeLessThan(2);
+        expect(Math.abs(b.y + b.height / 2 - HEIGHT(width) / 2)).toBeLessThan(2);
+      }
+    }
+  });
+
+  test("booking is a side panel on a tablet and inline, with pickers left and times right, on desktop", async ({ page }) => {
+    await at(page, 768, "u_member_arjun", "/m/bookings");
+    await page.getByRole("button", { name: "Book a session" }).first().click();
+    const panel = page.getByRole("dialog", { name: "Book a session" });
+    await expect(panel).toBeVisible();
+    expect((await panel.boundingBox())!.x + (await panel.boundingBox())!.width).toBeGreaterThan(766);
+    await at(page, 1440, "u_member_arjun", "/m/bookings");
+    await page.getByRole("button", { name: "Book a session" }).first().click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    const inline = page.getByRole("region", { name: "Book a session" });
+    await inline.getByRole("button", { name: /Meera Joshi/ }).click();
+    const times = inline.getByRole("list", { name: /^Times on/ });
+    await expect(times).toBeVisible();
+    const trainer = (await inline.getByRole("button", { name: /Meera Joshi/ }).boundingBox())!;
+    expect((await times.boundingBox())!.x).toBeGreaterThan(trainer.x + trainer.width);
+  });
+});
+
+test.describe("desktop polish", () => {
+  test("icon-only buttons have a tooltip and everything has a visible focus ring", async ({ page }) => {
+    await at(page, 1440, "u_member_arjun", "/m");
+    const account = page.getByRole("button", { name: /^Account menu/ }).first();
+    await account.hover();
+    await expect(page.getByRole("tooltip", { name: "Account" })).toBeVisible();
+    await page.keyboard.press("Tab");
+    const outline = await page.evaluate(() => getComputedStyle(document.activeElement!).outlineStyle);
+    expect(outline).not.toBe("none");
+  });
+});

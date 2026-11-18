@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { chrome } from "./helpers";
 
 const heading = (page: Page, name: string | RegExp) => page.getByRole("heading", { name, level: 1 });
 const fastDemo = (page: Page) => page.addInitScript(() => localStorage.setItem("ember.demo.simulation", JSON.stringify({ minMs: 0, maxMs: 0, failureRate: 0 })));
@@ -200,14 +201,14 @@ test.describe("role switcher", () => {
     await page.getByRole("button", { name: /^Owner/ }).click();
     await expect(heading(page, "Dashboard")).toBeVisible();
     await page.getByRole("button", { name: /Account menu/ }).click();
-    await expect(page.getByRole("banner").getByRole("button", { name: /^Owner/ })).toHaveCount(0);
-    await page.getByRole("banner").getByRole("button", { name: /^Front desk/ }).click();
+    await expect(chrome(page).getByRole("button", { name: /^Owner/ })).toHaveCount(0);
+    await chrome(page).getByRole("button", { name: /^Front desk/ }).click();
     await expect(page).toHaveURL(/\/desk$/);
     await expect(heading(page, "Check-in")).toBeVisible();
     await expect(page.getByRole("button", { name: "Account menu for Pooja Nair" })).toBeVisible();
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem("ember.session")))!).role).toBe("front_desk");
     await page.getByRole("button", { name: /Account menu/ }).click();
-    await page.getByRole("banner").getByRole("button", { name: /^Member/ }).click();
+    await chrome(page).getByRole("button", { name: /^Member/ }).click();
     await expect(page).toHaveURL(/\/m$/);
   });
 

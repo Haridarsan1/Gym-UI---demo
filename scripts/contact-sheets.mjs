@@ -1,6 +1,7 @@
 /**
  * Puts the 390 px screenshots of the member app on contact sheets: a grid of thumbnails with a caption under each.
- *   node scripts/contact-sheets.mjs docs/checkpoints/m1-final
+ *   node scripts/contact-sheets.mjs docs/checkpoints/m1-final            (390 px, the default)
+ *   node scripts/contact-sheets.mjs docs/checkpoints/m1-5/768 3 768        (folder, number of sheets, width)
  * Reads <dir>/screens/NN-key.png and e2e/m1-shots.json (the captions), writes <dir>/contact-sheet-1.png and so on.
  * Each sheet is a page drawn by the browser we already have for tests, so no image library is needed.
  */
@@ -11,9 +12,11 @@ import { chromium } from "@playwright/test";
 
 const dir = resolve(process.argv[2] ?? "docs/checkpoints/m1-final");
 const SHEETS = Number(process.argv[3] ?? 3);
-const COLUMNS = 5;
-const THUMB_W = 210;
-const THUMB_H = Math.round((THUMB_W * 844) / 390);
+const WIDTH = Number(process.argv[4] ?? 390);
+const HEIGHT = WIDTH < 640 ? 844 : WIDTH < 1024 ? 1024 : 900;
+const COLUMNS = WIDTH < 640 ? 5 : WIDTH < 1024 ? 4 : 3;
+const THUMB_W = WIDTH < 640 ? 210 : WIDTH < 1024 ? 260 : 420;
+const THUMB_H = Math.round((THUMB_W * HEIGHT) / WIDTH);
 
 const shots = JSON.parse(readFileSync("e2e/m1-shots.json", "utf8"));
 const files = new Map(readdirSync(join(dir, "screens")).filter((f) => f.endsWith(".png")).map((f) => [f.replace(/^\d+-/, "").replace(/\.png$/, ""), f]));
@@ -35,7 +38,7 @@ const html = (group, n, total) => `<!doctype html><meta charset="utf-8"><style>
   .frame img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
   figcaption { margin-top: 8px; font-size: 14px; line-height: 1.25; font-weight: 600; } figcaption span { display: block; color: #9A93AE; font-weight: 500; font-size: 12px; }
 </style>
-<h1>Ember member app, 390 px</h1><p class="sub">Sheet ${n} of ${total}. Each picture is the phone screen at 390 by 844.</p>
+<h1>Ember member app, ${WIDTH} px</h1><p class="sub">Sheet ${n} of ${total}. Each picture is the screen at ${WIDTH} by ${HEIGHT}.</p>
 <div class="grid">${group.map((s) => `<figure><div class="frame"><img src="${pathToFileURL(join(dir, "screens", files.get(s.key))).href}" alt=""></div><figcaption>${esc(s.caption)}<span>${esc(files.get(s.key).replace(/\.png$/, ""))}</span></figcaption></figure>`).join("")}</div>`;
 
 const browser = await chromium.launch();

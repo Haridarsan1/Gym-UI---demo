@@ -46,9 +46,33 @@ Add the `test` and `e2e` scripts in milestone M0 if they don’t exist yet.
 - **Member and trainer apps:** game-like. Use `Button3D` for primary actions, the program path, the shared `celebrate()` system, streaks and badges, haptics. Celebrate real achievements only (workout done, PR, goal, streak, check-in). No mascot.
 - **Desk, finance, owner and admin consoles:** calm and fast. Dense tables, ⌘K, keyboard shortcuts, subtle motion. No confetti, mascots or badges where money or access is handled.
 - Status pills: membership filled, invoice outlined, skipped workouts never red.
-- Mobile first. Member and trainer apps use a bottom tab bar; staff consoles use a sidebar on desktop and a bottom bar with “More” on phones. Touch targets at least 44 px. No horizontal scroll from 360 px up.
+- Mobile first, and every area works on phone, tablet and desktop. See “Responsive rules” below. Touch targets at least 44 px on touch widths. No horizontal scroll from 360 px up.
 - Every list has a loading skeleton, an empty state that says what to do next, and an error state with a retry.
 - Respect `prefers-reduced-motion`: no animation, same information.
+
+## Responsive rules (every area, every screen)
+
+**Three layouts, the same in every area** (member, trainer, desk, finance, owner, admin). Tailwind’s `sm` and `lg` are the breakpoints; `useBreakpoint()` and `useMediaQuery(MEDIA.…)` in `src/design/useMediaQuery.ts` agree with them.
+
+| Width | Navigation |
+|---|---|
+| Phone, under 640 px | Bottom tab bar with the raised action (staff consoles: four entries and “More”) |
+| Tablet, 640 to 1023 px | Navigation rail on the left: icon and one short word (`short` on the screen in `screens.ts`). The raised action is the first item, as Button3D |
+| Desktop, 1024 px and up | Full sidebar: gym logo and name, the raised action as a full-width Button3D, the navigation, the account menu at the bottom |
+
+Shells are `PlayShell` (member, trainer) and `StaffShell`; both use `NavRail` and `NavSidebar` from `design/shells/AppNav.tsx`. Never build a screen-level navigation of your own. A focus mode (the workout session) may hide the navigation at every width.
+
+**Content width.** `main` is capped at 1200 px. Reading text (reviews, notes, descriptions) is capped at about 70 characters (`max-w-[70ch]`). A phone-width column must never float in the middle of a wide screen: from 1024 px use the width with two or three zones.
+
+**Shared pieces (use them, don’t re-make them):**
+- `Sheet` (`design/Sheet.tsx`): detail and forms are a bottom sheet on phones and a right-hand panel from 640 px (`kind="panel"`); confirmations are a bottom sheet on phones and a centred dialog (`kind="confirm"`). Never use `Dialog` directly for these.
+- `ListDetail` (`design/layout/ListDetail.tsx`): a list with the selected item beside it from 768 px; on phones the detail is a new screen with a Back link. The selection is in the address (route parameter or query string).
+- `ResponsiveTable` and `StickyActions` (`design/layout/ResponsiveTable.tsx`): staff tables are dense tables from 640 px and card lists with the key fields on phones; filters move into a Sheet, and primary actions sit in a sticky bottom bar.
+- `Tooltip` for every icon-only button; `useShortcut` for frequent keys (never the only way to do something).
+
+**Desktop polish.** Hover states, a visible focus ring (the global `:focus-visible` rule), `cursor-pointer` on clickable non-links, tooltips on icon-only buttons.
+
+**Every screen, every time:** check 360, 390, 768, 1024 and 1440 px: no horizontal scroll, the right navigation at each width, 44 px touch targets on touch widths, no stretched lines or empty space on desktop. `e2e/responsive.spec.ts` covers navigation, width, touch targets and sheets; add the new screen’s paths to it. Contact sheets at 390, 768 and 1440 px for every checkpoint (`scripts/shots-widths.mjs`).
 
 ## Writing rules
 

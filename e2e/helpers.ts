@@ -95,3 +95,6 @@ export const changeStore = (page: Page, store: string, change: string) =>
     }),
     [store, change],
   );
+
+/** The page’s navigation chrome: the top bar on phones, the rail on tablets and the sidebar on desktop, whichever is showing. */
+export const chrome = (page: Page) => page.locator("header:visible, aside:visible, nav:visible");

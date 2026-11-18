@@ -3,14 +3,19 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { doWorkout, readStore, signInAs } from "./helpers";
 
 /**
- * Takes the 390 px screenshots of the member app that the M1 review uses, then scripts/contact-sheets.mjs puts them on sheets.
- * Skipped in normal runs. `npm run m1:shots` runs it. Motion is reduced so every screen is in its finished state.
+ * Takes the screenshots of the member app that a review uses, then scripts/contact-sheets.mjs puts them on sheets.
+ * Skipped in normal runs. `npm run m1:shots` (390 px) and `npm run m1_5:shots` (390, 768 and 1440 px) run it; SHOT_WIDTH picks
+ * the width. Motion is reduced so every screen is in its finished state.
  */
-const OUT = "docs/checkpoints/m1-final/screens";
+const WIDTH = Number(process.env.SHOT_WIDTH ?? 390);
+const HEIGHT = WIDTH < 640 ? 844 : WIDTH < 1024 ? 1024 : 900;
+const OUT = process.env.SHOT_OUT ?? (WIDTH === 390 ? "docs/checkpoints/m1-final/screens" : `docs/checkpoints/m1-5/${WIDTH}/screens`);
+const SPLIT = WIDTH >= 768;
+const INLINE_BOOKING = WIDTH >= 1024;
 const SHOTS: Array<{ key: string; caption: string }> = JSON.parse(readFileSync("e2e/m1-shots.json", "utf8"));
 
 test.skip(!process.env.M1_SHOTS, "Only runs for npm run m1:shots");
-test.use({ reducedMotion: "reduce", viewport: { width: 390, height: 844 } });
+test.use({ reducedMotion: "reduce", viewport: { width: WIDTH, height: HEIGHT }, isMobile: WIDTH < 640, hasTouch: WIDTH < 1024 });
 
 async function shot(page: Page, key: string, target?: Locator) {
   const i = SHOTS.findIndex((s) => s.key === key);
@@ -48,9 +53,10 @@ test("Program and the workout session", async ({ page }) => {
   await ready(page, "Program");
   await shot(page, "program");
   await page.getByRole("button", { name: /Preview Upper body and core/ }).click();
-  await expect(dialog(page, "Workout preview")).toBeVisible();
+  // From 768 px the preview sits beside the path; on phones it is a sheet.
+  await expect(SPLIT ? region(page, "Selected workout") : dialog(page, "Workout preview")).toBeVisible();
   await shot(page, "program-preview");
-  await page.keyboard.press("Escape");
+  if (!SPLIT) await page.keyboard.press("Escape");
   await page.goto("/m");
   await page.getByRole("link", { name: "Start workout" }).click();
   await page.getByRole("button", { name: "Next exercise" }).click();
@@ -87,7 +93,7 @@ test("Bookings", async ({ page }) => {
   await expect(region(page, "Training sessions")).toContainText("5 sessions left");
   await shot(page, "bookings");
   await page.getByRole("button", { name: "Book a session" }).first().click();
-  const d = dialog(page, "Book a session");
+  const d = INLINE_BOOKING ? region(page, "Book a session") : dialog(page, "Book a session");
   await expect(d.getByRole("button", { name: /Meera Joshi/ })).toBeVisible();
   await shot(page, "book-trainer");
   await d.getByRole("button", { name: /Meera Joshi/ }).click();
@@ -96,7 +102,8 @@ test("Bookings", async ({ page }) => {
   await d.getByRole("list", { name: /^Times on/ }).locator("button:not([disabled])").first().click();
   await expect(d.getByRole("region", { name: "Booking details" })).toBeVisible();
   await shot(page, "book-confirm");
-  await page.keyboard.press("Escape");
+  if (INLINE_BOOKING) await d.getByRole("button", { name: "Close" }).click();
+  else await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Cancel session" }).click();
   await expect(dialog(page, /Cancel/)).toBeVisible();
   await shot(page, "cancel-sheet");

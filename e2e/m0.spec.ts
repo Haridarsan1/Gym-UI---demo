@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { hasHorizontalScroll } from "./helpers";
+import { hasHorizontalScroll, chrome } from "./helpers";
 
 /**
  * Milestone M0, “done when”: each role lands on its own empty home inside its shell, on phone and desktop, with the
@@ -51,8 +51,8 @@ for (const role of roles) {
     expect(await hasHorizontalScroll(page)).toBe(false);
     await expect(page.getByRole("link", { name: "Skip to content" })).toHaveCount(1);
 
-    await page.getByRole("banner").getByRole("button", { name: /Account menu/ }).click();
-    await page.getByRole("banner").getByRole("button", { name: "Sign out" }).click();
+    await chrome(page).getByRole("button", { name: /Account menu/ }).click();
+    await chrome(page).getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
   });
 }

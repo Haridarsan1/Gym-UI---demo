@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { hasHorizontalScroll, signInAs } from "./helpers";
+import { chrome, hasHorizontalScroll, signInAs } from "./helpers";
 
 const main = (page: import("@playwright/test").Page) => page.getByRole("navigation", { name: "Main" });
 
@@ -77,11 +77,11 @@ test.describe("member app navigation", () => {
   test("the avatar menu reaches membership, pass and profile, and no longer lists reviews", async ({ page }) => {
     await signInAs(page, "u_member_arjun", "/m");
     await page.getByRole("button", { name: /Account menu/ }).click();
-    await expect(page.getByRole("banner").getByRole("link", { name: /Reviews/ })).toHaveCount(0);
+    await expect(chrome(page).getByRole("link", { name: /Reviews/ })).toHaveCount(0);
     await page.keyboard.press("Escape");
     for (const [link, heading] of [["Membership and receipts", "Membership"], ["Check-in pass", "Check-in pass"], ["Profile, consent and preferences", "Me"]] as const) {
       await page.getByRole("button", { name: /Account menu/ }).click();
-      await page.getByRole("banner").getByRole("link", { name: link }).click();
+      await chrome(page).getByRole("link", { name: link }).last().click();
       await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
     }
   });
@@ -177,7 +177,7 @@ test.describe("branch switcher", () => {
   test("shows a branch manager only their own branch, with no choice", async ({ page }) => {
     await signInAs(page, "u_bm_bandra", "/owner");
     await expect(page.getByRole("combobox", { name: "Branch" })).toHaveCount(0);
-    await expect(page.getByRole("banner").getByText("Bandra", { exact: true })).toBeVisible();
+    await expect(chrome(page).getByText("Bandra", { exact: true })).toBeVisible();
   });
 });
 
@@ -225,10 +225,10 @@ test.describe("slow data", () => {
       await page.reload();
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await page.getByRole("button", { name: /Account menu/ }).click();
-      const signOut = page.getByRole("banner").getByRole("button", { name: "Sign out" });
+      const signOut = chrome(page).getByRole("button", { name: "Sign out" });
       await expect(signOut).toBeVisible();
       await page.waitForTimeout(2200); // the details arrive during this wait
-      await expect(page.getByRole("banner").getByText(/^(Owner|Member), Pulse Fitness$/)).toBeVisible();
+      await expect(chrome(page).getByText(/^(Owner|Member), Pulse Fitness$/)).toBeVisible();
       await expect(signOut).toBeVisible();
     });
   }
@@ -239,7 +239,7 @@ test.describe("sign out and reset", () => {
     test(`${userId} can sign out from the avatar menu`, async ({ page }) => {
       await signInAs(page, userId, home);
       await page.getByRole("button", { name: /Account menu/ }).click();
-      await page.getByRole("banner").getByRole("button", { name: "Sign out" }).click();
+      await chrome(page).getByRole("button", { name: "Sign out" }).click();
       await expect(page).toHaveURL(/\/login$/);
       expect(await page.evaluate(() => localStorage.getItem("ember.session"))).toBeNull();
       await page.goto(home);
@@ -247,9 +247,10 @@ test.describe("sign out and reset", () => {
     });
   }
 
-  test("the desk sidebar has Sign out too", async ({ page, isMobile }) => {
+  test("the account menu at the bottom of the desk sidebar has Sign out", async ({ page, isMobile }) => {
     test.skip(isMobile, "Sidebar is desktop only");
     await signInAs(page, "u_desk_andheri", "/desk");
+    await page.locator("aside").getByRole("button", { name: /Account menu/ }).click();
     await page.locator("aside").getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
   });

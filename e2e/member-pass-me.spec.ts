@@ -22,7 +22,7 @@ test.describe("Check-in pass (M05)", () => {
     const box = (await qr.boundingBox())!;
     expect(box.width).toBeGreaterThanOrEqual(200);
     expect(Math.abs(box.width - box.height)).toBeLessThan(2);
-    await expect(page.getByText("Arjun Kumar", { exact: true })).toBeVisible();
+    await expect(page.locator("#main").getByText("Arjun Kumar", { exact: true })).toBeVisible();
     await expect(page.getByText("Pulse Fitness, Andheri")).toBeVisible();
     await expect(page.getByText("Ready to scan")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Turn your brightness up" })).toBeVisible();

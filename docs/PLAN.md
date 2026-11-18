@@ -175,6 +175,7 @@ Optional expansion (POS, chat, wearables, nutrition) is out of scope until rollo
 | Charts | Own SVG components | Avoids a 100 KB chart dependency |
 | QR | `qrcode` (generate), `@zxing/browser` or `BarcodeDetector` (scan, lazy-loaded on desk only) | Only the desk downloads the scanner |
 | Confetti | `canvas-confetti` (lazy) | ~4 KB, loaded only when celebrating |
+| Drag to reorder | `@dnd-kit/core` and `@dnd-kit/sortable` (approved for M2; exact pins, published at least two weeks before they are added) | Program builder only, in its own chunk. Move up and Move down buttons stay for keyboard users |
 | Demo database | Dexie (IndexedDB) with seed + reset | Survives refresh; reset button for demos |
 | Offline | `vite-plugin-pwa`; offline workout drafts and queue | W03 drafts, gym basements have bad signal |
 | Tests | Vitest (domain rules), Playwright (acceptance flows) | A01–A05 automated |
@@ -245,6 +246,16 @@ Also added to existing records: `Invoice.placeOfSupply` (GST state code, decides
 - **Substitution (W03):** a swapped exercise is stored against the one it replaced and answers its prescription. Its sets start empty, because they are a different movement.
 - **When a workout can be logged:** on its day, for an active membership. A started workout can still be saved until the end of the next day. A finished workout is final; a trainer corrects it (T05). A frozen or ended membership can preview the plan but not log.
 - **Drafts and retries:** one log per member and day. A draft is saved as sets are logged and carries the workout’s idempotency key; the final submit uses the same key, so repeating it returns the same log. A draft save that arrives after the submit is ignored.
+
+### Responsive patterns (M1.5, for every area)
+
+The full rules are in `CLAUDE.md` (“Responsive rules”). What was built and where:
+
+- **Navigation by width.** Phone: bottom bar with the raised action. Tablet (640 to 1023 px): a rail 88 px wide with an icon and a short word, the raised action first as Button3D. Desktop (1024 px and up): a 256 px sidebar with the gym’s logo and name, the raised action as a full-width Button3D, the navigation, and the account menu at the bottom. `design/shells/AppNav.tsx` (`NavRail`, `NavSidebar`) is used by `PlayShell` and `StaffShell`. Screens can set a one-word `short` label in `screens.ts` for the rail. The workout session is a focus mode and hides the navigation at every width.
+- **Content width.** `main` is capped at 1200 px; reading text at about 70 characters.
+- **Sheet** (`design/Sheet.tsx`) replaces direct use of `Dialog`: panel (bottom sheet, then right-hand panel from 640 px) or confirm (bottom sheet, then centred dialog). Cancel session, Finish workout and Turn on auto-renew are confirmations; everything else is a panel.
+- **ListDetail**, **ResponsiveTable** and **StickyActions** (`design/layout/`) are ready for the trainer and staff screens. **Tooltip** and **useShortcut** are in `design/`.
+- **Member screens on wide screens.** Today: two columns from 1024 px (workout, review and week strip left; streak, training sessions, next booking and membership right). Program: path left, the selected day’s preview right from 768 px, no dialog, `?date=` in the address; phones keep the preview sheet. Workout session: exercise list left from 768 px, set logging in the centre, rest timer docked right from 1024 px; “n” and “b” move to the next and previous exercise. Progress: stats in a row from 768 px, charts in two columns, records and goals side by side. Bookings: from 1024 px booking is inline, trainer and day pickers left, times and confirmation right; tablets use the side panel. Membership: plan and actions left, invoices and payments right. Check-in pass: pass card with recent check-ins beside it. Me and Reviews: two columns. Receipt: a centred document.
 
 ### Patterns for the member app (from the Today design pass)
 
@@ -383,7 +394,16 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
   - **Review pack:** `npm run m1:shots` writes 43 screens at 390 px to `docs/checkpoints/m1-final/screens/` (motion reduced so each is in its finished state) and three contact sheets, `contact-sheet-1.png` to `contact-sheet-3.png`, each a grid with a caption under every picture (`scripts/contact-sheets.mjs`, captions in `e2e/m1-shots.json`).
 - **Done when:** a member can complete a workout logging 10, 10, 8 reps against 3×10 and see it in progress (P03 acceptance check).
 
+### M1.5 · Responsive pass (all areas)
+- [x] Shared pieces: breakpoints, `NavRail`, `NavSidebar`, `Sheet`, `ListDetail`, `ResponsiveTable`, `StickyActions`, `Tooltip`, `useShortcut`
+- [x] Rules recorded in `CLAUDE.md` (Responsive rules) and in the patterns section above
+- [x] Member screens converted: Today, Program, Workout session, Progress and Reviews, Bookings, Membership and Receipt, Check-in pass, Me, Workout complete
+- [x] `e2e/responsive.spec.ts`: navigation by width, content width, touch targets, sheet switching
+- [ ] Contact sheets at 390, 768 and 1440 px reviewed
+- **Done when:** every member screen follows the rules at 360, 390, 768, 1024 and 1440 px and the full suites pass.
+
 ### M2 · Trainer app (R04)
+Every trainer screen is responsive from the start: single column on phones, list and detail from 768 px, three zones at 1440 px (see Responsive patterns).
 - [ ] Today dashboard (T07)
 - [ ] Clients and client profile with authorship
 - [ ] Assessment and goals
@@ -473,3 +493,6 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 | GST place of supply and rates | Branch state for in-gym services (CGST + SGST), 18%, SAC 999723. GST rules to be confirmed by the gym’s accountant before launch. |
 | Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6. Bundle budget for `/m` is met: 150 KB of 170 KB after step 6. The workout API (which uses Zod) is loaded on demand with the program and workout screens, so it stays out of every area’s first download. |
 | Retention of member records, including assessments withdrawn by consent | Kept, hidden from all staff, until the retention period ends or the member asks for deletion. Retention policy to be confirmed with the gym’s accountant and legal adviser (GST record-keeping, Digital Personal Data Protection Act 2023). |
+| Trainer leave and existing bookings (M2) | Leave blocks new bookings. Bookings that clash show as conflicts for the trainer and the front desk. Either can reschedule or move the session to another trainer; the member gets an email and the credit is not affected. |
+| Private notes after a trainer transfer (M2) | They stay with their author. A new trainer never sees a previous trainer’s private notes. |
+| Assessment consent withdrawn (M2) | New assessments are blocked and existing ones are hidden from all staff, trainer included, who see “Assessment consent withdrawn”. Records are kept until the retention period ends or the member asks for deletion. |

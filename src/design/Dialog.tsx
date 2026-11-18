@@ -50,7 +50,7 @@ export function Dialog({ open, onClose, label, placement = "center", children, c
   };
 
   return createPortal(
-    <div className={cn("fixed inset-0 z-[70] flex justify-center bg-[rgba(35,28,53,0.45)] backdrop-blur-[2px]", placement === "bottom" ? "items-end" : placement === "top" ? "items-start pt-[12vh]" : placement === "right" ? "items-stretch justify-end" : "items-center")} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className={cn("fixed inset-0 z-[70] flex bg-[rgba(35,28,53,0.45)] backdrop-blur-[2px]", placement === "right" ? "justify-end" : "justify-center", placement === "bottom" ? "items-end" : placement === "top" ? "items-start pt-[12vh]" : placement === "right" ? "items-stretch" : "items-center")} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div ref={panel} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onKeyDown={onKeyDown} className={cn("clay max-h-[85dvh] w-full overflow-auto focus:outline-none", placement === "bottom" ? "max-w-lg !rounded-b-none pb-[env(safe-area-inset-bottom)]" : placement === "right" ? "!max-h-dvh h-dvh max-w-[28rem] !rounded-r-none pb-[env(safe-area-inset-bottom)]" : "mx-4 max-w-xl", className)}>
         {children}
       </div>

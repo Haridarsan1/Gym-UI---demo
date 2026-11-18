@@ -30,7 +30,7 @@ test.describe("Workout session: Arjun", () => {
     await expect(page.getByText("Exercise 1 of 7")).toBeVisible();
     await expect(page.getByText("Warm-up")).toBeVisible();
     await page.getByText("How to do it").click();
-    await expect(page.getByText(/Stand tall and draw big circles/i).or(page.getByText(/circles/i).first())).toBeVisible();
+    await expect(page.getByText(/Stand tall and draw big circles/i).or(page.getByText(/circles/i).filter({ visible: true }).first())).toBeVisible();
     const form = page.getByRole("form", { name: "Set 1" });
     await expect(form.getByRole("textbox", { name: "Time (seconds)" })).toHaveValue("45");
   });
