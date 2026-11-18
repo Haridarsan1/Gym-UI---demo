@@ -5,7 +5,7 @@ import type { CheckoutView, MembershipData, PayResult, RenewalOption } from "@/a
 import { DEMO_MODE } from "@/app/mode";
 import { Button3D, Button3DLink } from "@/design/Button3D";
 import { celebrate } from "@/design/celebrate";
-import { Dialog } from "@/design/Dialog";
+import { Sheet } from "@/design/Sheet";
 import { SkeletonRows } from "@/design/Skeleton";
 import { ErrorState } from "@/design/States";
 import type { PayMethod } from "@/domain/renewal";
@@ -116,7 +116,7 @@ export function CheckoutSheet({ intent, d, onClose }: { intent: Intent | null; d
 
   const heading1 = step === "result" ? (result?.status === "succeeded" ? "Payment received" : "Payment didn’t go through") : TITLE[kind ?? "invoice"];
   return (
-    <Dialog open={open} onClose={close} label={TITLE[kind ?? "invoice"]} placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+    <Sheet open={open} onClose={close} label={TITLE[kind ?? "invoice"]} className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 ref={heading} tabIndex={-1} className="text-xl font-bold focus:outline-none">{heading1}</h2>
@@ -218,7 +218,7 @@ export function CheckoutSheet({ intent, d, onClose }: { intent: Intent | null; d
       )}
 
       {step === "result" && result && <Result r={result} onClose={onClose} onRetry={() => { setStep("pay"); setError(undefined); }} />}
-    </Dialog>
+    </Sheet>
   );
 }
 

@@ -4,11 +4,12 @@ import { Ellipsis, LogOut, Search } from "lucide-react";
 import { LogoMark } from "@/components/ui/Logo";
 import { useMe } from "@/api/hooks";
 import { mobileBar, screenPath, sidebarFor } from "@/app/navigation";
+import { railLabel } from "@/app/screens";
 import { useCan, useSession } from "@/app/SessionContext";
 import { useSignOut } from "@/app/useSessionActions";
-import { Avatar } from "@/design/Avatar";
 import { Dialog } from "@/design/Dialog";
 import { AvatarMenu } from "@/design/shells/AvatarMenu";
+import { NAV_PAD, NavRail, NavSidebar, type NavGroup } from "@/design/shells/AppNav";
 import { BranchProvider } from "@/design/shells/BranchContext";
 import { BranchSwitcher } from "@/design/shells/BranchSwitcher";
 import { CommandPalette } from "@/design/shells/CommandPalette";
@@ -36,58 +37,41 @@ export function StaffShell({ area }: { area: StaffArea }) {
   const branches = me.data?.branches ?? [];
   const name = me.data?.name || session.name;
 
-  const side = ({ isActive }: { isActive: boolean }) =>
-    cn("flex min-h-[2.75rem] items-center gap-3 rounded-xl px-3 text-[0.95rem] transition-colors", isActive ? "bg-ember-50 font-semibold text-ember-700" : "text-clay-muted hover:bg-white hover:text-clay-ink");
+  const navGroups: NavGroup[] = groups.map((g) => ({ heading: g.group, items: g.items.map((s) => ({ id: s.id, to: screenPath(area, s), label: s.title, short: railLabel(s), icon: s.icon, end: s.path === "" })) }));
+  const brand = (compact: boolean) => (
+    <Link to={AREA_PATH[area]} className={cn("flex items-center gap-2.5", compact && "justify-center")} aria-label="Home">
+      <LogoMark />
+      {!compact && <span className="truncate text-lg font-bold tracking-tight">{me.data?.tenant?.name ?? "Ember"}</span>}
+    </Link>
+  );
   const tab = ({ isActive }: { isActive: boolean }) =>
     cn("flex h-14 min-w-[44px] flex-col items-center justify-center gap-0.5 rounded-2xl text-[0.7rem] font-semibold", isActive ? "text-ember-700" : "text-clay-muted");
 
   return (
     <BranchProvider userId={session.userId} branchIds={branches.map((b) => b.id)}>
-      <div className="min-h-dvh bg-clay-canvas text-clay-ink lg:grid lg:grid-cols-[16.5rem_1fr]">
+      <div className={cn("min-h-dvh bg-clay-canvas text-clay-ink", NAV_PAD)}>
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[80] focus:rounded-full focus:bg-white focus:px-4 focus:py-2">
           Skip to content
         </a>
-        <aside className="hidden border-r border-clay-line bg-clay-peach/60 lg:flex lg:h-dvh lg:flex-col lg:sticky lg:top-0">
-          <Link to={AREA_PATH[area]} className="flex items-center gap-2.5 px-5 pb-4 pt-6" aria-label="Home">
-            <LogoMark />
-            <span className="truncate text-lg font-bold tracking-tight">{me.data?.tenant?.name ?? "Ember"}</span>
-          </Link>
-          <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 pb-4">
-            {groups.map((g) => (
-              <div key={g.group} className="mt-4 first:mt-0">
-                {g.group && <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-clay-subtle">{g.group}</p>}
-                <ul>
-                  {g.items.map((s) => (
-                    <li key={s.id}>
-                      <NavLink to={screenPath(area, s)} end={s.path === ""} className={side}>
-                        <s.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                        {s.title}
-                      </NavLink>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </nav>
-          <div className="border-t border-clay-line p-3">
-            <div className="flex items-center gap-3 px-2 py-2">
-              <Avatar name={name} />
+        <NavRail brand={brand(true)} groups={navGroups} footer={<AvatarMenu drop="up" />} />
+        <NavSidebar
+          brand={brand(false)}
+          groups={navGroups}
+          footer={
+            <div className="flex items-center gap-3 px-1">
+              <AvatarMenu drop="up" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{name}</p>
                 <p className="text-xs text-clay-muted">{ROLE_LABEL[session.role]}</p>
               </div>
             </div>
-            <button type="button" onClick={signOut} className="flex min-h-[2.75rem] w-full items-center gap-3 rounded-xl px-3 text-sm text-clay-muted hover:bg-white hover:text-clay-ink">
-              <LogOut className="h-5 w-5" aria-hidden="true" />
-              Sign out
-            </button>
-          </div>
-        </aside>
+          }
+        />
 
-        <div className="min-w-0 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+        <div className="min-w-0 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-0">
           <header className="sticky top-0 z-30 border-b border-clay-line bg-clay-canvas/90 backdrop-blur">
-            <div className="flex h-16 items-center gap-2 px-4 pt-[env(safe-area-inset-top,0px)] lg:px-8">
-              <Link to={AREA_PATH[area]} className="flex items-center gap-2 lg:hidden" aria-label="Home">
+            <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-2 px-4 pt-[env(safe-area-inset-top,0px)] sm:px-8 lg:px-10">
+              <Link to={AREA_PATH[area]} className="flex items-center gap-2 sm:hidden" aria-label="Home">
                 <LogoMark className="h-8 w-8" />
               </Link>
               {area !== "admin" && <BranchSwitcher branches={branches} />}
@@ -97,15 +81,17 @@ export function StaffShell({ area }: { area: StaffArea }) {
                 <span className="hidden sm:inline">Search</span>
                 <kbd className="ml-1 hidden rounded-md bg-clay-canvas px-1.5 py-0.5 text-xs font-sans text-clay-subtle sm:inline">⌘K</kbd>
               </button>
-              <AvatarMenu />
+              <div className="sm:hidden">
+                <AvatarMenu />
+              </div>
             </div>
           </header>
-          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl px-4 py-6 focus:outline-none lg:px-8 lg:py-8">
+          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1200px] px-4 py-6 focus:outline-none sm:px-8 lg:px-10 lg:py-8">
             <Outlet />
           </main>
         </div>
 
-        <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] lg:hidden">
+        <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] sm:hidden">
           <div className="clay mx-auto flex max-w-md items-center justify-around !rounded-3xl px-1 py-1">
             {bar.map((s) => (
               <NavLink key={s.id} to={screenPath(area, s)} end={s.path === ""} className={tab}>

@@ -9,12 +9,14 @@ import { FEATURED_ACCOUNTS } from "@/app/demoSignIn";
 import { DEMO_MODE } from "@/app/mode";
 import { Avatar } from "@/design/Avatar";
 import { ROLE_LABEL, areaFor } from "@/domain/roles";
+import { cn } from "@/lib/format";
+import { Tooltip } from "@/design/Tooltip";
 
 /**
  * The avatar in the top bar. Opens a panel with who you are, the “Me” links for the member and trainer apps,
  * a demo reset, and Sign out. Present in every shell.
  */
-export function AvatarMenu() {
+export function AvatarMenu({ drop = "down" }: { drop?: "down" | "up" }) {
   const { session } = useSession();
   const can = useCan();
   const me = useMe();
@@ -45,11 +47,13 @@ export function AvatarMenu() {
 
   return (
     <div ref={root} className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls={panelId} aria-label={`Account menu for ${name}`} className="grid h-11 w-11 place-items-center rounded-full">
-        <Avatar name={name} />
-      </button>
+      <Tooltip label="Account" side={drop === "up" ? "right" : "bottom"}>
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls={panelId} aria-label={`Account menu for ${name}`} className="grid h-11 w-11 cursor-pointer place-items-center rounded-full hover:ring-2 hover:ring-ember-200">
+          <Avatar name={name} />
+        </button>
+      </Tooltip>
       {open && (
-        <div id={panelId} className="clay absolute right-0 top-[calc(100%+0.5rem)] z-50 w-72 !rounded-2xl p-2">
+        <div id={panelId} className={cn("clay absolute z-50 w-72 !rounded-2xl p-2", drop === "up" ? "bottom-[calc(100%+0.5rem)] left-0 max-h-[80dvh] overflow-y-auto" : "right-0 top-[calc(100%+0.5rem)]")}>
           <div className="px-3 py-2">
             <p className="font-semibold">{name}</p>
             <p className="text-sm text-clay-muted">

@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import type { ExerciseInfo } from "@/api";
-import { Dialog } from "@/design/Dialog";
+import { Sheet } from "@/design/Sheet";
 
 const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -8,7 +8,7 @@ const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export function SwapSheet({ open, original, current, alternatives, hasLoggedSets, onPick, onClose }: { open: boolean; original: ExerciseInfo; current: string; alternatives: ExerciseInfo[]; hasLoggedSets: boolean; onPick: (id: string) => void; onClose: () => void }) {
   const choices = [original, ...alternatives];
   return (
-    <Dialog open={open} onClose={onClose} label="Swap exercise" placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+    <Sheet open={open} onClose={onClose} label="Swap exercise" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold">Swap exercise</h2>
@@ -41,6 +41,6 @@ export function SwapSheet({ open, original, current, alternatives, hasLoggedSets
           );
         })}
       </ul>
-    </Dialog>
+    </Sheet>
   );
 }

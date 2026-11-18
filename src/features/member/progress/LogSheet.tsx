@@ -4,7 +4,7 @@ import { isApiError, useLogMeasurement } from "@/api";
 import type { ProgressData } from "@/api";
 import { Button3D } from "@/design/Button3D";
 import { celebrate } from "@/design/celebrate";
-import { Dialog } from "@/design/Dialog";
+import { Sheet } from "@/design/Sheet";
 import { useToast } from "@/design/Toast";
 import { MEMBER_MEASUREMENTS, measurementError, measurementInfo, pointsFor, type MemberMeasurementKind } from "@/domain/progress";
 import { Chips } from "@/features/member/progress/MetricCard";
@@ -66,7 +66,7 @@ export function LogSheet({ open, initialKind, data, onClose }: { open: boolean; 
   };
 
   return (
-    <Dialog open={open} onClose={save.isPending ? () => undefined : onClose} label="Log a measurement" placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+    <Sheet open={open} onClose={save.isPending ? () => undefined : onClose} label="Log a measurement" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold">{kind === "weight" ? "Log your weight" : "Log a measurement"}</h2>
@@ -115,6 +115,6 @@ export function LogSheet({ open, initialKind, data, onClose }: { open: boolean; 
           </ul>
         </section>
       )}
-    </Dialog>
+    </Sheet>
   );
 }

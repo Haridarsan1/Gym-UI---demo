@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { isApiError, useAddPhoto, useDeletePhoto, usePhotos } from "@/api";
 import type { PhotoView } from "@/api";
 import { Button3D } from "@/design/Button3D";
-import { Dialog } from "@/design/Dialog";
+import { Sheet } from "@/design/Sheet";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonRows } from "@/design/Skeleton";
 import { useToast } from "@/design/Toast";
@@ -96,7 +96,7 @@ function PhotoDialog({ photo, onClose }: { photo: PhotoView | null; onClose: () 
     onClose();
   };
   return (
-    <Dialog open={photo !== null} onClose={close} label="Progress photo" placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+    <Sheet open={photo !== null} onClose={close} label="Progress photo" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       {photo && (
         <>
           <div className="flex items-center justify-between gap-3">
@@ -123,6 +123,6 @@ function PhotoDialog({ photo, onClose }: { photo: PhotoView | null; onClose: () 
           )}
         </>
       )}
-    </Dialog>
+    </Sheet>
   );
 }

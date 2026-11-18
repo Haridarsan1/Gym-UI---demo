@@ -28,6 +28,8 @@ export interface ScreenDef {
   id: string;
   title: string;
   label?: string;
+  /** One short word for the narrow navigation rail on tablets. Falls back to `label`, then `title`. */
+  short?: string;
   /** Path inside the area. "" is the area home. */
   path: string;
   /** Requirement IDs from docs/REQUIREMENTS.md. */
@@ -54,11 +56,11 @@ const member: ScreenDef[] = [
   { id: "workout-complete", title: "Workout complete", path: "workout/:date/complete", req: ["W03", "P02", "P04"], summary: "A summary of what you finished, your volume, any personal records, and how it felt.", action: "workoutlog.write", icon: Trophy, place: "flow" },
   { id: "progress", title: "Progress", path: "progress", req: ["P01", "P02", "P03", "P04"], summary: "Charts for weight, measurements, strength, volume, attendance and completion, with your personal records and goals. A Reviews section holds what your trainer shared with you.", action: "progress.read", icon: Activity, place: "tab" },
   { id: "bookings", title: "Bookings", path: "bookings", req: ["T04", "O01", "M06"], summary: "Book training sessions against your trainer’s availability and your credits. See upcoming and past sessions.", action: "booking.read", icon: CalendarDays, place: "tab" },
-  { id: "membership", title: "Membership", label: "Membership and receipts", path: "membership", req: ["M01", "M02", "M03", "M04"], summary: "Your plan, status and validity, visits left, freeze details, renewal, invoices, receipts and payments.", action: "membership.read", icon: Wallet, place: "menu" },
+  { id: "membership", title: "Membership", label: "Membership and receipts", short: "Plan", path: "membership", req: ["M01", "M02", "M03", "M04"], summary: "Your plan, status and validity, visits left, freeze details, renewal, invoices, receipts and payments.", action: "membership.read", icon: Wallet, place: "menu" },
   { id: "receipt", title: "Tax receipt", path: "membership/invoices/:invoiceId", req: ["M03"], summary: "One invoice as an Indian tax receipt: the gym’s details and GSTIN, CGST and SGST, the total in words and the payments, with Save as PDF.", action: "invoice.read", icon: ReceiptText, place: "sub", parent: "membership" },
   { id: "pass", title: "Check-in pass", label: "Check-in pass", path: "pass", req: ["M05"], summary: "Your personal QR code for the front desk, and your last check-ins.", action: "checkin.read", icon: QrCode, place: "menu" },
   { id: "reviews", title: "Reviews and check-ins", label: "Reviews", path: "progress/reviews", req: ["P04", "T06"], summary: "Reviews your trainer shared with you, and a short form to tell them about effort, recovery and anything in the way. Reached from Progress.", action: "review.read", icon: Star, place: "sub", parent: "progress" },
-  { id: "me", title: "Me", label: "Profile, consent and preferences", path: "me", req: ["S04", "O04"], summary: "Your profile, what you have agreed to (photos, assessments, marketing), how we contact you, and a request for your data.", action: "member.read", icon: UserCog, place: "menu" },
+  { id: "me", title: "Me", label: "Profile, consent and preferences", short: "Me", path: "me", req: ["S04", "O04"], summary: "Your profile, what you have agreed to (photos, assessments, marketing), how we contact you, and a request for your data.", action: "member.read", icon: UserCog, place: "menu" },
 ];
 
 const trainer: ScreenDef[] = [
@@ -110,6 +112,9 @@ const admin: ScreenDef[] = [
   { id: "support", title: "Support access", path: "support", req: ["R01", "S05"], summary: "Ask for time-limited access to a gym with a reason. A banner shows while it is active, it ends on its own, and every action is audited.", action: "support.request", icon: LifeBuoy, place: "side", group: "Platform" },
   { id: "saas-plans", title: "SaaS plans", path: "plans", req: ["S02"], summary: "Ember plans and their limits on branches, staff and active members.", action: "saasplan.manage", icon: Flag, place: "side", group: "Platform" },
 ];
+
+/** The word under an icon in the tablet rail. */
+export const railLabel = (s: Pick<ScreenDef, "short" | "label" | "title">): string => s.short ?? s.label ?? s.title;
 
 export const SCREENS: Record<Area, ScreenDef[]> = { member, trainer, desk, owner, admin };
 

@@ -8,7 +8,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
  * A modal layer for the command palette and the “More” sheet. It traps focus, closes on Escape or a tap outside,
  * and puts focus back where it was.
  */
-export function Dialog({ open, onClose, label, placement = "center", children, className }: { open: boolean; onClose: () => void; label: string; placement?: "center" | "bottom" | "top"; children: ReactNode; className?: string }) {
+export function Dialog({ open, onClose, label, placement = "center", children, className }: { open: boolean; onClose: () => void; label: string; placement?: "center" | "bottom" | "top" | "right"; children: ReactNode; className?: string }) {
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,8 +50,8 @@ export function Dialog({ open, onClose, label, placement = "center", children, c
   };
 
   return createPortal(
-    <div className={cn("fixed inset-0 z-[70] flex justify-center bg-[rgba(35,28,53,0.45)] backdrop-blur-[2px]", placement === "bottom" ? "items-end" : placement === "top" ? "items-start pt-[12vh]" : "items-center")} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={panel} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onKeyDown={onKeyDown} className={cn("clay max-h-[85dvh] w-full overflow-auto focus:outline-none", placement === "bottom" ? "max-w-lg !rounded-b-none pb-[env(safe-area-inset-bottom)]" : "mx-4 max-w-xl", className)}>
+    <div className={cn("fixed inset-0 z-[70] flex justify-center bg-[rgba(35,28,53,0.45)] backdrop-blur-[2px]", placement === "bottom" ? "items-end" : placement === "top" ? "items-start pt-[12vh]" : placement === "right" ? "items-stretch justify-end" : "items-center")} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div ref={panel} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onKeyDown={onKeyDown} className={cn("clay max-h-[85dvh] w-full overflow-auto focus:outline-none", placement === "bottom" ? "max-w-lg !rounded-b-none pb-[env(safe-area-inset-bottom)]" : placement === "right" ? "!max-h-dvh h-dvh max-w-[28rem] !rounded-r-none pb-[env(safe-area-inset-bottom)]" : "mx-4 max-w-xl", className)}>
         {children}
       </div>
     </div>,

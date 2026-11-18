@@ -3,7 +3,7 @@ import { ChevronLeft, X } from "lucide-react";
 import { isApiError, useBookSession, useRescheduleBooking, useTrainerOptions, useTrainerSchedule } from "@/api";
 import type { BookingPolicy, BookingView, Slot, TrainerOption } from "@/api";
 import { Button3D } from "@/design/Button3D";
-import { Dialog } from "@/design/Dialog";
+import { Sheet } from "@/design/Sheet";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonRows } from "@/design/Skeleton";
 import { useToast } from "@/design/Toast";
@@ -102,7 +102,7 @@ export function BookSheet({ open, reschedule, credits, policy, onClose }: { open
 
   const title = reschedule ? "Move your session" : "Book a session";
   return (
-    <Dialog open={open} onClose={close} label={title} placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+    <Sheet open={open} onClose={close} label={title} className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 ref={heading} tabIndex={-1} className="text-xl font-bold focus:outline-none">{title}</h2>
@@ -210,7 +210,7 @@ export function BookSheet({ open, reschedule, credits, policy, onClose }: { open
           </div>
         </div>
       )}
-    </Dialog>
+    </Sheet>
   );
 }
 

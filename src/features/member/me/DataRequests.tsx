@@ -3,7 +3,7 @@ import { Download, Trash2, X } from "lucide-react";
 import { isApiError, useRequestData } from "@/api";
 import type { ProfileData, RequestView } from "@/api";
 import { Button3D } from "@/design/Button3D";
-import { Dialog } from "@/design/Dialog";
+import { Sheet } from "@/design/Sheet";
 import { useToast } from "@/design/Toast";
 import { istDateOf } from "@/domain/dates";
 import { formatDate } from "@/lib/when";
@@ -87,7 +87,7 @@ export function DataRequests({ p }: { p: ProfileData }) {
         )}
       </div>
 
-      <Dialog open={kind !== null} onClose={() => !request.isPending && setKind(null)} label={t?.title ?? "Request"} placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+      <Sheet open={kind !== null} onClose={() => !request.isPending && setKind(null)} label={t?.title ?? "Request"} className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-xl font-bold">{t?.title}</h2>
           <button type="button" onClick={() => setKind(null)} aria-label="Close" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-clay-muted hover:bg-clay-lavender">
@@ -102,7 +102,7 @@ export function DataRequests({ p }: { p: ProfileData }) {
           <Button3D size="lg" className="mt-2 w-full" onClick={submit} disabled={request.isPending}>{request.isPending ? "Sending…" : t?.button}</Button3D>
           <Button3D variant="white" className="w-full" onClick={() => setKind(null)} disabled={request.isPending}>Not now</Button3D>
         </div>
-      </Dialog>
+      </Sheet>
     </section>
   );
 }

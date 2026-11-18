@@ -4,7 +4,7 @@ import type { ProgressData } from "@/api";
 import { Button3D } from "@/design/Button3D";
 import { LineChart } from "@/design/charts/Charts";
 import { formatValue } from "@/design/charts/scale";
-import { Dialog } from "@/design/Dialog";
+import { Sheet } from "@/design/Sheet";
 import { formatDate, formatDayMonth } from "@/lib/when";
 
 type Rec = ProgressData["records"][number];
@@ -60,7 +60,7 @@ function RecordHistory({ data, exerciseId, onClose }: { data: ProgressData; exer
   const series = exerciseId ? data.strength.find((s) => s.exerciseId === exerciseId) : undefined;
   const name = records[0]?.name ?? "Records";
   return (
-    <Dialog open={exerciseId !== null} onClose={onClose} label="Record history" placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+    <Sheet open={exerciseId !== null} onClose={onClose} label="Record history" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-clay-muted">Record history</p>
@@ -89,6 +89,6 @@ function RecordHistory({ data, exerciseId, onClose }: { data: ProgressData; exer
         ))}
       </ol>
       <Button3D variant="white" className="mt-4 w-full" onClick={onClose}>Close</Button3D>
-    </Dialog>
+    </Sheet>
   );
 }

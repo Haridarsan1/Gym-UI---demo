@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import { isApiError, useCancelBooking } from "@/api";
 import type { BookingPolicy, BookingView } from "@/api";
 import { Button3D } from "@/design/Button3D";
-import { Dialog } from "@/design/Dialog";
+import { Sheet } from "@/design/Sheet";
 import { useToast } from "@/design/Toast";
 import { istDateOf } from "@/domain/dates";
 import { cancelNowText, formatTime, formatWeekdayDate, lateTermsText } from "@/lib/when";
@@ -34,7 +34,7 @@ export function CancelSheet({ booking, policy, nowIso, onClose }: { booking: Boo
     }
   };
   return (
-    <Dialog open={booking !== null} onClose={cancel.isPending ? () => undefined : close} label="Cancel session" placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+    <Sheet open={booking !== null} onClose={cancel.isPending ? () => undefined : close} label="Cancel session" kind="confirm" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       {booking && (
         <>
           <div className="flex items-start justify-between gap-3">
@@ -63,6 +63,6 @@ export function CancelSheet({ booking, policy, nowIso, onClose }: { booking: Boo
           </div>
         </>
       )}
-    </Dialog>
+    </Sheet>
   );
 }

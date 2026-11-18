@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import { useWorkout } from "@/api";
 import type { WorkoutView } from "@/api";
 import { Button3DLink } from "@/design/Button3D";
-import { Dialog } from "@/design/Dialog";
+import { Sheet } from "@/design/Sheet";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonRows } from "@/design/Skeleton";
 import { describeLogged, describeTarget, entryFor } from "@/domain/workout";
@@ -15,9 +15,9 @@ const SECTION = { warmup: "Warm-up", main: "Main", cooldown: "Cool-down" } as co
 /** A day of the plan as the trainer wrote it, with what the member did next to it once there is a log (W03, T06). */
 export function PreviewSheet({ date, onClose }: { date: string | null; onClose: () => void }) {
   return (
-    <Dialog open={date !== null} onClose={onClose} label="Workout preview" placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+    <Sheet open={date !== null} onClose={onClose} label="Workout preview" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
       {date && <PreviewBody date={date} onClose={onClose} />}
-    </Dialog>
+    </Sheet>
   );
 }
 

@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import { isApiError, useSetAutoRenew } from "@/api";
 import type { MembershipData } from "@/api";
 import { Button3D } from "@/design/Button3D";
-import { Dialog } from "@/design/Dialog";
+import { Sheet } from "@/design/Sheet";
 import { useToast } from "@/design/Toast";
 import { addDays } from "@/domain/dates";
 import { formatDate, formatRupees } from "@/lib/when";
@@ -66,7 +66,7 @@ export function AutoRenewCard({ d }: { d: MembershipData }) {
         </>
       )}
 
-      <Dialog open={open} onClose={() => !set.isPending && setOpen(false)} label="Turn on auto-renew" placement="bottom" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+      <Sheet open={open} onClose={() => !set.isPending && setOpen(false)} label="Turn on auto-renew" kind="confirm" className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-xl font-bold">Turn on auto-renew</h2>
           <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-clay-muted hover:bg-clay-lavender">
@@ -97,7 +97,7 @@ export function AutoRenewCard({ d }: { d: MembershipData }) {
             <Button3D variant="white" className="w-full" onClick={() => setOpen(false)} disabled={set.isPending}>Not now</Button3D>
           </div>
         )}
-      </Dialog>
+      </Sheet>
     </section>
   );
 }
