@@ -356,3 +356,35 @@ export function useGoalActions(memberId: string) {
     achieve: useMutation({ mutationFn: async (i: { goalId: string; note?: string }) => (await api()).confirmGoalAchieved(session, { memberId, ...i }), onSuccess: refresh }),
   };
 }
+
+const libraryApi = () => import("@/api/library");
+
+/** The exercise library (W01), searched and filtered. */
+export function useExercises(params: import("@/api/library").LibraryParams) {
+  const { session } = useSession();
+  return useQuery({
+    queryKey: ["library", session?.userId, "list", params.search ?? "", params.category ?? "", params.muscle ?? "", params.equipment ?? "", !!params.archived],
+    queryFn: async () => (await libraryApi()).listExercises(session, params),
+    enabled: !!session,
+    retry,
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** One exercise with its substitutes and where it is used. */
+export function useExercise(id: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["library", session?.userId, "one", id], queryFn: async () => (await libraryApi()).getExercise(session, id!), enabled: !!session && !!id, retry, staleTime: 15_000 });
+}
+
+/** Saving or archiving an exercise changes the list, the detail and every picker. */
+export function useExerciseActions() {
+  const { session } = useSession();
+  const queryClient = useQueryClient();
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["library", session?.userId] });
+  return {
+    save: useMutation({ mutationFn: async (i: import("@/api/library").ExerciseInput) => (await libraryApi()).saveExercise(session, i), onSuccess: refresh }),
+    archive: useMutation({ mutationFn: async (i: { id: string; archived: boolean }) => (await libraryApi()).setExerciseArchived(session, i), onSuccess: refresh }),
+  };
+}

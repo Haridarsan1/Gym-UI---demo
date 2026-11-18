@@ -207,6 +207,9 @@ test.describe("trainer screens at every width", () => {
     { path: "/t/clients", h1: "Clients", zones: true },
     { path: "/t/clients/mem_arjun", h1: "Arjun Kumar", zones: true },
     { path: "/t/clients/mem_arjun/assessment", h1: "Assessment and goals", zones: true },
+    { path: "/t/library", h1: "Exercises", zones: true },
+    // On a phone the open exercise is the whole screen, so its name is the h1; beside the list the screen’s title is.
+    { path: "/t/library?ex=ex_bench_press", h1: /^(Exercises|Barbell bench press)$/, zones: true },
   ];
   for (const width of WIDTHS) {
     test(`no sideways scroll, a capped width, the right zones and 44 px targets at ${width} px`, async ({ page }) => {

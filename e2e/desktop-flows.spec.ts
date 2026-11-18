@@ -354,3 +354,58 @@ for (const width of WIDTHS) {
     });
   });
 }
+
+for (const width of WIDTHS) {
+  test.describe(`trainer library at ${width} px`, () => {
+    test("Exercises: filter, open an exercise beside the list, follow a substitute, add the gym’s own and archive it", async ({ page }) => {
+      const problems = await open(page, width, "u_trainer_meera", "/t");
+      await nav(page, "Exercises").click();
+      await expect(page.getByRole("heading", { name: "Exercises", level: 1 })).toBeVisible();
+      const list = page.getByRole("list", { name: "Exercise list" }).getByRole("listitem");
+      await expect(list.first()).toBeVisible();
+      expect(await page.locator("[data-zones]").getAttribute("data-zones")).toBe(width >= 1280 ? "3" : "2");
+      await noSideways(page, "Exercises");
+
+      // Filters: their own zone from 1280 px, a fold above the list below that.
+      if (width >= 1280) {
+        const fz = (await page.getByRole("complementary", { name: "Filters" }).boundingBox())!;
+        const lz = (await page.getByRole("list", { name: "Exercise list" }).boundingBox())!;
+        expect(lz.x).toBeGreaterThanOrEqual(fz.x + fz.width - 1);
+      } else await page.getByText("Filters", { exact: false }).first().click();
+      const filters = page.getByRole("group", { name: "Filters" });
+      await filters.getByRole("radio", { name: /^Strength/ }).click();
+      await filters.getByLabel("Muscle group").selectOption("chest");
+      await filters.getByLabel("Equipment").selectOption("dumbbells");
+      await expect(list).toHaveCount(2);
+      await filters.getByRole("radio", { name: "All" }).click();
+      await filters.getByLabel("Muscle group").selectOption("");
+      await filters.getByLabel("Equipment").selectOption("");
+
+      // An exercise opens beside the list, which stays where it was; a substitute opens in place.
+      await page.getByRole("searchbox").fill("barbell bench");
+      await list.first().getByRole("link").click();
+      await expect(page.getByRole("heading", { name: "Barbell bench press", level: 2 })).toBeVisible();
+      await expect(list.first().getByRole("link")).toHaveAttribute("aria-current", "page");
+      await page.getByRole("link", { name: "Push-up" }).click();
+      await expect(page.getByRole("heading", { name: "Push-up", level: 2 })).toBeVisible();
+      await expect(page).toHaveURL(/ex=ex_pushup/);
+
+      // Add one; the form is a side panel, and the new exercise opens in the detail zone.
+      await page.getByRole("button", { name: "Add exercise" }).click();
+      const d = page.getByRole("dialog", { name: "Add an exercise" });
+      const b = (await d.boundingBox())!;
+      expect(b.x + b.width).toBeGreaterThan(width - 2);
+      await d.getByLabel("Name").fill("Battle ropes");
+      await d.getByLabel("Category").selectOption("conditioning");
+      await d.getByRole("textbox", { name: "Muscle groups" }).fill("shoulders");
+      await d.getByRole("textbox", { name: "Muscle groups" }).press("Enter");
+      await d.getByLabel("How to do it").fill("Alternate waves with both arms, staying low and braced.");
+      await d.getByRole("button", { name: "Add exercise" }).click();
+      await expect(page.getByRole("heading", { name: "Battle ropes", level: 2 })).toBeVisible();
+      await page.getByRole("button", { name: "Archive" }).click();
+      await page.getByRole("dialog", { name: "Archive exercise" }).getByRole("button", { name: "Archive exercise" }).click();
+      await expect(page.getByText("Exercise archived")).toBeVisible();
+      expect(problems).toEqual([]);
+    });
+  });
+}
