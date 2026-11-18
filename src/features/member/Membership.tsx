@@ -83,7 +83,7 @@ function MembershipContent({ d }: { d: MembershipData }) {
             Renew membership
           </Button3D>
           {!canRenew && d.renewal.blockedReason && <p className="px-1 text-sm text-clay-muted">{d.renewal.blockedReason}</p>}
-          <div className="clay-flat flex items-center justify-between gap-3 p-4">
+          <div className="clay-flat flex flex-col gap-3 p-4 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between">
             <div>
               <p className="font-bold">Training sessions</p>
               <p className="text-sm text-clay-muted">

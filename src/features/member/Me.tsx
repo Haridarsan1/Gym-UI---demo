@@ -69,7 +69,7 @@ function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
       <dt className="text-sm text-clay-muted">{label}</dt>
-      <dd className="truncate font-semibold">{value}</dd>
+      <dd className="break-words font-semibold">{value}</dd>
     </div>
   );
 }

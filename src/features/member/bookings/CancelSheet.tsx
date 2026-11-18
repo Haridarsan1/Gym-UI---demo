@@ -53,8 +53,8 @@ export function CancelSheet({ booking, policy, nowIso, onClose }: { booking: Boo
           </p>
           <p className="mt-2 text-sm text-clay-muted">{lateTermsText(booking.freeUntil, nowIso, policy.lateCancelConsumesCredit, policy.noShowConsumesCredit)}</p>
           {error && <p role="alert" className="mt-3 text-sm font-semibold text-status-danger-fg">{error}</p>}
-          <div className="mt-5 flex gap-3">
-            <Button3D variant="ink" size="lg" className="flex-1" disabled={cancel.isPending || !outcome} onClick={() => void submit()}>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <Button3D variant="ink" size="lg" className="sm:flex-1" disabled={cancel.isPending || !outcome} onClick={() => void submit()}>
               {cancel.isPending ? "Cancelling…" : booking.outcomeNow === "consumed" ? "Cancel and use the credit" : "Cancel session"}
             </Button3D>
             <Button3D variant="white" size="lg" disabled={cancel.isPending} onClick={close}>

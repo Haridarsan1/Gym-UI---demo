@@ -22,8 +22,10 @@ async function shot(page: Page, key: string, target?: Locator) {
   if (i < 0) throw new Error(`No shot named ${key} in e2e/m1-shots.json`);
   mkdirSync(OUT, { recursive: true });
   if (target) {
+    // Room below the page, so a section near the end can still be scrolled to the top of the picture.
+    await page.evaluate(() => (document.body.style.paddingBottom = "100vh"));
     await target.evaluate((el) => el.scrollIntoView({ block: "start" }));
-    await page.evaluate(() => window.scrollBy(0, -76));
+    await page.evaluate((dy) => window.scrollBy(0, dy), WIDTH < 640 ? -76 : -24); // phones have a header bar over the top of the page
   } else await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/${String(i + 1).padStart(2, "0")}-${key}.png` });
@@ -95,13 +97,13 @@ test("Bookings", async ({ page }) => {
   await page.getByRole("button", { name: "Book a session" }).first().click();
   const d = INLINE_BOOKING ? region(page, "Book a session") : dialog(page, "Book a session");
   await expect(d.getByRole("button", { name: /Meera Joshi/ })).toBeVisible();
-  await shot(page, "book-trainer");
+  await shot(page, "book-trainer", INLINE_BOOKING ? d : undefined);
   await d.getByRole("button", { name: /Meera Joshi/ }).click();
   await d.getByRole("radiogroup", { name: "Day" }).getByRole("radio").nth(2).click();
-  await shot(page, "book-slot");
+  await shot(page, "book-slot", INLINE_BOOKING ? d : undefined);
   await d.getByRole("list", { name: /^Times on/ }).locator("button:not([disabled])").first().click();
   await expect(d.getByRole("region", { name: "Booking details" })).toBeVisible();
-  await shot(page, "book-confirm");
+  await shot(page, "book-confirm", INLINE_BOOKING ? d : undefined);
   if (INLINE_BOOKING) await d.getByRole("button", { name: "Close" }).click();
   else await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Cancel session" }).click();

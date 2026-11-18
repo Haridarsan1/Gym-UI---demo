@@ -38,8 +38,8 @@ export function FinishSheet({ open, progress, pending, error, onSubmit, onClose 
           {isApiError(error) ? error.message : "We couldn’t save your workout."} Your sets are safe. Press the button to try again.
         </p>
       )}
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Button3D variant={status === "skipped" ? "ink" : "ember"} size="lg" haptic disabled={pending} onClick={() => onSubmit({ notes: notes.trim() || undefined })} className="flex-1">
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        <Button3D variant={status === "skipped" ? "ink" : "ember"} size="lg" haptic disabled={pending} onClick={() => onSubmit({ notes: notes.trim() || undefined })} className="sm:flex-1">
           {pending ? "Saving…" : error ? "Try again" : words.cta}
         </Button3D>
         <Button3D variant="white" size="lg" disabled={pending} onClick={onClose}>

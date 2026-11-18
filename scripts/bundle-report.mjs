@@ -4,6 +4,7 @@
  *   npm run build && npm run bundle-report
  */
 import { spawn } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { chromium } from "@playwright/test";
 
@@ -23,7 +24,11 @@ const routes = [
 ];
 
 /** Strings that only exist in app-only libraries. */
-/** Each marker must also appear in an app chunk, otherwise the guard is stale (reported as a warning). */
+/**
+ * Each marker must also appear in a built chunk, otherwise the guard is stale (reported as a warning). The chunks are read from
+ * dist rather than from what a route downloads, because Zod loads on demand (its own chunk, fetched when the first form or
+ * api call needs a schema), so a route may finish loading without it.
+ */
 const FORBIDDEN = { "React Query": "Missing queryFn", Dexie: "DexieError", Zod: "ZodError" };
 
 const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], { stdio: "ignore" });
@@ -40,7 +45,6 @@ for (let i = 0; i < 50; i++) {
 
 const browser = await chromium.launch();
 let failed = false;
-const appText = [];
 console.log("Route      JS gzip   Files  Notes");
 for (const route of routes) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
@@ -58,7 +62,6 @@ for (const route of routes) {
   await page.goto(BASE + route.path, { waitUntil: "networkidle" });
   const total = files.reduce((n, f) => n + f.gz, 0);
   const notes = [];
-  if (!route.marketing) appText.push(...files.map((f) => f.text));
   if (route.marketing) {
     for (const [name, marker] of Object.entries(FORBIDDEN)) {
       if (files.some((f) => f.text.includes(marker))) {
@@ -87,7 +90,10 @@ for (const route of routes) {
 }
 await browser.close();
 stop();
+const built = readdirSync("dist/assets").filter((f) => f.endsWith(".js")).map((f) => ({ f, text: readFileSync(`dist/assets/${f}`, "utf8") }));
 for (const [name, marker] of Object.entries(FORBIDDEN)) {
-  if (!appText.some((t) => t.includes(marker))) console.log(`WARN: marker for ${name} not found in any app chunk. Check or update it (expected until the library is used).`);
+  const chunks = built.filter((b) => b.text.includes(marker));
+  if (chunks.length === 0) console.log(`WARN: marker for ${name} not found in any built chunk. The guard is stale, update the marker.`);
+  else if (name === "Zod") console.log(`Zod loads on demand: ${chunks.map((c) => c.f).join(", ")} (${(chunks.reduce((n, c) => n + gzipSync(c.text).length, 0) / 1024).toFixed(1)} KB gzip), never on marketing routes.`);
 }
 process.exit(failed ? 1 : 0);

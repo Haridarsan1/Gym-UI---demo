@@ -64,7 +64,7 @@ function BookingsContent({ d }: { d: BookingsData }) {
               {d.credits.reserved > 0 ? `${d.credits.reserved} ${d.credits.reserved === 1 ? "is" : "are"} held for your upcoming ${d.credits.reserved === 1 ? "booking" : "bookings"}. ` : ""}
               Buy more sessions and you can book again.
             </p>
-            <Button3DLink to="/m/membership?buy=sessions" size="lg" className="mt-4 w-full">
+            <Button3DLink to="/m/membership?buy=sessions" size="lg" className="mt-4 w-full md:w-auto md:min-w-[16rem]">
               <Ticket className="h-5 w-5" aria-hidden="true" />
               Buy more sessions
             </Button3DLink>
@@ -78,7 +78,7 @@ function BookingsContent({ d }: { d: BookingsData }) {
             <p className="mt-1 text-sm text-clay-muted">
               {d.credits.reserved} held for upcoming bookings, {d.credits.consumed} used.
             </p>
-            <Button3D size="lg" haptic className="mt-4 w-full" disabled={!!d.blockedReason} onClick={() => setBooking({})}>
+            <Button3D size="lg" haptic className="mt-4 w-full md:w-auto md:min-w-[16rem]" disabled={!!d.blockedReason} onClick={() => setBooking({})}>
               <CalendarPlus className="h-5 w-5" aria-hidden="true" />
               Book a session
             </Button3D>

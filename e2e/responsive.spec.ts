@@ -82,6 +82,48 @@ test.describe("navigation pattern by width", () => {
   }
 });
 
+test.describe("owner and admin shells at every width", () => {
+  for (const [who, userId, path, h1] of [
+    ["owner", "u_owner", "/owner", "Dashboard"],
+    ["branch manager", "u_bm_bandra", "/owner", "Dashboard"],
+    ["platform admin", "u_admin", "/admin", "Tenants"],
+  ] as const) {
+    for (const width of WIDTHS) {
+      test(`${who} at ${width} px: the right navigation, no sideways scroll, a capped width`, async ({ page }) => {
+        await at(page, width, userId, path);
+        await expect(page.getByRole("heading", { name: h1, level: 1 })).toBeVisible();
+        const navs = page.locator('nav[aria-label="Main"]:visible');
+        await expect(navs).toHaveCount(1);
+        const b = (await navs.first().boundingBox())!;
+        if (width < 640) {
+          // Phone: tabs along the bottom.
+          expect(b.y + b.height).toBeGreaterThan(HEIGHT(width) - 4);
+          expect(b.width).toBeLessThan(width + 1);
+        } else if (width < 1024) {
+          // Tablet: a rail down the left.
+          expect(b.x).toBe(0);
+          expect(b.width).toBeLessThan(100);
+          expect(b.height).toBeGreaterThan(HEIGHT(width) - 4);
+        } else {
+          // Desktop: a full sidebar.
+          expect(b.x).toBe(0);
+          expect(b.width).toBeGreaterThan(240);
+          await expect(page.locator("aside:visible").getByRole("button", { name: /^Account menu/ })).toBeVisible();
+        }
+        expect(await hasHorizontalScroll(page)).toBe(false);
+        expect((await box(page, "main")).width).toBeLessThanOrEqual(1200);
+        // Nothing is clipped on the right: every visible heading and button sits inside the window.
+        const clipped = await page.evaluate((w) =>
+          [...document.querySelectorAll<HTMLElement>("main h1, main h2, main button, main a")]
+            .filter((el) => el.offsetParent !== null)
+            .filter((el) => el.getBoundingClientRect().right > w + 1)
+            .map((el) => (el.textContent ?? "").trim().slice(0, 30)), width);
+        expect(clipped, "elements run past the right edge").toEqual([]);
+      });
+    }
+  }
+});
+
 test.describe("member screens at every width", () => {
   const SCREENS: Array<[string, string | RegExp]> = [
     ["/m", /^Good (morning|afternoon|evening)/],

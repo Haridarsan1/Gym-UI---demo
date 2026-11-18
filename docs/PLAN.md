@@ -175,7 +175,7 @@ Optional expansion (POS, chat, wearables, nutrition) is out of scope until rollo
 | Charts | Own SVG components | Avoids a 100 KB chart dependency |
 | QR | `qrcode` (generate), `@zxing/browser` or `BarcodeDetector` (scan, lazy-loaded on desk only) | Only the desk downloads the scanner |
 | Confetti | `canvas-confetti` (lazy) | ~4 KB, loaded only when celebrating |
-| Drag to reorder | `@dnd-kit/core` and `@dnd-kit/sortable` (approved for M2; exact pins, published at least two weeks before they are added) | Program builder only, in its own chunk. Move up and Move down buttons stay for keyboard users |
+| Drag to reorder | `@dnd-kit/core` and `@dnd-kit/sortable` (approved and confirmed for M2; exact pins, published at least two weeks before they are added) | Program builder only, in its own chunk. Move up and Move down buttons stay for keyboard users |
 | Demo database | Dexie (IndexedDB) with seed + reset | Survives refresh; reset button for demos |
 | Offline | `vite-plugin-pwa`; offline workout drafts and queue | W03 drafts, gym basements have bad signal |
 | Tests | Vitest (domain rules), Playwright (acceptance flows) | A01–A05 automated |
@@ -398,7 +398,8 @@ Each milestone ends with: typecheck and build pass, unit tests for any new domai
 - [x] Shared pieces: breakpoints, `NavRail`, `NavSidebar`, `Sheet`, `ListDetail`, `ResponsiveTable`, `StickyActions`, `Tooltip`, `useShortcut`
 - [x] Rules recorded in `CLAUDE.md` (Responsive rules) and in the patterns section above
 - [x] Member screens converted: Today, Program, Workout session, Progress and Reviews, Bookings, Membership and Receipt, Check-in pass, Me, Workout complete
-- [x] `e2e/responsive.spec.ts`: navigation by width, content width, touch targets, sheet switching
+- [x] `e2e/responsive.spec.ts`: navigation by width (member, trainer, front desk, owner, branch manager and platform admin shells at 360, 390, 768, 1024 and 1440 px), content width, touch targets, sheet switching
+- [x] `e2e/desktop-flows.spec.ts`: the M1 journeys driven through the rail or sidebar and side panels at 1440 px and 768 px (workout logged 10, 10, 8 and seen in Progress; book and cancel a session; pay an invoice; renew)
 - [ ] Contact sheets at 390, 768 and 1440 px reviewed
 - **Done when:** every member screen follows the rules at 360, 390, 768, 1024 and 1440 px and the full suites pass.
 
@@ -484,15 +485,15 @@ Every trainer screen is responsive from the start: single column on phones, list
 | Languages | English first, structure ready for Hindi |
 | Launch gyms, peak load, retention, policies | From the requirements’ sign-off list; seed uses sensible defaults |
 
-**Decisions to confirm (raised during M0, defaults in use)**
+**Decisions (raised during M0; the M2 ones were confirmed after M1.5)**
 
-| Question | Default in use |
+| Question | Default in use / decision |
 |---|---|
 | Finance staff work in `/desk` but cannot check members in. Where do they land? | On Invoices and payments. |
 | Platform administrators see no gym records, not even in support mode yet. | Support access (M5) adds a time-limited, reasoned, audited grant. |
 | GST place of supply and rates | Branch state for in-gym services (CGST + SGST), 18%, SAC 999723. GST rules to be confirmed by the gym’s accountant before launch. |
 | Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6. Bundle budget for `/m` is met: 150 KB of 170 KB after step 6. The workout API (which uses Zod) is loaded on demand with the program and workout screens, so it stays out of every area’s first download. |
 | Retention of member records, including assessments withdrawn by consent | Kept, hidden from all staff, until the retention period ends or the member asks for deletion. Retention policy to be confirmed with the gym’s accountant and legal adviser (GST record-keeping, Digital Personal Data Protection Act 2023). |
-| Trainer leave and existing bookings (M2) | Leave blocks new bookings. Bookings that clash show as conflicts for the trainer and the front desk. Either can reschedule or move the session to another trainer; the member gets an email and the credit is not affected. |
-| Private notes after a trainer transfer (M2) | They stay with their author. A new trainer never sees a previous trainer’s private notes. |
-| Assessment consent withdrawn (M2) | New assessments are blocked and existing ones are hidden from all staff, trainer included, who see “Assessment consent withdrawn”. Records are kept until the retention period ends or the member asks for deletion. |
+| Trainer leave and existing bookings (M2) | Leave blocks new bookings. Bookings that clash show as conflicts for the trainer and the front desk. Either can reschedule or move the session to another trainer; the member gets an email and the credit is not affected. **Confirmed.** |
+| Private notes after a trainer transfer (M2) | They stay with their author. A new trainer never sees a previous trainer’s private notes. **Confirmed.** |
+| Assessment consent withdrawn (M2) | New assessments are blocked and existing ones are hidden from all staff, trainer included, who see “Assessment consent withdrawn”. Records are kept until the retention period ends or the member asks for deletion. **Confirmed.** |
