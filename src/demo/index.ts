@@ -1,11 +1,14 @@
 import { now } from "@/api/clock";
 import { db } from "@/demo/db";
 import { SEED_VERSION } from "@/demo/version";
+import { todayIST } from "@/domain/dates";
 import { ApiError } from "@/api/errors";
 import { buildAuditEvent, type AuditInput } from "@/domain/audit";
 import type { Principal } from "@/domain/permissions";
 
 const SEED_KEY = "seedVersion";
+const SEED_TODAY_KEY = "seedToday";
+const TRAINING_KEY = "trainingVersion";
 let seeding: Promise<void> | null = null;
 
 async function writeSeed(): Promise<void> {
@@ -21,13 +24,11 @@ async function writeSeed(): Promise<void> {
       db.tenants.bulkAdd(data.tenants), db.saasPlans.bulkAdd(data.saasPlans), db.branches.bulkAdd(data.branches), db.users.bulkAdd(data.users),
       db.staffRoles.bulkAdd(data.staffRoles), db.members.bulkAdd(data.members), db.trainerAssignments.bulkAdd(data.trainerAssignments),
       db.membershipPlans.bulkAdd(data.membershipPlans), db.memberships.bulkAdd(data.memberships), db.creditLedger.bulkAdd(data.creditLedger),
-      db.consents.bulkAdd(data.consents), db.exercises.bulkAdd(data.exercises), db.workoutPlanVersions.bulkAdd(data.workoutPlanVersions),
-      db.workoutLogs.bulkAdd(data.workoutLogs), db.goals.bulkAdd(data.goals), db.measurements.bulkAdd(data.measurements), db.bookings.bulkAdd(data.bookings),
-      db.checkIns.bulkAdd(data.checkIns), db.invoices.bulkAdd(data.invoices), db.payments.bulkAdd(data.payments), db.trainerReviews.bulkAdd(data.trainerReviews),
-      db.memberSettings.bulkAdd(data.memberSettings), db.badgeAwards.bulkAdd(data.badgeAwards), db.trainerAvailability.bulkAdd(data.trainerAvailability), db.trainerShifts.bulkAdd(data.trainerShifts), db.numberSeries.bulkAdd(data.numberSeries), db.refunds.bulkAdd(data.refunds), db.refundRequests.bulkAdd(data.refundRequests), db.trainerLeave.bulkAdd(data.trainerLeave), db.gatewayEvents.bulkAdd(data.gatewayEvents), db.gatewaySettlements.bulkAdd(data.gatewaySettlements),
-      db.gymPolicies.bulkAdd(data.gymPolicies), db.assessments.bulkAdd(data.assessments), db.programTemplates.bulkAdd(data.programTemplates),
+      db.consents.bulkAdd(data.consents), db.bookings.bulkAdd(data.bookings),
+      db.checkIns.bulkAdd(data.checkIns), db.invoices.bulkAdd(data.invoices), db.payments.bulkAdd(data.payments), db.trainerAvailability.bulkAdd(data.trainerAvailability), db.trainerShifts.bulkAdd(data.trainerShifts), db.numberSeries.bulkAdd(data.numberSeries), db.refunds.bulkAdd(data.refunds), db.refundRequests.bulkAdd(data.refundRequests), db.trainerLeave.bulkAdd(data.trainerLeave), db.gatewayEvents.bulkAdd(data.gatewayEvents), db.gatewaySettlements.bulkAdd(data.gatewaySettlements),
+      db.gymPolicies.bulkAdd(data.gymPolicies),
     ]);
-    await db.meta.bulkPut([{ key: SEED_KEY, value: SEED_VERSION }, { key: "seededAt", value: new Date().toISOString() }]);
+    await db.meta.bulkPut([{ key: SEED_KEY, value: SEED_VERSION }, { key: "seededAt", value: new Date().toISOString() }, { key: SEED_TODAY_KEY, value: todayIST(now()) }]);
   });
   // The first-open budget is 1 second on a mid-range phone. The e2e test reads this measure.
   performance.measure("demo-seed", "demo-seed-start");
@@ -51,11 +52,45 @@ export function ensureSeeded(): Promise<void> {
   return seeding;
 }
 
-/** Wipes the demo and builds it again, so a demo can start from a known state. */
-export async function resetDemo(): Promise<void> {
+let trainingReady: Promise<void> | null = null;
+
+/**
+ * The training half of the gym (exercise library, templates, the sample members’ plans, workouts, goals, reviews and badges, and the trainers’ clients), built from the gym that is
+ * already stored the first time a member or a trainer makes a call. The front desk, finance, the owner and the admin never download or build it. The same function that builds the
+ * rest of the gym on the same day gives the same result, because `seedToday` is kept. Safe to call often and from several places at once.
+ */
+export function ensureTraining(): Promise<void> {
+  trainingReady ??= (async () => {
+    try {
+      if ((await db.meta.get(TRAINING_KEY))?.value === SEED_VERSION) return;
+      const { buildTraining } = await import("@/demo/seedTraining");
+      const today = ((await db.meta.get(SEED_TODAY_KEY))?.value as string | undefined) ?? todayIST(now());
+      const [members, memberships, trainerAssignments, consents, checkIns] = await Promise.all([db.members.toArray(), db.memberships.toArray(), db.trainerAssignments.toArray(), db.consents.toArray(), db.checkIns.toArray()]);
+      const t = buildTraining({ today, members, memberships, trainerAssignments, consents, checkIns });
+      await db.transaction("rw", db.tables, async () => {
+        if ((await db.meta.get(TRAINING_KEY))?.value === SEED_VERSION) return;
+        await Promise.all([db.exercises.clear(), db.programTemplates.clear(), db.workoutPlanVersions.clear(), db.workoutLogs.clear(), db.goals.clear(), db.measurements.clear(), db.trainerReviews.clear(), db.memberSettings.clear(), db.badgeAwards.clear(), db.assessments.clear()]);
+        await Promise.all([
+          db.exercises.bulkAdd(t.exercises), db.programTemplates.bulkAdd(t.programTemplates), db.workoutPlanVersions.bulkAdd(t.workoutPlanVersions), db.workoutLogs.bulkAdd(t.workoutLogs), db.goals.bulkAdd(t.goals),
+          db.measurements.bulkAdd(t.measurements), db.trainerReviews.bulkAdd(t.trainerReviews), db.memberSettings.bulkAdd(t.memberSettings), db.badgeAwards.bulkAdd(t.badgeAwards), db.assessments.bulkAdd(t.assessments),
+          db.meta.put({ key: TRAINING_KEY, value: SEED_VERSION }),
+        ]);
+      });
+    } catch (e) {
+      trainingReady = null;
+      throw e;
+    }
+  })();
+  return trainingReady;
+}
+
+/** Wipes the demo and builds it again, so a demo can start from a known state. The training half comes back the next time a member or trainer needs it, unless asked for now (tests). */
+export async function resetDemo(options: { training?: boolean } = {}): Promise<void> {
   seeding = null;
+  trainingReady = null;
   await db.meta.delete(SEED_KEY);
   await ensureSeeded();
+  if (options.training ?? true) await ensureTraining();
 }
 
 export async function writeAudit(actor: Principal, input: AuditInput): Promise<void> {

@@ -25,7 +25,7 @@ export function useResetDemo(): () => Promise<void> {
   const toast = useToast();
   return useCallback(async () => {
     try {
-      await resetDemo();
+      await resetDemo({ training: false });
       await client.resetQueries();
       toast({ title: "Demo data reset", description: "Pulse Fitness is back to how it started.", tone: "success" });
     } catch {

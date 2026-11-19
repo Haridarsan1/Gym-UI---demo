@@ -58,7 +58,7 @@ function chunkModules(): Plugin {
 }
 
 export default defineConfig({
-  build: { target: ["chrome92", "safari15", "firefox92", "edge92"] },
+  build: { target: ["chrome92", "safari15", "firefox92", "edge92"], minify: "terser" },
   plugins: [
     react(),
     chunkModules(),

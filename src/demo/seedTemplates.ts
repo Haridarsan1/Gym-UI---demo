@@ -1,7 +1,8 @@
 import { TENANT_ID } from "@/app/demoAccounts";
 import { addDays } from "@/domain/dates";
 import type { ProgramTemplate } from "@/domain/types";
-import { buildDays, type Template } from "@/demo/seedMember";
+import { buildDays } from "@/demo/seedTraining";
+import type { Template } from "@/demo/seedPlans";
 
 /**
  * The gym’s program templates (W02). Days sit on a Monday-start calendar, so applying one to a client only needs a start date.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateSeed } from "@/demo/seed";
+import { generateFullSeed } from "@/demo/fullSeed";
 import { amountDuePaise, isOverdue, stateOfGstin, taxBreakup } from "@/domain/billing";
 import { creditBalance } from "@/domain/credits";
 import { addDays, weekStart } from "@/domain/dates";
@@ -9,7 +9,7 @@ import { BadgeAward, Booking, CheckIn, Exercise, Goal, GymPolicies, Invoice, Mea
 
 const NOW = new Date("2026-11-17T06:30:00.000Z"); // 12:00 in India
 const TODAY = "2026-11-17";
-const seed = generateSeed(NOW);
+const seed = generateFullSeed(NOW);
 
 function parseAll(schema: { safeParse: (v: unknown) => { success: boolean; error?: { issues: unknown[] } } }, rows: unknown[], label: string) {
   for (const row of rows) {

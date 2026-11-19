@@ -1,4 +1,4 @@
-import { ensureSeeded } from "@/demo";
+import { ensureSeeded, ensureTraining } from "@/demo";
 import { db } from "@/demo/db";
 import { simulateNetwork } from "@/demo/simulate";
 import { ApiError } from "@/api/errors";
@@ -39,7 +39,10 @@ export async function open(session: Session | null): Promise<CallContext> {
   if (!session) throw new ApiError("unauthenticated", "Log in to continue.");
   await simulateNetwork();
   await ensureSeeded();
-  return { principal: await resolvePrincipal(session.userId) };
+  const principal = await resolvePrincipal(session.userId);
+  // Training data is for the member and trainer apps; nobody else downloads or builds it.
+  if (principal.role === "member" || principal.role === "trainer") await ensureTraining();
+  return { principal };
 }
 
 /** Throws unless the caller may do this. Deny by default. */

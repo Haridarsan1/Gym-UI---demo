@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { hasHorizontalScroll, signInAs } from "./helpers";
+import { hasHorizontalScroll, signInAs, waitForTraining } from "./helpers";
 
 // A real, tiny PNG, so the browser can decode it like a photo.
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC", "base64");
@@ -471,6 +471,7 @@ test.describe("Reviews and check-ins", () => {
 test.describe("Progress: empty and failing states", () => {
   test("a member with little data sees what to do next in every card, and no zeros", async ({ page }) => {
     await signInAs(page, "u_member_sneha", "/m/progress");
+    await waitForTraining(page);
     await clearMeasurements(page, "mem_sneha");
     await page.reload();
     await openMore(page);

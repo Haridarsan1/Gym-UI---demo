@@ -98,3 +98,15 @@ export const changeStore = (page: Page, store: string, change: string) =>
 
 /** The page’s navigation chrome: the top bar on phones, the rail on tablets and the sidebar on desktop, whichever is showing. */
 export const chrome = (page: Page) => page.locator("header:visible, aside:visible, nav:visible");
+
+/** Waits until the training half of the demo gym has been built (it is built by the first member or trainer call, not at sign-in). */
+export const waitForTraining = (page: Page) =>
+  page.waitForFunction(() => new Promise<boolean>((resolve) => {
+    const open = indexedDB.open("ember-demo");
+    open.onsuccess = () => {
+      const get = open.result.transaction("meta").objectStore("meta").get("trainingVersion");
+      get.onsuccess = () => { open.result.close(); resolve(!!get.result); };
+      get.onerror = () => resolve(false);
+    };
+    open.onerror = () => resolve(false);
+  }), undefined, { polling: 100 });

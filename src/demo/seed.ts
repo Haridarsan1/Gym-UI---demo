@@ -1,20 +1,17 @@
 import { ALL_BRANCHES, BRANCH, DEMO_ACCOUNTS, TENANT_ID } from "@/app/demoAccounts";
 import { addDays, todayIST, weekStart } from "@/domain/dates";
 import type {
-  AuditEvent, BadgeAward, Booking, Assessment, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, GatewayEvent, GatewaySettlement, GymClass, GymPolicies, Goal, Invoice, Measurement, Member, MemberSettings,
-  Membership, MembershipPlan, NumberSeries, Payment, ProgramTemplate, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, RefundRequest, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion,
+  AuditEvent, Booking, Branch, CheckIn, Consent, CreditLedgerEntry, GatewayEvent, GatewaySettlement, GymClass, GymPolicies, Invoice, Member, Membership, MembershipPlan, NumberSeries, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, RefundRequest, TrainerAvailability, TrainerLeave, TrainerShift, User,
 } from "@/domain/types";
 import { rng } from "@/demo/rng";
 import { financialYear, formatNumber, seriesKey } from "@/domain/numbering";
 import { invoiceTotals, placeOfSupplyFor } from "@/domain/billing";
-import { hash } from "@/demo/seedMember";
+import { hash } from "@/demo/seedPlans";
 import { PERSONAS } from "@/demo/personas";
 import { TRAINER_POLICY_DEFAULTS } from "@/domain/trainerToday";
 import { buildFinanceSeed } from "@/demo/seedFinance";
 import { buildRoster } from "@/demo/seedTrainer";
-import { buildTemplates } from "@/demo/seedTemplates";
 import { buildMemberData } from "@/demo/seedMember";
-import { EXERCISES } from "@/demo/exercises";
 
 export { SEED_VERSION } from "@/demo/version";
 
@@ -35,16 +32,8 @@ export interface SeedData {
   classes: GymClass[];
   bookings: Booking[];
   checkIns: CheckIn[];
-  exercises: Exercise[];
-  workoutPlanVersions: WorkoutPlanVersion[];
-  workoutLogs: WorkoutLog[];
-  goals: Goal[];
-  measurements: Measurement[];
   consents: Consent[];
   auditEvents: AuditEvent[];
-  trainerReviews: TrainerReview[];
-  memberSettings: MemberSettings[];
-  badgeAwards: BadgeAward[];
   trainerAvailability: TrainerAvailability[];
   trainerShifts: TrainerShift[];
   refundRequests: RefundRequest[];
@@ -53,8 +42,6 @@ export interface SeedData {
   numberSeries: NumberSeries[];
   trainerLeave: TrainerLeave[];
   gymPolicies: GymPolicies[];
-  assessments: Assessment[];
-  programTemplates: ProgramTemplate[];
 }
 
 const FIRST = ["Aarav", "Aditi", "Aisha", "Akash", "Ananya", "Anil", "Anjali", "Arnav", "Bhavna", "Chirag", "Deepak", "Diya", "Farhan", "Gauri", "Harsh", "Ishaan", "Isha", "Jaya", "Karthik", "Kiran", "Lakshmi", "Manish", "Meghna", "Mohit", "Nikhil", "Nisha", "Omkar", "Pallavi", "Pranav", "Rachna", "Rajat", "Riya", "Rohan", "Sahil", "Sakshi", "Shreya", "Siddharth", "Tanvi", "Uday", "Varun", "Vidya", "Yash", "Zoya"];
@@ -381,8 +368,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   // Rahul has withdrawn his assessment consent since his assessment, so Coach Farah sees “Assessment consent withdrawn”.
   const rahulConsent = consents.find((c) => c.id === "cn_mem_rahul_assessments");
   if (rahulConsent) rahulConsent.withdrawnAt = createdAt(addDays(today, -9));
-  const assessmentConsent = new Set(consents.filter((c) => c.scope === "assessments" && !c.withdrawnAt).map((c) => c.memberId));
-  const roster = buildRoster({ today, members, memberships, trainerAssignments, availability, deskFor, assessmentConsent });
+  const roster = buildRoster({ today, members, memberships, trainerAssignments, availability, deskFor });
 
   const finance = buildFinanceSeed(memberData.payments, today);
 
@@ -391,8 +377,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,
     creditLedger: [...creditLedger, ...memberData.creditLedger, ...roster.creditLedger],
     invoices: numbered.invoices, numberSeries: numbered.series, payments: finance.payments, refunds: refundSeed.refunds, refundRequests: refundSeed.requests, classes: [], bookings: [...memberData.bookings, ...roster.bookings].map((b) => (b.kind === "pt_session" && b.status !== "canceled" ? { ...b, roomId: roomFor(b) } : b)), checkIns: memberData.checkIns,
-    exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: [...memberData.goals, ...roster.goals], assessments: [...memberData.assessments, ...roster.assessments], programTemplates: buildTemplates(today, createdAt),
-    measurements: memberData.measurements, auditEvents: [], trainerReviews: [...memberData.trainerReviews, ...roster.trainerReviews], memberSettings: memberData.memberSettings,
-    badgeAwards: memberData.badgeAwards, trainerAvailability: availability, trainerShifts: shifts, trainerLeave: leave, gymPolicies: [policies],
+    auditEvents: [],
+    trainerAvailability: availability, trainerShifts: shifts, trainerLeave: leave, gymPolicies: [policies],
   };
 }

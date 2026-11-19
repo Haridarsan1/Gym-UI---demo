@@ -21,7 +21,10 @@ const TRAINER_API = /^src\/api\/(trainer|trainerHooks|clients|book|assessments|l
 const NOT_FOR = {
   "/m": [/^src\/features\/(trainer|desk|owner|admin)\//, SCREENS_OF("trainer|desk|owner|admin"), TRAINER_API, /^src\/domain\/trainerToday\./],
   // The desk never downloads the member or trainer apps, the owner or admin consoles, or the QR scanner and finance screens up front.
-  "/desk": [/^src\/features\/(member|trainer|owner|admin)\//, SCREENS_OF("member|trainer|owner|admin"), /^src\/api\/(trainer|trainerHooks|clients|book|assessments|library|programs|templates|coachLog|review|schedule)\./, /^src\/domain\/trainerToday\./, /^node_modules\/@zxing\//],
+  // Training data is built for the member and trainer apps only (demo/index.ts ensureTraining).
+  "/desk": [/^src\/demo\/(seedTraining|seedTemplates|exercises)\./, /^src\/features\/(member|trainer|owner|admin)\//, SCREENS_OF("member|trainer|owner|admin"), /^src\/api\/(trainer|trainerHooks|clients|book|assessments|library|programs|templates|coachLog|review|schedule)\./, /^src\/domain\/trainerToday\./, /^node_modules\/@zxing\//],
+  "/owner": [/^src\/demo\/(seedTraining|seedTemplates|exercises)\./, /^src\/features\/(member|trainer|desk|admin)\//, SCREENS_OF("member|trainer|desk|admin")],
+  "/admin": [/^src\/demo\/(seedTraining|seedTemplates|exercises)\./, /^src\/features\/(member|trainer|desk|owner)\//, SCREENS_OF("member|trainer|desk|owner")],
 };
 const chunkModules = JSON.parse(readFileSync("node_modules/.cache/ember/chunk-modules.json", "utf8"));
 

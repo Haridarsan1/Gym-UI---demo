@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { generateSeed } from "@/demo/seed";
+import { generateFullSeed } from "@/demo/fullSeed";
 import { creditBalance } from "@/domain/credits";
 import { istDateOf } from "@/domain/dates";
 import { profileFor } from "@/demo/seedTrainer";
 import { Booking, CreditLedgerEntry, TrainerReview, WorkoutLog, WorkoutPlanVersion } from "@/domain/types";
 
 const NOW = new Date("2026-11-17T06:30:00.000Z");
-const seed = generateSeed(NOW);
+const seed = generateFullSeed(NOW);
 const TODAY = "2026-11-17";
 
 describe("trainer rosters in the seed", () => {
