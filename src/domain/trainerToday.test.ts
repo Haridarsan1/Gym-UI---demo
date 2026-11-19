@@ -17,7 +17,7 @@ describe("reviewCadenceFor", () => {
     expect(reviewCadenceFor([{ status: "closed", reviewEveryDays: 7 }], 21)).toBe(21);
   });
   it("starts from four weeks, two missed workouts in seven days, and two weeks of credit warning", () => {
-    expect(TRAINER_POLICY_DEFAULTS).toEqual({ reviewCadenceDays: 28, missedWorkoutsThreshold: 2, missedWorkoutsWindowDays: 7, creditExpiryWarningDays: 14 });
+    expect(TRAINER_POLICY_DEFAULTS).toEqual({ reviewCadenceDays: 28, missedWorkoutsThreshold: 2, missedWorkoutsWindowDays: 7, creditExpiryWarningDays: 14, noShowAfterMinutes: 15, markWindowHours: 48 });
   });
 });
 
