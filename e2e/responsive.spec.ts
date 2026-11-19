@@ -256,7 +256,7 @@ test.describe("trainer screens at every width", () => {
 
 test.describe("front desk screens at every width", () => {
   // Each screen the desk gets in M3 is added here when it is built.
-  const DESK_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk", h1: "Check-in" }, { path: "/desk/new", h1: "New member" }, { path: "/desk/members", h1: "Members" }, { path: "/desk/members/mem_arjun", h1: "Arjun Kumar" }, { path: "/desk/members/mem_arjun?tab=billing", h1: "Arjun Kumar" }, { path: "/desk/dues", h1: "Dues" }, { path: "/desk/payments/new", h1: "Collect payment" }]
+  const DESK_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk", h1: "Check-in" }, { path: "/desk/new", h1: "New member" }, { path: "/desk/members", h1: "Members" }, { path: "/desk/members/mem_arjun", h1: "Arjun Kumar" }, { path: "/desk/members/mem_arjun?tab=billing", h1: "Arjun Kumar" }, { path: "/desk/dues", h1: "Dues" }, { path: "/desk/payments/new", h1: "Collect payment" }, { path: "/desk/bookings", h1: "Bookings" }]
   const FINANCE_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk/finance/refunds", h1: "Refunds" }];
   for (const width of WIDTHS) {
     test(`no sideways scroll, a capped width and 44 px targets at ${width} px`, async ({ page }) => {

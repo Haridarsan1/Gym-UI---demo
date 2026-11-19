@@ -15,6 +15,7 @@ const implemented = {
   dues: lazy(() => import("@/features/desk/Dues")),
   "desk-receipt": lazy(() => import("@/features/desk/DeskReceipt")),
   refunds: lazy(() => import("@/features/desk/Refunds")),
+  "desk-bookings": lazy(() => import("@/features/desk/Bookings")),
   "new-member": lazy(() => import("@/features/desk/NewMember")),
 };
 

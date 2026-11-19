@@ -333,6 +333,12 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     });
   }
 
+  // Personal-training sessions take a room: a deterministic one at the branch where it happens (the room is only conflict-checked when set).
+  const roomFor = (b: { id: string; branchId: string }): string | undefined => {
+    const rooms = branches.find((x) => x.id === b.branchId)?.rooms ?? [];
+    return rooms.length ? rooms[hash(b.id) % rooms.length]!.id : undefined;
+  };
+
   // Refunds for finance to work on (M4): one request from the desk waiting for approval, one approved and paid back last week, one rejected.
   const refundSeed = (() => {
     const paidOnce = memberData.invoices
@@ -378,7 +384,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   return {
     tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,
     creditLedger: [...creditLedger, ...memberData.creditLedger, ...roster.creditLedger],
-    invoices: numbered.invoices, numberSeries: numbered.series, payments: memberData.payments, refunds: refundSeed.refunds, refundRequests: refundSeed.requests, classes: [], bookings: [...memberData.bookings, ...roster.bookings], checkIns: memberData.checkIns,
+    invoices: numbered.invoices, numberSeries: numbered.series, payments: memberData.payments, refunds: refundSeed.refunds, refundRequests: refundSeed.requests, classes: [], bookings: [...memberData.bookings, ...roster.bookings].map((b) => (b.kind === "pt_session" && b.status !== "canceled" ? { ...b, roomId: roomFor(b) } : b)), checkIns: memberData.checkIns,
     exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: [...memberData.goals, ...roster.goals], assessments: [...memberData.assessments, ...roster.assessments], programTemplates: buildTemplates(today, createdAt),
     measurements: memberData.measurements, auditEvents: [], trainerReviews: [...memberData.trainerReviews, ...roster.trainerReviews], memberSettings: memberData.memberSettings,
     badgeAwards: memberData.badgeAwards, trainerAvailability: availability, trainerShifts: shifts, trainerLeave: leave, gymPolicies: [policies],

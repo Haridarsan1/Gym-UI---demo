@@ -117,3 +117,31 @@ export function useDecideRefund() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: async (i: import("@/api/refunds").DecideInput) => (await refundsApi()).decideRefund(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["desk", session?.userId] }) });
 }
+
+const bookingsApi = () => import("@/api/deskBookings");
+
+/** The calendar: a day or a week at one branch, by trainer and room. It refreshes by itself so two desks see each other’s bookings. */
+export function useCalendar(branchId: string | undefined, date: string, days: 1 | 7) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "calendar", branchId, date, days], queryFn: async () => (await bookingsApi()).getCalendar(session, { branchId: branchId!, date, days }), enabled: !!session && !!branchId, retry, refetchInterval: 15_000, staleTime: 0, placeholderData: keepPreviousData });
+}
+
+export function useBookingFacts(memberId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "booking-facts", memberId], queryFn: async () => (await bookingsApi()).getBookingFacts(session, memberId!), enabled: !!session && !!memberId, retry, staleTime: 0, gcTime: 0 });
+}
+
+export function useCalendarActions() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  const refresh = () => qc.invalidateQueries({ queryKey: ["desk", session?.userId] });
+  return {
+    book: useMutation({ mutationFn: async (i: import("@/api/deskBookings").DeskBookInput) => (await bookingsApi()).bookForMember(session, i), onSuccess: refresh }),
+    move: useMutation({ mutationFn: async (i: import("@/api/schedule").MoveInput) => (await bookingsApi()).moveDeskConflict(session, i), onSuccess: refresh }),
+  };
+}
+
+export function useDeskConflictOptions(bookingId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "conflict-options", bookingId], queryFn: async () => (await bookingsApi()).getDeskConflictOptions(session, bookingId!), enabled: !!session && !!bookingId, retry, staleTime: 0, gcTime: 0 });
+}

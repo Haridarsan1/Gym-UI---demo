@@ -74,7 +74,7 @@ export interface ScheduleData {
   conflicts: SessionRow[];
 }
 
-const policyOf = (p: GymPolicies | undefined) => ({ noShowAfterMinutes: p?.noShowAfterMinutes ?? ATTENDANCE_DEFAULTS.noShowAfterMinutes, markWindowHours: p?.markWindowHours ?? ATTENDANCE_DEFAULTS.markWindowHours, noShowConsumesCredit: p?.noShowConsumesCredit ?? DEFAULT_NO_SHOW_CONSUMES, sessionMinutes: p?.sessionMinutes ?? 60, bookingHorizonDays: p?.bookingHorizonDays ?? 14 });
+export const policyOf = (p: GymPolicies | undefined) => ({ noShowAfterMinutes: p?.noShowAfterMinutes ?? ATTENDANCE_DEFAULTS.noShowAfterMinutes, markWindowHours: p?.markWindowHours ?? ATTENDANCE_DEFAULTS.markWindowHours, noShowConsumesCredit: p?.noShowConsumesCredit ?? DEFAULT_NO_SHOW_CONSUMES, sessionMinutes: p?.sessionMinutes ?? 60, bookingHorizonDays: p?.bookingHorizonDays ?? 14 });
 
 export async function getSchedule(session: Session | null): Promise<ScheduleData> {
   const t = await openSchedule(session);
@@ -285,7 +285,15 @@ export async function markAttendance(session: Session | null, raw: MarkInput): P
 
 // ── Leave conflicts: move a session ─────────────────────────────────────────────────────────────
 
-async function slotsOf(t: TrainerContext, trainerId: string, branchId: string, excludeBookingId: string) {
+/** Who is acting on a booking: a trainer on their own, or desk staff within their branches. */
+export interface Actor {
+  principal: TrainerContext["principal"];
+  tenantId: string;
+  today: string;
+  nowIso: string;
+}
+
+export async function slotsOf(t: Actor, trainerId: string, branchId: string, excludeBookingId: string) {
   const [availability, branch, bookings, shifts, leave, policies] = await Promise.all([
     db.trainerAvailability.where("trainerId").equals(trainerId).toArray(),
     db.branches.get(branchId),
@@ -312,12 +320,17 @@ export interface ConflictOptions {
 /** Where a session that clashes with leave can go: your own next free times, and other trainers’ at the same branch. */
 export async function getConflictOptions(session: Session | null, bookingId: string): Promise<ConflictOptions> {
   const t = await openSchedule(session);
+  return conflictOptions(t, bookingId, (b) => b.trainerId === t.trainerId);
+}
+
+/** The same, for whoever is allowed to move the booking (`mayMove`): the trainer it belongs to, or desk staff at its branch. */
+export async function conflictOptions(t: Actor, bookingId: string, mayMove: (b: Booking) => boolean): Promise<ConflictOptions> {
   const b = await db.bookings.get(bookingId);
-  if (!b || b.trainerId !== t.trainerId || b.kind !== "pt_session" || b.status !== "booked") throw new ApiError("not_found", "We couldn’t find that session. It may already be moved.");
+  if (!b || !mayMove(b) || b.kind !== "pt_session" || b.status !== "booked") throw new ApiError("not_found", "We couldn’t find that session. It may already be moved.");
   const [member, users, staff, branch] = await Promise.all([db.members.get(b.memberId), db.users.where("tenantId").equals(t.tenantId).toArray(), db.staffRoles.where("tenantId").equals(t.tenantId).toArray(), db.branches.get(b.branchId)]);
-  const mine = await slotsOf(t, t.trainerId, b.branchId, b.id);
+  const mine = await slotsOf(t, b.trainerId!, b.branchId, b.id);
   const others: ConflictOptions["others"] = [];
-  for (const s of staff.filter((x) => x.role === "trainer" && x.userId !== t.trainerId && x.branchIds.includes(b.branchId))) {
+  for (const s of staff.filter((x) => x.role === "trainer" && x.userId !== b.trainerId && x.branchIds.includes(b.branchId))) {
     const days = await slotsOf(t, s.userId, b.branchId, b.id);
     const slots = nextFree(days, t.nowIso, 6);
     if (slots.length) others.push({ trainerId: s.userId, name: users.find((u) => u.id === s.userId)?.name ?? "Trainer", slots });
@@ -325,45 +338,50 @@ export async function getConflictOptions(session: Session | null, bookingId: str
   return { booking: { id: b.id, name: member?.name ?? "Client", startsAt: b.startsAt, branchName: branch?.name ?? "" }, sameTrainer: nextFree(mine, t.nowIso, 8), others };
 }
 
-const Move = z.object({ bookingId: z.string().min(1), startsAt: z.string().datetime(), trainerId: z.string().min(1).optional(), key: z.string().min(8) });
+export const Move = z.object({ bookingId: z.string().min(1), startsAt: z.string().datetime(), trainerId: z.string().min(1).optional(), key: z.string().min(8) });
 export type MoveInput = z.input<typeof Move>;
 
 /**
- * Moves a session that clashes with leave to another time with you, or to another trainer. The one credit already reserved stays with the
- * session, so the member’s balance does not change; they get an email with the new time. Free slots are checked again inside the write,
- * so two requests for one slot make one booking (A03).
+ * Moves a session that clashes with leave to another time with its trainer, or to another trainer. The one credit already reserved stays with the session, so the
+ * member’s balance does not change; they get an email with the new time. Free slots are checked again inside the write, so two requests for one slot make one
+ * booking (A03).
  */
 export async function moveSession(session: Session | null, raw: MoveInput): Promise<{ bookingId: string; trainerId: string; startsAt: string; repeated: boolean }> {
   const t = await openSchedule(session);
   const input = parse(Move, raw);
+  return moveBooking(t, input, (b) => b.trainerId === t.trainerId, "Trainer leave");
+}
+
+/** The move itself, for whoever may do it: `mayMove` says whether this person may move that booking. */
+export async function moveBooking(t: Actor, input: z.output<typeof Move>, mayMove: (b: Booking) => boolean, reason: string): Promise<{ bookingId: string; trainerId: string; startsAt: string; repeated: boolean }> {
   return db.transaction("rw", db.tables, async () => {
     const b = await db.bookings.get(input.bookingId);
     if (!b || b.kind !== "pt_session") throw new ApiError("not_found", "We couldn’t find that session. It may already be moved.");
     // The same key again is the same move: the session is where it was asked to go, and nothing else happens.
     const done = (await db.auditEvents.where("action").equals("booking.move").toArray()).find((e) => e.entityId === b.id && e.details?.key === input.key);
     if (done) return { bookingId: b.id, trainerId: b.trainerId!, startsAt: b.startsAt, repeated: true };
-    if (b.trainerId !== t.trainerId) throw new ApiError("not_found", "We couldn’t find that session. It may already be moved.");
+    if (!mayMove(b)) throw new ApiError("not_found", "We couldn’t find that session. It may already be moved.");
     if (b.status !== "booked") throw new ApiError("conflict", "This session is already finished or canceled.");
-    const leave = await db.trainerLeave.where("trainerId").equals(t.trainerId).toArray();
-    if (!leaveConflicts([b], leave, t.nowIso).length) throw new ApiError("conflict", "This session doesn’t clash with your leave, so it stays with the member to change.");
-    const toTrainer = input.trainerId ?? t.trainerId;
+    const leave = await db.trainerLeave.where("trainerId").equals(b.trainerId!).toArray();
+    if (!leaveConflicts([b], leave, t.nowIso).length) throw new ApiError("conflict", "This session doesn’t clash with the trainer’s leave, so it stays with the member to change.");
+    const toTrainer = input.trainerId ?? b.trainerId!;
     const days = await slotsOf(t, toTrainer, b.branchId, b.id);
     const slot = days.flatMap((d) => d.slots).find((s) => s.startsAt === input.startsAt);
     if (!slot || slot.taken) throw new ApiError("conflict", SLOT_TAKEN, { nextFree: nextFree(days, t.nowIso, 4) });
     const date = istDateOf(slot.startsAt);
     const slotKey = slotKeyFor(toTrainer, date, slot.time);
     await db.bookings.update(b.id, { trainerId: toTrainer, startsAt: slot.startsAt, endsAt: slot.endsAt, slotKey });
-    const [member, tenant, from, to] = await Promise.all([db.members.get(b.memberId), db.tenants.get(t.tenantId), db.users.get(t.trainerId), db.users.get(toTrainer)]);
+    const [member, tenant, from, to] = await Promise.all([db.members.get(b.memberId), db.tenants.get(t.tenantId), db.users.get(b.trainerId!), db.users.get(toTrainer)]);
     const first = (member?.name ?? "").split(" ")[0] ?? "";
     const coach = (n?: string) => `Coach ${(n ?? "your trainer").split(" ")[0]}`;
     const when = (iso: string) => new Date(iso).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }).replace(/\b(am|pm)\b/i, (m) => m.toLowerCase());
     await db.emailLog.add({
       id: rid("em"), tenantId: t.tenantId, memberId: b.memberId, bookingId: b.id, template: "booking_rescheduled", to: member?.email,
       subject: `Your session has moved to ${when(slot.startsAt)}`,
-      body: [`Hi ${first},`, "", `${coach(from?.name)} is away on ${when(b.startsAt)}, so your training session has moved to ${when(slot.startsAt)}${toTrainer !== t.trainerId ? ` with ${coach(to?.name)}` : ""}.`, "Your session credit is not affected. If the new time doesn’t suit you, you can change it in the app.", "", tenant?.name ?? "Your gym"].join("\n"),
+      body: [`Hi ${first},`, "", `${coach(from?.name)} is away on ${when(b.startsAt)}, so your training session has moved to ${when(slot.startsAt)}${toTrainer !== b.trainerId ? ` with ${coach(to?.name)}` : ""}.`, "Your session credit is not affected. If the new time doesn’t suit you, you can change it in the app.", "", tenant?.name ?? "Your gym"].join("\n"),
       status: member?.email ? "sent" : "skipped", detail: member?.email ? undefined : "No email address on file for this member.", sentAt: t.nowIso,
     });
-    await audit(t, { action: "booking.move", entityType: "booking", entityId: b.id, memberId: b.memberId, reason: "Trainer leave", details: { from: b.startsAt, to: slot.startsAt, trainer: toTrainer, key: input.key } });
+    await db.auditEvents.add(buildAuditEvent(t.principal, { action: "booking.move", entityType: "booking", entityId: b.id, memberId: b.memberId, reason, details: { from: b.startsAt, to: slot.startsAt, trainer: toTrainer, key: input.key } }, rid("ae"), now()));
     return { bookingId: b.id, trainerId: toTrainer, startsAt: slot.startsAt, repeated: false };
   });
 }

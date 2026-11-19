@@ -668,3 +668,50 @@ export async function refundJourney(page: Page, signIn: (userId: string, path: s
   await expect(page.getByRole("list", { name: "Decided refunds" })).toContainText("Note: Outside the policy: the plan was used");
   await noSideways(page, "Refunds decided");
 }
+
+/**
+ * T04, O01, A03: the front desk’s bookings calendar at Andheri. Book a session for a member and see the time leave the free list, then a
+ * trainer’s leave (added by the trainer, here written to the store) puts Arjun’s session in conflict and the desk moves it.
+ */
+export async function bookingsJourney(page: Page, wide: boolean) {
+  await page.goto("/desk/bookings?date=2026-11-18");
+  await expect(page.getByRole("heading", { name: "Bookings", level: 1 })).toBeVisible();
+  if (!wide) await page.getByRole("radio", { name: "Meera", exact: false }).first().click();
+  await noSideways(page, "Bookings");
+  const before = (await readStore(page, "bookings")).length;
+  await page.getByRole("button", { name: /^Book Meera.* at / }).first().click();
+  const sheet = page.getByRole("dialog", { name: "Book a session" });
+  await sheet.getByLabel("Search members").fill("Arjun");
+  await sheet.getByRole("button", { name: /Arjun Kumar/ }).click();
+  await expect(sheet).toContainText(/\d+ sessions? left/);
+  await sheet.getByRole("button", { name: "Book session" }).click();
+  await expect(page.getByText("Session booked")).toBeVisible();
+  const after = await readStore(page, "bookings");
+  expect(after).toHaveLength(before + 1);
+  expect(after.filter((b) => b.memberId === "mem_arjun" && String(b.startsAt).startsWith("2026-11-18"))).toHaveLength(1);
+  expect((await readStore(page, "auditEvents")).some((e) => e.memberId === "mem_arjun" && e.reason === "Booked at the front desk")).toBe(true);
+
+  // Leave on Thursday 19 Nov puts Arjun’s booked session in conflict.
+  await page.evaluate(() => new Promise<void>((resolve, reject) => {
+    const open = indexedDB.open("ember-demo");
+    open.onsuccess = () => {
+      const tx = open.result.transaction("trainerLeave", "readwrite");
+      tx.objectStore("trainerLeave").add({ id: "lv_e2e", tenantId: "t_pulse", trainerId: "u_trainer_meera", from: "2026-11-19", to: "2026-11-19", reason: "Conference", createdBy: "u_trainer_meera", createdAt: "2026-11-17T06:00:00.000Z" });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    };
+  }));
+  await page.goto("/desk/bookings?date=2026-11-19");
+  await expect(page.getByRole("heading", { name: "1 session is on its trainer’s leave" })).toBeVisible();
+  await noSideways(page, "Bookings with a conflict");
+  await page.getByRole("button", { name: "Move Arjun’s session" }).click();
+  const move = page.getByRole("dialog", { name: "Move Arjun’s session" });
+  await expect(move).toContainText("keeps the session credit");
+  const arjun = (await readStore(page, "bookings")).find((b) => b.memberId === "mem_arjun" && String(b.startsAt).startsWith("2026-11-19"))!;
+  await move.getByRole("list", { name: /times on/ }).first().getByRole("button").first().click();
+  await expect(page.getByText("Arjun’s session is moved")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /on its trainer’s leave$/ })).toHaveCount(0);
+  const moved = (await readStore(page, "bookings")).find((b) => b.id === arjun.id)!;
+  expect(moved.startsAt).not.toBe(arjun.startsAt);
+  expect(moved.status).toBe("booked");
+}
