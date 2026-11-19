@@ -8,7 +8,7 @@ import { buildAuditEvent, type AuditInput } from "@/domain/audit";
 import { PT_CREDIT_COST } from "@/domain/booking";
 import { creditBalance, type CreditBalance } from "@/domain/credits";
 import { addDays, istDateOf } from "@/domain/dates";
-import { attendanceBlockedReason, attendanceSettlement, creditRuleText, leaveConflicts, leaveProblem, rangesOverlap, weeklyProblem, windowProblem, type AttendanceOutcome } from "@/domain/schedule";
+import { ATTENDANCE_DEFAULTS, attendanceBlockedReason, attendanceSettlement, creditRuleText, leaveConflicts, leaveProblem, rangesOverlap, weeklyProblem, windowProblem, type AttendanceOutcome } from "@/domain/schedule";
 import { nextFree, slotKeyFor, slotsForHorizon, weekdayOf, type Slot } from "@/domain/slots";
 import type { Booking, CreditLedgerEntry, GymPolicies, TrainerAvailability, TrainerLeave, TrainerShift } from "@/domain/types";
 import type { Session } from "@/app/session";
@@ -45,8 +45,10 @@ export interface SessionRow {
   status: "booked" | "attended" | "no_show";
   /** For a finished session: whether its credit was used or went back. */
   credit?: "used" | "returned";
-  /** The session has started and nobody has marked it yet. */
+  /** “Attended” can be marked now. */
   markable: boolean;
+  /** “No-show” can be marked now (a little later than attended), with the reason when it can’t. */
+  noShowReason?: string;
   /** The session’s time has passed and it is still unmarked. */
   awaitingMark: boolean;
   blockedReason?: string;
@@ -72,7 +74,7 @@ export interface ScheduleData {
   conflicts: SessionRow[];
 }
 
-const policyOf = (p: GymPolicies | undefined) => ({ noShowConsumesCredit: p?.noShowConsumesCredit ?? DEFAULT_NO_SHOW_CONSUMES, sessionMinutes: p?.sessionMinutes ?? 60, bookingHorizonDays: p?.bookingHorizonDays ?? 14 });
+const policyOf = (p: GymPolicies | undefined) => ({ noShowAfterMinutes: p?.noShowAfterMinutes ?? ATTENDANCE_DEFAULTS.noShowAfterMinutes, markWindowHours: p?.markWindowHours ?? ATTENDANCE_DEFAULTS.markWindowHours, noShowConsumesCredit: p?.noShowConsumesCredit ?? DEFAULT_NO_SHOW_CONSUMES, sessionMinutes: p?.sessionMinutes ?? 60, bookingHorizonDays: p?.bookingHorizonDays ?? 14 });
 
 export async function getSchedule(session: Session | null): Promise<ScheduleData> {
   const t = await openSchedule(session);
@@ -100,13 +102,14 @@ export async function getSchedule(session: Session | null): Promise<ScheduleData
     .filter((b) => b.kind === "pt_session" && b.status !== "canceled" && istDateOf(b.startsAt) >= from && istDateOf(b.startsAt) <= to)
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
     .map((b): SessionRow => {
-      const blocked = attendanceBlockedReason(b, t.nowIso);
+      const blocked = attendanceBlockedReason(b, t.nowIso, "attended", policy);
+      const noShowBlocked = attendanceBlockedReason(b, t.nowIso, "no_show", policy);
       const l = clashes.get(b.id);
       const done = settled(b);
       return {
         id: b.id, memberId: b.memberId, name: name.get(b.memberId) ?? "Client", startsAt: b.startsAt, endsAt: b.endsAt, branchId: b.branchId, branchName: branchName.get(b.branchId) ?? "",
         status: b.status as SessionRow["status"], credit: b.status === "booked" ? undefined : done.some((e) => e.kind === "consumption") ? "used" : done.some((e) => e.kind === "release") ? "returned" : undefined,
-        markable: !blocked, awaitingMark: b.status === "booked" && Date.parse(b.endsAt) <= Date.parse(t.nowIso), blockedReason: blocked,
+        markable: !blocked || !noShowBlocked, noShowReason: noShowBlocked, awaitingMark: b.status === "booked" && Date.parse(b.endsAt) <= Date.parse(t.nowIso), blockedReason: blocked,
         conflict: l && { leaveId: l.id, from: l.from, to: l.to, reason: l.reason },
       };
     });
@@ -261,9 +264,9 @@ export async function markAttendance(session: Session | null, raw: MarkInput): P
       return done.some((e) => e.kind === "consumption") ? "used" : done.some((e) => e.kind === "release") ? "returned" : "none";
     };
     if (b.status === input.outcome) return { bookingId: b.id, outcome: input.outcome, credit: settledCredit(), credits: creditBalance(ledger), repeated: true };
-    const blocked = attendanceBlockedReason(b, t.nowIso);
-    if (blocked) throw new ApiError("conflict", blocked);
     const policy = policyOf(await db.gymPolicies.where("tenantId").equals(t.tenantId).first());
+    const blocked = attendanceBlockedReason(b, t.nowIso, input.outcome, policy);
+    if (blocked) throw new ApiError("conflict", blocked);
     const settle = attendanceSettlement(input.outcome, policy.noShowConsumesCredit);
     let next = ledger;
     if (b.creditEntryId) {

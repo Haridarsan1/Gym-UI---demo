@@ -109,6 +109,20 @@ describe("marking attendance and the credit", () => {
     expect(creditRuleText("no_show", false)).toBe("Gives the credit back");
   });
 
+  it("a no-show opens 15 minutes after the start, and both close 48 hours after it", () => {
+    const s = { status: "booked", startsAt: "2026-11-17T11:30:00.000Z" };
+    expect(attendanceBlockedReason(s, "2026-11-17T11:30:00.000Z", "attended")).toBeUndefined();
+    expect(attendanceBlockedReason(s, "2026-11-17T11:44:59.000Z", "no_show")).toMatch(/15 minutes after the session starts/);
+    expect(attendanceBlockedReason(s, "2026-11-17T11:45:00.000Z", "no_show")).toBeUndefined();
+    expect(attendanceBlockedReason(s, "2026-11-19T11:30:00.000Z", "attended")).toBeUndefined();
+    expect(attendanceBlockedReason(s, "2026-11-19T11:30:01.000Z", "attended")).toMatch(/48 hours/);
+    expect(attendanceBlockedReason(s, "2026-11-19T11:30:01.000Z", "no_show")).toMatch(/48 hours/);
+    // The gym’s own values change all of it.
+    const rules = { noShowAfterMinutes: 30, markWindowHours: 24 };
+    expect(attendanceBlockedReason(s, "2026-11-17T11:50:00.000Z", "no_show", rules)).toMatch(/30 minutes/);
+    expect(attendanceBlockedReason(s, "2026-11-18T11:31:00.000Z", "attended", rules)).toMatch(/24 hours/);
+  });
+
   it("a session can be marked from its start, once", () => {
     const s = { status: "booked", startsAt: "2026-11-17T11:30:00.000Z" };
     expect(attendanceBlockedReason(s, "2026-11-17T11:29:00.000Z")).toMatch(/when the session starts/);

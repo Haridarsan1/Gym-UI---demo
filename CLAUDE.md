@@ -90,6 +90,7 @@ Shells are `PlayShell` (member, trainer) and `StaffShell`; both use `NavRail` an
 - [ ] Permissions enforced in UI and API
 - [ ] Unit tests for new domain rules; Playwright test for the main flow
 - [ ] `npm run build` passes with no type errors
+- [ ] **Never commit with a failing test or an emptied instruction file.** `npm run check-docs` (also the pre-commit hook, installed by `npm install`, and a unit test) fails if CLAUDE.md, docs/PLAN.md or docs/REQUIREMENTS.md is missing or near-empty.
 - [ ] **Never commit with a failing test.** Run the affected suites (Vitest and the Playwright specs for the screens touched) before every commit. If something fails, fix it first, then commit. Do not commit a known failure, skip a test to get green, or leave a fix for the next commit
 - [ ] Checkbox ticked in `docs/PLAN.md`
 

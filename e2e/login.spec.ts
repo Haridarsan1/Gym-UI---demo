@@ -212,6 +212,22 @@ test.describe("role switcher", () => {
     await expect(page).toHaveURL(/\/m$/);
   });
 
+  test("“More accounts” lists every trainer and every sample member, and any of them can be reached", async ({ page }) => {
+    await fastDemo(page);
+    await page.goto("/login");
+    await page.getByRole("button", { name: /^Owner/ }).click();
+    await expect(heading(page, "Dashboard")).toBeVisible();
+    await page.getByRole("button", { name: /Account menu/ }).click();
+    await chrome(page).getByText("More accounts", { exact: true }).click();
+    const more = chrome(page).getByRole("list", { name: "More accounts" });
+    // Meera and Arjun are in the main list; the other five trainers and three sample members are here.
+    for (const n of ["Aditya Rao", "Farah Khan", "Sanjay Patil", "Kavya Reddy", "Vikrant Singh", "Priya Sharma", "Rahul Mehta", "Sneha Patil"]) await expect(more).toContainText(n);
+    await expect(more.getByRole("listitem")).toHaveCount(8);
+    await more.getByRole("button", { name: /Farah Khan/ }).click();
+    await expect(page).toHaveURL(/\/t$/);
+    await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening), Farah/, level: 1 })).toBeVisible();
+  });
+
   test("works from the command palette", async ({ page, isMobile }) => {
     test.skip(isMobile, "Keyboard shortcut");
     await fastDemo(page);

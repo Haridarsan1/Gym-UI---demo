@@ -20,6 +20,10 @@ export const TRAINER_POLICY_DEFAULTS = {
   missedWorkoutsWindowDays: 7,
   /** Training credits are flagged this many days before their pack ends. */
   creditExpiryWarningDays: 14,
+  /** A no-show can be marked this long after the session starts (an attended session from its start). */
+  noShowAfterMinutes: 15,
+  /** A session can be marked up to this many hours after it starts. */
+  markWindowHours: 48,
 } as const;
 
 /**

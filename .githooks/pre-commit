@@ -1,0 +1,3 @@
+#!/bin/sh
+# Refuses a commit that would empty or remove CLAUDE.md, docs/PLAN.md or docs/REQUIREMENTS.md. Installed by `npm install` (prepare).
+node scripts/check-docs.mjs --staged

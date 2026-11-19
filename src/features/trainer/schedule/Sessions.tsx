@@ -50,7 +50,6 @@ export function Conflicts({ s }: { s: ScheduleData }) {
       <ul aria-label="Sessions on leave" className="mt-3 space-y-2">
         {s.conflicts.map((r) => (
           <Item key={r.id} r={r}>
-            <p className="mt-1 text-sm text-clay-muted">{formatWeekdayDate(istDateOf(r.startsAt))}</p>
             <div className="mt-2">
               <Button3D size="md" variant="white" onClick={() => setMoving(r)}>
                 <CalendarClock className="h-4 w-4" aria-hidden="true" />
@@ -77,9 +76,10 @@ function ToMark({ s, rows }: { s: ScheduleData; rows: SessionRow[] }) {
         {rows.map((r) => (
           <Item key={r.id} r={r}>
             <div className="mt-2 flex flex-wrap gap-2">
-              <Button3D size="md" variant="mint" onClick={() => setAsking({ row: r, outcome: "attended" })} aria-label={`Mark ${r.name} attended`}>Attended</Button3D>
-              <Button3D size="md" variant="white" onClick={() => setAsking({ row: r, outcome: "no_show" })} aria-label={`Mark ${r.name} a no-show`}>No-show</Button3D>
+              <Button3D size="md" variant="mint" disabled={!!r.blockedReason} onClick={() => setAsking({ row: r, outcome: "attended" })} aria-label={`Mark ${r.name} attended`}>Attended</Button3D>
+              <Button3D size="md" variant="white" disabled={!!r.noShowReason} onClick={() => setAsking({ row: r, outcome: "no_show" })} aria-label={`Mark ${r.name} a no-show`}>No-show</Button3D>
             </div>
+            {(r.blockedReason ?? r.noShowReason) && <p className="mt-1 text-sm text-clay-muted">{r.blockedReason ?? r.noShowReason}</p>}
           </Item>
         ))}
       </ul>

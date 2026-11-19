@@ -109,6 +109,26 @@ describe("marking attended and no-show", () => {
     expect(row).toMatchObject({ status: "no_show", credit: "returned" });
   });
 
+  it("a no-show waits 15 minutes and both close after 48 hours, from the gym’s own values", async () => {
+    const [a] = await evening();
+    // 5:10 pm: ten minutes in. Attended is open, no-show is not.
+    setNow(new Date("2026-11-17T11:40:00.000Z"));
+    const row = (await getSchedule(meera)).sessions.find((x) => x.id === a!.id)!;
+    expect(row.markable).toBe(true);
+    expect(row.blockedReason).toBeUndefined();
+    expect(row.noShowReason).toMatch(/15 minutes/);
+    expect(await code(markAttendance(meera, { bookingId: a!.id, outcome: "no_show" }))).toBe("conflict");
+    // The owner’s values (GymPolicies) decide: 5 minutes opens it.
+    await db.gymPolicies.update((await db.gymPolicies.toArray())[0]!.id, { noShowAfterMinutes: 5 });
+    expect((await markAttendance(meera, { bookingId: a!.id, outcome: "no_show" })).outcome).toBe("no_show");
+    // Three days later nothing is left to mark.
+    setNow(new Date("2026-11-20T12:00:00.000Z"));
+    const late = (await getSchedule(meera)).sessions.find((x) => x.startsAt.startsWith("2026-11-17T12:30"))!;
+    expect(late).toMatchObject({ markable: false, status: "booked" });
+    expect(late.blockedReason).toMatch(/48 hours/);
+    expect(await code(markAttendance(meera, { bookingId: late.id, outcome: "attended" }))).toBe("conflict");
+  });
+
   it("a session already marked one way is not changed to the other", async () => {
     setNow(EVENING);
     const [a] = await evening();

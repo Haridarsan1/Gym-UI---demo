@@ -171,6 +171,8 @@ export async function scheduleJourney(page: Page, width: number) {
   await expect(page.getByText("Attended: uses 1 session credit. No-show: uses 1 session credit.")).toBeVisible();
   await noSideways(page, "To mark");
 
+  // Attended is open from the start; a no-show only 15 minutes later (all three began over 30 minutes ago here).
+  await expect(toMark.getByRole("button", { name: /a no-show$/ }).first()).toBeEnabled();
   await toMark.getByRole("button", { name: /^Mark .+ attended$/ }).first().click();
   const attended = page.getByRole("dialog", { name: "Mark attended" });
   await expect(attended).toContainText("Uses 1 session credit.");
@@ -205,6 +207,8 @@ export async function scheduleJourney(page: Page, width: number) {
   const clash = page.getByRole("list", { name: "Sessions on leave" }).getByRole("listitem");
   await expect(clash).toContainText("Arjun Kumar");
   await expect(clash).toContainText("On your leave");
+  // The date is said once, not repeated under the name.
+  await expect(clash).not.toContainText("Thu 19 Nov");
   const arjunBefore = (await readStore(page, "bookings")).find((b) => b.memberId === "mem_arjun" && String(b.startsAt).startsWith("2026-11-19"))!;
   const ledgerBefore = (await readStore(page, "creditLedger")).filter((e) => e.memberId === "mem_arjun").length;
   await clash.getByRole("button", { name: "Move Arjun’s session" }).click();

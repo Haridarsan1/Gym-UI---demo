@@ -106,11 +106,25 @@ export function creditRuleText(outcome: AttendanceOutcome, noShowConsumesCredit:
   return attendanceSettlement(outcome, noShowConsumesCredit) === "consume" ? "Uses 1 session credit" : "Gives the credit back";
 }
 
-/** Why a session can’t be marked now, in words, or nothing. A session is marked from its start time on. */
-export function attendanceBlockedReason(b: { status: string; startsAt: string }, nowIso: string): string | undefined {
+export interface AttendanceRules {
+  noShowAfterMinutes: number;
+  markWindowHours: number;
+}
+
+/** The gym’s values (`GymPolicies`), used when a gym has none stored. */
+export const ATTENDANCE_DEFAULTS: AttendanceRules = { noShowAfterMinutes: 15, markWindowHours: 48 };
+
+/**
+ * Why a session can’t be marked this way now, in words, or nothing. “Attended” opens when the session starts; “No-show” opens
+ * `noShowAfterMinutes` later, so someone who is only late is not written off; both close `markWindowHours` after the start.
+ */
+export function attendanceBlockedReason(b: { status: string; startsAt: string }, nowIso: string, outcome: AttendanceOutcome = "attended", rules: AttendanceRules = ATTENDANCE_DEFAULTS): string | undefined {
   if (b.status === "attended" || b.status === "no_show") return `Already marked ${b.status === "attended" ? "attended" : "a no-show"}.`;
   if (b.status !== "booked") return "This session was canceled.";
-  if (Date.parse(nowIso) < Date.parse(b.startsAt)) return "It can be marked when the session starts.";
+  const since = Date.parse(nowIso) - Date.parse(b.startsAt);
+  if (since < 0) return "It can be marked when the session starts.";
+  if (outcome === "no_show" && since < rules.noShowAfterMinutes * 60_000) return `A no-show can be marked ${rules.noShowAfterMinutes} minutes after the session starts.`;
+  if (since > rules.markWindowHours * 3_600_000) return `It can be marked up to ${rules.markWindowHours} hours after the session starts. That time has passed, so ask the front desk to settle it.`;
   return undefined;
 }
 

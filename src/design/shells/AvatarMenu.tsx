@@ -6,6 +6,7 @@ import { menuFor, screenPath } from "@/app/navigation";
 import { useCan, useSession } from "@/app/SessionContext";
 import { useResetDemo, useSignOut, useSwitchAccount } from "@/app/useSessionActions";
 import { FEATURED_ACCOUNTS } from "@/app/demoSignIn";
+import { DEMO_ACCOUNTS } from "@/app/demoAccounts";
 import { DEMO_MODE } from "@/app/mode";
 import { Avatar } from "@/design/Avatar";
 import { ROLE_LABEL, areaFor } from "@/domain/roles";
@@ -97,6 +98,22 @@ export function AvatarMenu({ drop = "down" }: { drop?: "down" | "up" }) {
                   </li>
                 ))}
               </ul>
+              {/* Every other trainer and every sample member, so any account can be reached in a demo. */}
+              <details className="group">
+                <summary className={`${row} cursor-pointer list-none text-xs font-semibold text-clay-subtle`}>More accounts</summary>
+                <ul aria-label="More accounts" className="max-h-60 overflow-y-auto">
+                  {DEMO_ACCOUNTS.filter((a) => (a.role === "trainer" || a.role === "member") && !a.featured && a.userId !== session.userId).map((a) => (
+                    <li key={a.userId}>
+                      <button type="button" className={row} onClick={() => { setOpen(false); switchAccount(a.userId); }}>
+                        <span className="flex-1">
+                          {a.name}
+                          <span className="block text-xs text-clay-muted">{ROLE_LABEL[a.role]}{a.blurb ? `, ${a.blurb.replace(/^Trainer, /, "")}` : ""}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             </div>
           )}
           <div className="border-t border-clay-line py-1">

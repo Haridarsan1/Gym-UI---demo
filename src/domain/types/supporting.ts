@@ -164,6 +164,10 @@ export const GymPolicies = z.object({
   missedWorkoutsWindowDays: z.number().int().min(3).max(28),
   /** Training credits count as expiring this many days before their pack ends (T07). */
   creditExpiryWarningDays: z.number().int().min(1).max(90),
+  /** Minutes after a session starts before “No-show” can be marked. “Attended” can be marked from the start. */
+  noShowAfterMinutes: z.number().int().min(0).max(120),
+  /** Hours after a session starts during which the trainer can still mark it. */
+  markWindowHours: z.number().int().min(1).max(336),
 });
 export type GymPolicies = z.infer<typeof GymPolicies>;
 
