@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
-import { checkInJourney, coachLogJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
+import { checkInJourney, coachLogJourney, newMemberJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
  * Member flows on wide screens. The M1 journeys again, but driven the way a person on a tablet or a desktop drives them: through
@@ -584,6 +584,28 @@ for (const width of WIDTHS) {
         expect(l.x).toBeGreaterThan(r.x + r.width - 2);
       }
       expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`front desk new member at ${width} px`, () => {
+    test("New member: duplicate stop and warning, every step, the invoice and payment, and the pass", async ({ page }) => {
+      const problems = await open(page, width, "u_desk_andheri", "/desk");
+      await newMemberJourney(page);
+      if (width >= 1280) await expect(page.getByRole("complementary", { name: "This registration" })).toHaveCount(0);
+      expect(problems).toEqual([]);
+    });
+
+    test("New member: the summary sits beside the steps from 1280 px", async ({ page }) => {
+      await open(page, width, "u_desk_andheri", "/desk/new");
+      await page.getByLabel("Full name").fill("Tara Bose");
+      if (width >= 1280) {
+        const aside = page.getByRole("complementary", { name: "This registration" });
+        await expect(aside).toContainText("Tara Bose");
+        const a = (await aside.boundingBox())!;
+        const f = (await page.getByRole("heading", { name: /Step 1 of 5/ }).boundingBox())!;
+        expect(a.x).toBeGreaterThan(f.x);
+      } else await expect(page.getByRole("complementary", { name: "This registration" })).toBeHidden();
+      await noSideways(page, "Wizard layout");
     });
   });
 

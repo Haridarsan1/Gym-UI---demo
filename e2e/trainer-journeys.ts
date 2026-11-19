@@ -334,3 +334,104 @@ export async function checkInJourney(page: Page) {
   await expect(page.getByText("Ready for the next member")).toBeVisible();
   await expect(search).toBeFocused();
 }
+
+/**
+ * T01, M01, M03: the front desk registers Kabir Anand. A phone number that belongs to a member stops it; the same name is a warning
+ * that has to be answered; then consent, the Monthly Plus plan, Coach Meera from today, a discount, a UPI payment, and the pass.
+ */
+export async function newMemberJourney(page: Page) {
+  await page.goto("/desk/new");
+  await expect(page.getByRole("heading", { name: "New member", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Step 1 of 5: Details" })).toBeVisible();
+  await noSideways(page, "Wizard step 1");
+  const next = page.getByRole("button", { name: "Next", exact: true });
+
+  // A phone number that already belongs to a member stops it, and says who.
+  await page.getByLabel("Full name").fill("Kabir Anand");
+  await page.getByLabel("Mobile number").fill("98200 22002");
+  const blocked = page.getByRole("alert").filter({ hasText: "This person is already a member" });
+  await expect(blocked).toContainText("Arjun Kumar");
+  await expect(blocked.getByRole("link", { name: "Open their profile" })).toHaveAttribute("href", "/desk/members/mem_arjun");
+  await next.click();
+  await expect(page.getByRole("heading", { name: "Step 1 of 5: Details" })).toBeVisible();
+  await noSideways(page, "Duplicate: blocked");
+
+  // The same name as someone else is a warning: it has to be answered.
+  await page.getByLabel("Mobile number").fill("98765 43210");
+  await page.getByLabel("Full name").fill("Rahul Mehta");
+  const warn = page.getByRole("alert").filter({ hasText: "A member with this name already exists" });
+  await expect(warn).toContainText("Bandra");
+  await next.click();
+  await expect(page.getByRole("heading", { name: "Step 1 of 5: Details" })).toBeVisible();
+  await expect(page.getByText("Check it is a different person, then continue.")).toBeVisible();
+  await noSideways(page, "Duplicate: warning");
+  // A different name clears it.
+  await page.getByLabel("Full name").fill("Kabir Anand");
+  await expect(page.getByRole("alert").filter({ hasText: /already/ })).toHaveCount(0);
+  await page.getByLabel("Email").fill("kabir.anand@example.in");
+  await page.getByLabel("Date of birth").fill("1994-05-12");
+  await page.getByLabel("How did they hear about the gym?").selectOption("Walk-in");
+  await next.click();
+
+  await expect(page.getByRole("heading", { name: "Step 2 of 5: Consent" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Using their details" })).toBeDisabled();
+  await page.getByRole("switch", { name: "Progress photos" }).click();
+  await page.getByRole("switch", { name: "Assessments" }).click();
+  await noSideways(page, "Wizard step 2");
+  await next.click();
+
+  await expect(page.getByRole("heading", { name: "Step 3 of 5: Plan" })).toBeVisible();
+  await next.click();
+  await expect(page.getByText("Choose a plan.")).toBeVisible();
+  await page.getByRole("radio", { name: /Monthly Plus/ }).click();
+  await expect(page.getByText("Today’s price and terms are copied into the membership.")).toBeVisible();
+  await noSideways(page, "Wizard step 3");
+  await next.click();
+
+  await expect(page.getByRole("heading", { name: "Step 4 of 5: Trainer" })).toBeVisible();
+  await page.getByRole("radio", { name: "Meera Joshi" }).click();
+  await noSideways(page, "Wizard step 4");
+  await next.click();
+
+  await expect(page.getByRole("heading", { name: "Step 5 of 5: Payment" })).toBeVisible();
+  const invoice = page.getByRole("region", { name: "Invoice" });
+  await expect(invoice).toContainText("₹4,130");
+  await page.getByLabel("Discount (₹)").fill("1000");
+  await page.getByRole("button", { name: "Register member" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "You can give up to ₹175" })).toBeVisible();
+  await page.getByLabel("Discount (₹)").fill("100");
+  await expect(invoice).toContainText("₹4,012");
+  await page.getByRole("radio", { name: "UPI" }).click();
+  await page.getByLabel("UPI reference").fill("kabir@okbank");
+  await noSideways(page, "Wizard step 5");
+  // A double press makes one member.
+  await page.getByRole("button", { name: "Register member" }).dblclick();
+
+  await expect(page.getByRole("heading", { name: "Kabir Anand is a member" })).toBeVisible();
+  await expect(page.getByText(/active until 17 Dec 2026/)).toBeVisible();
+  await expect(page.getByText(/Invoice\s+PFAND\/26-27\/\d{4}/)).toBeVisible();
+  await expect(page.getByText(/Receipt RCP-2026-\d{4}/)).toBeVisible();
+  await expect(page.getByRole("img", { name: "Pass for Kabir Anand" })).toBeVisible();
+  await expect(page.getByText(/were emailed to kabir.anand@example.in/)).toBeVisible();
+  await noSideways(page, "Wizard done");
+
+  const members = (await readStore(page, "members")).filter((m) => m.phone === "9876543210");
+  expect(members).toHaveLength(1);
+  const id = members[0]!.id as string;
+  expect(members[0]).toMatchObject({ name: "Kabir Anand", email: "kabir.anand@example.in", homeBranchId: "br_andheri", leadSource: "Walk-in", dateOfBirth: "1994-05-12" });
+  const ms = (await readStore(page, "memberships")).filter((m) => m.memberId === id);
+  expect(ms).toHaveLength(1);
+  expect(ms[0]).toMatchObject({ status: "active", startsOn: "2026-11-17", terms: { name: "Monthly Plus", pricePaise: 350000 } });
+  const pay = (await readStore(page, "payments")).filter((p) => p.memberId === id);
+  expect(pay).toHaveLength(1);
+  expect(pay[0]).toMatchObject({ method: "upi", amountPaise: 401200, reference: "kabir@okbank", receivedBy: "u_desk_andheri" });
+  expect((await readStore(page, "consents")).filter((c) => c.memberId === id).map((c) => c.scope).sort()).toEqual(["assessments", "data_processing", "photos"]);
+  expect((await readStore(page, "trainerAssignments")).find((a) => a.memberId === id)).toMatchObject({ trainerId: "u_trainer_meera", effectiveFrom: "2026-11-17" });
+  expect((await readStore(page, "invoices")).filter((i) => i.memberId === id)).toHaveLength(1);
+
+  // The pass works at the door at once.
+  await page.getByRole("link", { name: "Back to check-in" }).click();
+  await page.getByRole("combobox", { name: /Search members/ }).fill("kabir");
+  await page.getByRole("option", { name: /Kabir Anand/ }).getByRole("button").click();
+  await expect(page.getByRole("region", { name: "Check-in result" })).toHaveAttribute("data-result", "allowed");
+}

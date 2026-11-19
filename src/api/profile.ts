@@ -15,7 +15,8 @@ import type { Session } from "@/app/session";
  */
 
 /** The privacy notice version a new consent is recorded against. */
-export const NOTICE_VERSION = "2026-01";
+export { NOTICE_VERSION } from "@/api/profileNotice";
+import { NOTICE_VERSION } from "@/api/profileNotice";
 
 export type ConsentScopeName = "photos" | "assessments" | "marketing";
 export const OPTIONAL_CONSENTS: readonly ConsentScopeName[] = ["photos", "assessments", "marketing"];

@@ -1,0 +1,21 @@
+[
+  { "key": "checkin-ready", "caption": "Check-in: ready for the next member" },
+  { "key": "checkin-search", "caption": "Check-in: search results" },
+  { "key": "checkin-allowed", "caption": "Result: allowed" },
+  { "key": "checkin-dues", "caption": "Result: allowed, a payment is due" },
+  { "key": "checkin-grace", "caption": "Result: grace period" },
+  { "key": "checkin-denied", "caption": "Result: denied, with why" },
+  { "key": "checkin-override-sheet", "caption": "Override: a reason is required" },
+  { "key": "checkin-override", "caption": "Result: let in by override" },
+  { "key": "checkin-repeat", "caption": "Result: repeat scan, no extra visit" },
+  { "key": "checkin-list", "caption": "Today’s check-ins" },
+  { "key": "checkin-scan", "caption": "Scan a pass with the camera" },
+  { "key": "wizard-details", "caption": "New member: details" },
+  { "key": "wizard-blocked", "caption": "Duplicate: phone belongs to a member" },
+  { "key": "wizard-warning", "caption": "Duplicate: same name, a warning" },
+  { "key": "wizard-consent", "caption": "New member: consent" },
+  { "key": "wizard-plan", "caption": "New member: plan, terms copied" },
+  { "key": "wizard-trainer", "caption": "New member: trainer and date" },
+  { "key": "wizard-payment", "caption": "New member: invoice and payment" },
+  { "key": "wizard-done", "caption": "Registered: the member’s pass" }
+]

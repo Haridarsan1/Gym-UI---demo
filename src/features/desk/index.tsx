@@ -9,6 +9,7 @@ registerScreens("desk", deskScreens);
 /** Desk area. Each screen is a separate file, loaded when it is opened. Keys are screen ids from src/app/screens/desk.ts. */
 const implemented = {
   checkin: lazy(() => import("@/features/desk/CheckIn")),
+  "new-member": lazy(() => import("@/features/desk/NewMember")),
 };
 
 export default function DeskArea() {

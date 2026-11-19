@@ -3,6 +3,7 @@ import { db } from "@/demo/db";
 import { configureSimulation, getSimulation } from "@/demo/simulate";
 import { assertCan } from "@/api/context";
 import { allocateNumber } from "@/api/numbering";
+import { nextReceiptNumber } from "@/api/receipts";
 import { ApiError } from "@/api/errors";
 import { openMember, type MemberContext } from "@/api/member";
 import { amountDuePaise, amountInWords, invoiceLines, invoiceTotals, isOverdue, isUnpaidCart, paidPaise, placeOfSupplyFor, stateOfGstin, STATE_NAMES, SAC_FITNESS, taxBreakup } from "@/domain/billing";
@@ -285,13 +286,6 @@ const parse = <T extends z.ZodTypeAny>(schema: T, input: unknown): z.infer<T> =>
 
 const rid = (prefix: string) => `${prefix}_${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}${Math.random().toString(36).slice(2)}`}`;
 
-/** The next printed number: the highest in use plus one, with the same prefix and year. */
-async function nextNumber(prefix: "INV" | "RCP", existing: Array<string | undefined>, year: string): Promise<string> {
-  const head = `${prefix}-${year}-`;
-  const top = existing.reduce((n, x) => (x?.startsWith(head) ? Math.max(n, Number(x.slice(head.length)) || 0) : n), 0);
-  return `${head}${String(top + 1).padStart(4, "0")}`;
-}
-
 export interface CheckoutView {
   invoiceId: string;
   number: string;
@@ -430,12 +424,10 @@ async function applyGatewayEvent(c: MemberContext, ev: GatewayInput): Promise<{ 
   const invoice = await db.invoices.get(ev.invoiceId);
   if (!invoice || invoice.memberId !== c.memberId) throw new ApiError("not_found", "We couldn’t find that invoice.");
   const paymentsSoFar = await db.payments.where("invoiceId").equals(invoice.id).toArray();
-  const allPayments = await db.payments.where("tenantId").equals(c.tenantId).toArray();
   const succeeded = ev.type === "payment.succeeded";
-  const year = c.today.slice(0, 4);
   const payment: Payment = {
     id: rid("pay"), tenantId: c.tenantId, invoiceId: invoice.id, memberId: c.memberId, branchId: invoice.branchId, method: ev.method, amountPaise: ev.amountPaise, status: succeeded ? "succeeded" : "failed", receivedAt: c.nowIso,
-    receiptNumber: succeeded ? await nextNumber("RCP", allPayments.map((p) => p.receiptNumber), year) : undefined, reference: ev.reference, gatewayEventId: ev.eventId,
+    receiptNumber: succeeded ? await nextReceiptNumber(c.tenantId, c.today) : undefined, reference: ev.reference, gatewayEventId: ev.eventId,
     failureReason: succeeded ? undefined : PAYMENT_DECLINED, idempotencyKey: ev.paymentKey, reconciliation: { status: "unmatched" },
   };
   await db.payments.add(payment); // the unique idempotency key refuses a second payment for the same event or attempt

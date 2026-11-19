@@ -256,7 +256,7 @@ test.describe("trainer screens at every width", () => {
 
 test.describe("front desk screens at every width", () => {
   // Each screen the desk gets in M3 is added here when it is built.
-  const DESK_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk", h1: "Check-in" }];
+  const DESK_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk", h1: "Check-in" }, { path: "/desk/new", h1: "New member" }];
   for (const width of WIDTHS) {
     test(`no sideways scroll, a capped width and 44 px targets at ${width} px`, async ({ page }) => {
       for (const { path, h1 } of DESK_SCREENS) {

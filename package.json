@@ -20,6 +20,7 @@
     "m1:shots": "M1_SHOTS=1 playwright test e2e/m1-shots.spec.ts --project=phone && node scripts/contact-sheets.mjs docs/checkpoints/m1-final",
     "m2:shots": "for w in 390 768 1440; do rm -rf docs/checkpoints/m2-1/$w; M2_SHOTS=1 SHOT_WIDTH=$w SHOT_OUT=docs/checkpoints/m2-1/$w/screens playwright test e2e/m2-shots.spec.ts --project=phone --workers=1 && node scripts/contact-sheets.mjs docs/checkpoints/m2-1/$w 1 $w e2e/m2-shots.json \"Ember trainer app, checkpoint 1\" || exit 1; done",
     "m2:shots3": "for w in 390 768 1440; do rm -rf docs/checkpoints/m2-3/$w; M2_SHOTS=1 SHOT_WIDTH=$w SHOT_OUT=docs/checkpoints/m2-3/$w/screens playwright test e2e/m2-3-shots.spec.ts --project=phone --workers=1 && node scripts/contact-sheets.mjs docs/checkpoints/m2-3/$w 2 $w e2e/m2-3-shots.json \"Ember trainer app, end of M2\" || exit 1; done",
+    "m3:shots1": "for w in 390 768 1440; do rm -rf docs/checkpoints/m3-1/$w; M3_SHOTS=1 SHOT_WIDTH=$w SHOT_OUT=docs/checkpoints/m3-1/$w/screens playwright test e2e/m3-1-shots.spec.ts --project=phone --workers=1 && node scripts/contact-sheets.mjs docs/checkpoints/m3-1/$w 2 $w e2e/m3-1-shots.json \"Ember front desk, checkpoint 1\" || exit 1; done",
     "m2:shots2": "for w in 390 768 1440; do rm -rf docs/checkpoints/m2-2/$w; M2_SHOTS=1 SHOT_WIDTH=$w SHOT_OUT=docs/checkpoints/m2-2/$w/screens playwright test e2e/m2-2-shots.spec.ts --project=phone --workers=1 && node scripts/contact-sheets.mjs docs/checkpoints/m2-2/$w 2 $w e2e/m2-2-shots.json \"Ember trainer app, checkpoint 2\" || exit 1; done"
   },
   "dependencies": {

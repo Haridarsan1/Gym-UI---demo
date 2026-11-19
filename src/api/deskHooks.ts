@@ -26,3 +26,23 @@ export function useCheckInActions() {
     override: useMutation({ mutationFn: async (i: import("@/api/checkin").OverrideInput) => (await checkinApi()).overrideCheckIn(session, i), onSuccess: refresh }),
   };
 }
+
+const newMemberApi = () => import("@/api/newMember");
+
+/** The plans on sale, the branch’s trainers and the person’s own limits, for the new member wizard. */
+export function useWizardOptions(branchId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "wizard", branchId], queryFn: async () => (await newMemberApi()).getWizardOptions(session, branchId!), enabled: !!session && !!branchId, retry, staleTime: 30_000 });
+}
+
+/** Members who match what has been typed so far, so a duplicate is flagged as soon as the phone number is complete. */
+export function useDuplicates(q: import("@/api/newMember").DuplicateQuery, enabled: boolean) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "duplicates", q.name, q.phone, q.email, q.dateOfBirth], queryFn: async () => (await newMemberApi()).checkDuplicates(session, q), enabled: !!session && enabled, retry, staleTime: 0 });
+}
+
+export function useRegisterMember() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async (i: import("@/api/newMember").RegisterInput) => (await newMemberApi()).registerMember(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["desk", session?.userId] }) });
+}
