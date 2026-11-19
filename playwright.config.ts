@@ -14,7 +14,7 @@ export default defineConfig({
   projects: [
     // The member app’s flow specs were written against the phone layout, so they run on the phone project. The desktop
     // project runs what is about the shells, the marketing site and the wide layouts. responsive.spec.ts sets its own viewports.
-    { name: "desktop", testMatch: /(marketing|guards|login|m0|shells|responsive|desktop-flows)\.spec\.ts/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    { name: "desktop", testMatch: /(marketing|guards|login|m0|shells|responsive|desktop-flows|m2-acceptance)\.spec\.ts/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
     { name: "phone", testIgnore: [/pwa\.spec\.ts/, /responsive\.spec\.ts/, /desktop-flows\.spec\.ts/], use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } } },
   ],
   webServer: {
