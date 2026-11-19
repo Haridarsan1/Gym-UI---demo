@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
+import { mkdirSync, writeFileSync } from "node:fs";
 
 /**
  * The home page is loaded lazily so that the app routes (/m, /t, /desk…) and the login and signup pages don’t download
@@ -35,9 +36,27 @@ function preloadHomeOnRoot(): Plugin {
   };
 }
 
+/**
+ * Writes which source files went into each built chunk to node_modules/.cache/ember/chunk-modules.json (not into dist, so
+ * it is never deployed). `npm run bundle-report` reads it to fail when trainer, desk, owner or admin code reaches the member app.
+ */
+function chunkModules(): Plugin {
+  return {
+    name: "chunk-modules",
+    apply: "build",
+    generateBundle(_options, bundle) {
+      const out: Record<string, string[]> = {};
+      for (const [file, chunk] of Object.entries(bundle)) if (chunk.type === "chunk") out[file] = Object.keys(chunk.modules).map((id) => id.replace(/^.*?\/(src\/|node_modules\/)/, "$1"));
+      mkdirSync("node_modules/.cache/ember", { recursive: true });
+      writeFileSync("node_modules/.cache/ember/chunk-modules.json", JSON.stringify(out));
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
+    chunkModules(),
     preloadHomeOnRoot(),
     VitePWA({
       // The new service worker takes over as soon as it is ready. We register it ourselves (src/app/pwa.ts), only when the

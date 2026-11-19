@@ -7,8 +7,6 @@ import { RequireCan } from "@/app/guards";
 import { SCREENS } from "@/app/screens";
 import { EmptyState } from "@/design/States";
 import { SkeletonCard } from "@/design/Skeleton";
-import { PlayShell } from "@/design/shells/PlayShell";
-import { StaffShell } from "@/design/shells/StaffShell";
 import type { Area } from "@/domain/roles";
 
 /** The area home sends people to the first screen they may open when they may not open the home screen itself. */
@@ -23,8 +21,7 @@ function Landing({ area, homeId, children }: { area: Area; homeId: string; child
  * Builds one area’s routes from the screen registry and wraps them in the right shell. Each milestone replaces a stub
  * by passing the real screen in `implemented`, keyed by the screen id.
  */
-export function AreaRoutes({ area, implemented = {}, shell: shellOverride }: { area: Area; implemented?: Record<string, ComponentType>; shell?: ReactNode }) {
-  const shell = shellOverride ?? (area === "member" || area === "trainer" ? <PlayShell area={area} /> : <StaffShell area={area} />);
+export function AreaRoutes({ area, implemented = {}, shell }: { area: Area; implemented?: Record<string, ComponentType>; shell: ReactNode }) {
   return (
     <Routes>
       <Route element={shell}>

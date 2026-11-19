@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
-import { useExercises } from "@/api/hooks";
+import { useExercises } from "@/api/trainerHooks";
 import type { LibraryData, LibraryParams } from "@/api/library";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { EmptyState } from "@/design/States";

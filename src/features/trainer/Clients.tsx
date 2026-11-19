@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, UserRound } from "lucide-react";
-import { useClient } from "@/api/hooks";
+import { useClient } from "@/api/trainerHooks";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonCard } from "@/design/Skeleton";
 import { ThreeZone } from "@/design/layout/ThreeZone";

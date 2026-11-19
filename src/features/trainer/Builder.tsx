@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from "react-router-dom";
-import { useClients, useProgramSource } from "@/api/hooks";
+import { useClients, useProgramSource } from "@/api/trainerHooks";
 import { Avatar } from "@/design/Avatar";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonCard, SkeletonRows } from "@/design/Skeleton";

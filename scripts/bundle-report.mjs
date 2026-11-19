@@ -12,6 +12,13 @@ const PORT = 4173;
 const BASE = `http://localhost:${PORT}`;
 const BUDGET_KB = { "/m": 170 };
 
+/**
+ * Code the member app must never download up front. A module in any chunk that /m loads on a return visit (the seed
+ * generator runs once, on the first visit only) fails the report. Chunk contents come from the build (vite.config.ts).
+ */
+const NOT_FOR_MEMBERS = [/^src\/features\/(trainer|desk|owner|admin)\//, /^src\/app\/screens\/(trainer|desk|owner|admin)\./, /^src\/api\/(trainer|trainerHooks|clients|book|assessments|library|programs|templates|assignments)\./, /^src\/domain\/trainerToday\./];
+const chunkModules = JSON.parse(readFileSync("node_modules/.cache/ember/chunk-modules.json", "utf8"));
+
 const routes = [
   { path: "/", marketing: true },
   { path: "/signup", marketing: true },
@@ -75,6 +82,18 @@ for (const route of routes) {
     notes.push("FAIL: home page loaded");
     failed = true;
   }
+  if (route.path === "/m") {
+    // A second visit in the same browser: the demo gym exists, so only what the member app itself needs is downloaded.
+    const again = await ctx.newPage();
+    const seen = new Set();
+    again.on("response", (res) => res.url().endsWith(".js") && seen.add(res.url().split("/").pop()));
+    await again.goto(BASE + route.path, { waitUntil: "networkidle" });
+    const leaks = [];
+    for (const file of seen) for (const mod of chunkModules[`assets/${file}`] ?? []) if (NOT_FOR_MEMBERS.some((re) => re.test(mod))) leaks.push(`${mod} (${file})`);
+    if (seen.size === 0) notes.push("FAIL: member check saw no scripts");
+    if (leaks.length) notes.push(`FAIL: trainer, desk or owner code in /m: ${[...new Set(leaks)].join(", ")}`);
+    if (seen.size === 0 || leaks.length) failed = true;
+  }
   const budget = BUDGET_KB[route.path];
   if (budget && total / 1024 > budget) {
     notes.push(`FAIL: over ${budget} KB budget`);
@@ -85,6 +104,7 @@ for (const route of routes) {
     const seed = files.filter((f) => f.url.includes("/seed-")).reduce((n, f) => n + f.gz, 0);
     notes.push(`return visit ${((total - seed) / 1024).toFixed(1)} KB`);
   }
+  if (process.env.BUNDLE_FILES === route.path) for (const f of files.sort((a, b) => b.gz - a.gz)) console.log(`    ${(f.gz / 1024).toFixed(1).padStart(6)} KB  ${f.url.split("/").pop()}`);
   console.log(`${route.path.padEnd(10)} ${(total / 1024).toFixed(1).padStart(6)} KB ${String(files.length).padStart(5)}  ${notes.join(", ") || (route.marketing ? "no app code" : "")}`);
   await ctx.close();
 }

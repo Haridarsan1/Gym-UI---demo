@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarCheck } from "lucide-react";
-import { useTrainerToday } from "@/api/hooks";
+import { useTrainerToday } from "@/api/trainerHooks";
 import type { TrainerTodayData } from "@/api/trainer";
 import { Avatar } from "@/design/Avatar";
 import { Button3DLink } from "@/design/Button3D";

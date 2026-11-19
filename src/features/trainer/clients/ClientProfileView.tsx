@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ClipboardList, Dumbbell, Sparkles } from "lucide-react";
-import { useAddPrivateNote, useClient } from "@/api/hooks";
+import { useAddPrivateNote, useClient } from "@/api/trainerHooks";
 import type { ClientProfile, ProfileGoal, ProfileLog, ProfileNote } from "@/api/clients";
 import { Avatar } from "@/design/Avatar";
 import { Button3D, Button3DLink } from "@/design/Button3D";

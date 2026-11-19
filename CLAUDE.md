@@ -36,7 +36,7 @@ Add the `test` and `e2e` scripts in milestone M0 if they don’t exist yet.
 - **Permissions:** every route, navigation item, button and API call checks `src/domain/permissions.ts`. Deny by default. Members see only their own records; trainers only assigned members; branch managers only their branches; desk staff never see assessments or progress photos.
 - **Idempotency:** workout submissions, payments, gateway events and imports carry an idempotency key; repeating them must not create duplicates.
 - **Audit:** membership changes, refunds, credit adjustments, permission changes, overrides and support access write an audit event (actor, time, action, reason, record).
-- Screens come from `src/app/screens.ts` (path, requirement IDs, permission, place in navigation). Add a real screen by passing it in `implemented` in `src/features/<area>/index.tsx`, keyed by the screen id.
+- Screens come from `src/app/screens/<area>.ts` (path, requirement IDs, permission, place in navigation); each area registers its own list when it loads (`registerScreens`), and `src/app/screens/all.ts` registers all of them for tests. Add a real screen by passing it in `implemented` in `src/features/<area>/index.tsx`, keyed by the screen id.
 - TypeScript strict, no `any`. Small components. Co-locate a feature’s components, hooks and tests in `src/features/<role>/`.
 - Ask before adding a dependency that is not listed in `docs/PLAN.md` section 5. Prefer small, tree-shakeable libraries; lazy-load heavy ones (QR scanner, confetti).
 
@@ -95,4 +95,4 @@ Shells are `PlayShell` (member, trainer) and `StaffShell`; both use `NavRail` an
 
 ## Performance budgets
 
-Initial JS for `/m` ≤ 170 KB gzipped · LCP ≤ 2 s on mid-range Android over 4G · Lighthouse mobile performance ≥ 90 and accessibility 100. Code-split by role and by heavy feature.
+Initial JS for `/m` ≤ 170 KB gzipped (kept near 155 KB; `npm run bundle-report` also fails if trainer, desk, owner or admin code reaches it) · LCP ≤ 2 s on mid-range Android over 4G · Lighthouse mobile performance ≥ 90 and accessibility 100. Code-split by role and by heavy feature.

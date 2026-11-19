@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { useExercises, useExerciseActions } from "@/api/hooks";
+import { useExercises, useExerciseActions } from "@/api/trainerHooks";
 import type { ExerciseDetail } from "@/api/library";
 import { isApiError } from "@/api/errors";
 import { Button3D } from "@/design/Button3D";

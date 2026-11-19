@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { DEMO_ACCOUNTS } from "@/app/demoAccounts";
 import { landingScreen, menuFor, mobileBar, paletteScreens, raisedAction, screenPath, sidebarFor, tabsFor, visibleScreens } from "@/app/navigation";
+import "@/app/screens/all";
 import { SCREENS, screensIn } from "@/app/screens";
 import { can, type Principal } from "@/domain/permissions";
 import { AREAS, areaFor, type Area } from "@/domain/roles";

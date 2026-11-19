@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { useAssessment } from "@/api/hooks";
+import { useAssessment } from "@/api/trainerHooks";
 import type { AssessmentView } from "@/api/assessments";
 import { Avatar } from "@/design/Avatar";
 import { QueryBoundary } from "@/design/QueryBoundary";

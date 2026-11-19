@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
-import { useClients } from "@/api/hooks";
+import { useClients } from "@/api/trainerHooks";
 import type { ClientFlag, ClientRowData } from "@/api/clients";
 import { Avatar } from "@/design/Avatar";
 import { QueryBoundary } from "@/design/QueryBoundary";

@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
-import { useProgramActions } from "@/api/hooks";
+import { useProgramActions } from "@/api/trainerHooks";
 import type { ProgramSource, PublishResult } from "@/api/programs";
 import { isApiError } from "@/api/errors";
 import { Button3D, Button3DLink } from "@/design/Button3D";

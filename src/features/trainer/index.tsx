@@ -1,5 +1,10 @@
 import { lazy } from "react";
 import { AreaRoutes } from "@/app/AreaRoutes";
+import { registerScreens } from "@/app/screens";
+import { trainerScreens } from "@/app/screens/trainer";
+import { PlayShell } from "@/design/shells/PlayShell";
+
+registerScreens("trainer", trainerScreens);
 
 /** Trainer area. Each screen is a separate file, loaded when the trainer opens it. Keys are screen ids from src/app/screens.ts. */
 const implemented = {
@@ -13,5 +18,5 @@ const implemented = {
 };
 
 export default function TrainerArea() {
-  return <AreaRoutes area="trainer" implemented={implemented} />;
+  return <AreaRoutes area="trainer" shell={<PlayShell area="trainer" />} implemented={implemented} />;
 }

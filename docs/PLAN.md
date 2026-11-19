@@ -190,7 +190,7 @@ src/
   components/     ui/ (Button, Logo, Container, SectionHeader, StatusPill) and gym/ (marketing illustrations)
   config/ data/ hooks/ lib/   marketing brand, content, motion hooks, formatting and scroll helpers
   app/            lazy entry (AppEntry), session (localStorage), SessionContext, guards (RequireArea, RequireCan, Can),
-                  screens.ts (registry of every PLAN §4 screen: path, requirement IDs, permission, place in navigation),
+                  screens.ts (the screen type and registry) and screens/<area>.ts (every PLAN §4 screen: path, requirement IDs, permission, place in navigation; each area registers its own when it loads, so the member app never downloads the others),
                   navigation.ts (what each person sees, mobile bar, landing screen, raised action), AreaRoutes (routes built from the registry),
                   demoSignIn (sign in as a demo person; shared by login, signup and the role switcher), mode (demo flag),
                   ScreenStub (placeholder until a screen’s milestone), SubNav, demoAccounts (people who can log in; also read by the login page, so keep it tiny)
@@ -293,7 +293,7 @@ One permission map in `domain/permissions.ts` (role × action × scope: own, ass
 
 | Measure | Target |
 |---|---|
-| Initial JS for `/m` (gzipped) | ≤ 170 KB |
+| Initial JS for `/m` (gzipped) | ≤ 170 KB (154.4 KB after M2 step 6; the report fails if trainer, desk, owner or admin code reaches it) |
 | Largest Contentful Paint, mid-range Android, 4G | ≤ 2.0 s |
 | Interaction to Next Paint | ≤ 200 ms |
 | Common views load (S06) | ≤ 2 s at p95 in demo |

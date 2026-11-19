@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FileText, Users } from "lucide-react";
-import { useTemplateLoader, useTemplates } from "@/api/hooks";
+import { useTemplateLoader, useTemplates } from "@/api/trainerHooks";
 import type { TemplateDetail, TemplateRow } from "@/api/templates";
 import { isApiError } from "@/api/errors";
 import { Button3D } from "@/design/Button3D";

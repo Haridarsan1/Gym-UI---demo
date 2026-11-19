@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import type { AssessmentRecord, AssessmentView } from "@/api/assessments";
-import { useSaveAssessment } from "@/api/hooks";
+import { useSaveAssessment } from "@/api/trainerHooks";
 import { isApiError } from "@/api/errors";
 import { Button3D } from "@/design/Button3D";
 import { useToast } from "@/design/Toast";

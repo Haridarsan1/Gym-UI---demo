@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import type { AssessmentView } from "@/api/assessments";
 import type { ProfileGoal } from "@/api/clients";
-import { useGoalActions } from "@/api/hooks";
+import { useGoalActions } from "@/api/trainerHooks";
 import { isApiError } from "@/api/errors";
 import { Button3D } from "@/design/Button3D";
 import { Sheet } from "@/design/Sheet";

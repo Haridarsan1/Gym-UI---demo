@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, FileText, Save } from "lucide-react";
-import { useExercises, useProgramActions, useTemplateActions } from "@/api/hooks";
+import { useExercises, useProgramActions, useTemplateActions } from "@/api/trainerHooks";
 import type { ProgramSource } from "@/api/programs";
 import type { TemplateDetail } from "@/api/templates";
 import { isApiError } from "@/api/errors";

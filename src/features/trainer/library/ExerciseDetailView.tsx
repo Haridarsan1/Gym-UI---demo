@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Archive, Copy, Pencil, RotateCcw } from "lucide-react";
-import { useExercise, useExerciseActions } from "@/api/hooks";
+import { useExercise, useExerciseActions } from "@/api/trainerHooks";
 import type { ExerciseDetail } from "@/api/library";
 import { Button3D } from "@/design/Button3D";
 import { QueryBoundary } from "@/design/QueryBoundary";

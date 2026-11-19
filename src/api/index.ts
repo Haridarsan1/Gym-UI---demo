@@ -1,5 +1,6 @@
 export * from "@/api/errors";
 export * from "@/api/hooks";
+export * from "@/api/memberHooks";
 export type { Me } from "@/api/me";
 export type { MemberListItem, MemberListParams, MemberPage } from "@/api/members";
 export type { SensitiveKind, SensitiveView } from "@/api/sensitive";

@@ -1,0 +1,17 @@
+/** The desk area’s screens (docs/PLAN.md section 4). Loaded with the desk area only. */
+import { CalendarPlus, FileSpreadsheet, FileText, HandCoins, QrCode, ReceiptText, RefreshCcw, Scale, UserPlus, Users } from "lucide-react";
+import type { ScreenDef } from "@/app/screens";
+
+export const deskScreens: ScreenDef[] = [
+  { id: "checkin", title: "Check-in", path: "", req: ["M05", "A04"], summary: "Search for a member or scan their QR code, see whether they can enter, and record the visit. A repeat scan never uses a second visit.", action: "checkin.record", icon: QrCode, place: "side", group: "Front desk", mobile: 1 },
+  { id: "new-member", title: "New member", path: "new", req: ["T01", "M01", "M03", "O03"], summary: "Register a member in a few steps: details, consent, plan, trainer, invoice and payment.", action: "member.create", icon: UserPlus, place: "side", group: "Front desk" },
+  { id: "members", title: "Members", path: "members", req: ["M02"], summary: "Find any member at your branch and open their profile.", action: "member.list", icon: Users, place: "side", group: "Front desk", mobile: 2 },
+  { id: "member", title: "Member profile", path: "members/:memberId", req: ["M02", "M03", "M04", "M05", "M06", "T01"], summary: "Membership, invoices and dues, payments, training credits, bookings, check-ins, trainer and messages for one member.", action: "member.read", icon: Users, place: "sub", parent: "members" },
+  { id: "collect", title: "Collect payment", path: "payments/new", req: ["M03"], summary: "Take cash, UPI, card or transfer against an invoice, with a receipt by email or print.", action: "payment.record", icon: HandCoins, place: "side", group: "Front desk" },
+  { id: "desk-bookings", title: "Bookings", path: "bookings", req: ["T04", "O01", "A03"], summary: "A day and week calendar by trainer and room. Book against availability and credits without double-booking.", action: "booking.manage", icon: CalendarPlus, place: "side", group: "Front desk", mobile: 3 },
+  { id: "dues", title: "Dues", path: "dues", req: ["M03", "O04"], summary: "Unpaid and failed invoices, with a reminder you can send.", action: "dues.read", icon: ReceiptText, place: "side", group: "Front desk", mobile: 4 },
+  { id: "invoices", title: "Invoices and payments", path: "finance/invoices", req: ["M03", "O07"], summary: "Search invoices and payments by status and branch, with billed and collected shown separately.", action: "report.view", icon: FileText, place: "side", group: "Finance" },
+  { id: "refunds", title: "Refunds", path: "finance/refunds", req: ["M04", "M06"], summary: "Refund part or all of a payment, see what happens to unused credits, and review the history.", action: "refund.create", icon: RefreshCcw, place: "side", group: "Finance" },
+  { id: "reconciliation", title: "Reconciliation", path: "finance/reconciliation", req: ["M03", "M04"], summary: "Match collections to gateway settlements and cash records, and review anything flagged, such as repeated gateway events.", action: "reconciliation.manage", icon: Scale, place: "side", group: "Finance" },
+  { id: "exports", title: "Exports", path: "finance/exports", req: ["O06", "S03"], summary: "Download CSV reports for the branches you can see.", action: "report.export", icon: FileSpreadsheet, place: "side", group: "Finance" },
+];

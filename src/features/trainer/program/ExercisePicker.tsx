@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Plus, Search } from "lucide-react";
-import { useExercises } from "@/api/hooks";
+import { useExercises } from "@/api/trainerHooks";
 import { SECTIONS, type Section } from "@/domain/program";
 import { cn } from "@/lib/format";
 import { CATEGORY_LABEL, cap } from "@/features/trainer/library/labels";

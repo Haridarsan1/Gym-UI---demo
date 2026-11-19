@@ -1,6 +1,10 @@
 import { lazy } from "react";
 import { AreaRoutes } from "@/app/AreaRoutes";
+import { registerScreens } from "@/app/screens";
+import { memberScreens } from "@/app/screens/member";
 import { MemberShell } from "@/features/member/MemberShell";
+
+registerScreens("member", memberScreens);
 
 /** Member area. Each screen is a separate file, loaded when the member opens it. Keys are screen ids from src/app/screens.ts. */
 const implemented = {

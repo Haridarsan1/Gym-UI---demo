@@ -1,6 +1,6 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, BookOpen, Plus, SlidersHorizontal } from "lucide-react";
-import { useExercises } from "@/api/hooks";
+import { useExercises } from "@/api/trainerHooks";
 import type { LibraryParams } from "@/api/library";
 import { Button3D } from "@/design/Button3D";
 import { LibraryTabs } from "@/features/trainer/LibraryTabs";

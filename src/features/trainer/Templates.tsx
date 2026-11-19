@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { Archive, ArrowLeft, FileText, Pencil, Plus, RotateCcw, Users } from "lucide-react";
-import { useTemplate, useTemplateActions, useTemplates } from "@/api/hooks";
+import { useTemplate, useTemplateActions, useTemplates } from "@/api/trainerHooks";
 import type { TemplateDetail, TemplateRow } from "@/api/templates";
 import { Button3D, Button3DLink } from "@/design/Button3D";
 import { QueryBoundary } from "@/design/QueryBoundary";
@@ -11,7 +11,7 @@ import { useToast } from "@/design/Toast";
 import { useSplit, useWide } from "@/design/useMediaQuery";
 import { dayName, fromPlanDays } from "@/domain/program";
 import { cn } from "@/lib/format";
-import { useExercises } from "@/api/hooks";
+import { useExercises } from "@/api/trainerHooks";
 import { LibraryTabs } from "@/features/trainer/LibraryTabs";
 import { ProgramEditor } from "@/features/trainer/program/ProgramEditor";
 
