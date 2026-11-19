@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { hasHorizontalScroll, logRemainingSets, readStore } from "./helpers";
+import { changeStore, hasHorizontalScroll, logRemainingSets, readStore } from "./helpers";
 
 /** Trainer journeys shared by the phone spec and the wide-screen spec, so each one is driven the same way at every width. */
 
@@ -252,4 +252,85 @@ export async function scheduleJourney(page: Page, width: number) {
   await page.getByRole("button", { name: /^Remove the shift on Tue 24 Nov/ }).click();
   await expect(page.getByRole("list", { name: "Upcoming shifts" })).not.toContainText("Extra hours");
   await noSideways(page, "Shifts");
+}
+
+/**
+ * M05: the front desk at Andheri. Search and check a member in (allowed), a repeat scan, a member who owes money, one on the grace
+ * period, one turned away and let in by override with a reason. The result is read from `data-result` and the words on screen.
+ */
+export async function checkInJourney(page: Page) {
+  await expect(page.getByRole("heading", { name: "Check-in", level: 1 })).toBeVisible();
+  await expect(page.getByText("Ready for the next member")).toBeVisible();
+  await noSideways(page, "Check-in");
+  const result = page.getByRole("region", { name: "Check-in result" });
+  const search = page.getByRole("combobox", { name: /Search members/ });
+  const find = async (text: string) => {
+    await search.fill(text);
+    await expect(page.getByRole("listbox", { name: "Matching members" })).toBeVisible();
+  };
+
+  // Keyboard first: “/” goes to the search, Enter checks in the highlighted member.
+  await page.getByRole("heading", { name: "Check-in", level: 1 }).click();
+  await page.keyboard.press("/");
+  await expect(search).toBeFocused();
+  await find("arjun");
+  await expect(page.getByRole("option")).toHaveCount(1);
+  await page.keyboard.press("Enter");
+  await expect(result).toHaveAttribute("data-result", "allowed");
+  await expect(result).toContainText("Checked in");
+  await expect(result).toContainText("Arjun Kumar");
+  await expect(page.getByRole("list", { name: "Today’s check-ins" })).toContainText("Arjun Kumar");
+  await noSideways(page, "Result: allowed");
+
+  // The same member again straight away: a repeat, no extra visit.
+  await search.fill("arjun");
+  await page.getByRole("option", { name: /Arjun Kumar/ }).getByRole("button").click();
+  await expect(result).toHaveAttribute("data-result", "repeat_scan");
+  await expect(result).toContainText(/Already checked in at \d+:\d{2} (am|pm)/);
+  await expect(result).toContainText("No extra visit was used");
+
+  // A payment is due: let in, with the amount.
+  await search.fill("priya");
+  await page.getByRole("option", { name: /Priya Sharma/ }).getByRole("button").click();
+  await expect(result).toHaveAttribute("data-result", "allowed_with_dues");
+  await expect(result).toContainText("Checked in, a payment is due");
+  await expect(result).toContainText("Owes");
+
+  // The membership has ended but is in its grace period.
+  await changeStore(page, "memberships", `(v) => v.memberId === "mem_sneha" && v.status === "active" ? { ...v, endsOn: "2026-11-15", graceUntil: "2026-11-20" } : false`);
+  await search.fill("sneha");
+  await page.getByRole("option", { name: /Sneha Patil/ }).getByRole("button").click();
+  await expect(result).toHaveAttribute("data-result", "allowed");
+  await expect(result).toContainText("Checked in, membership ended");
+  await expect(result).toContainText("grace period");
+
+  // Turned away, then let in by override with a reason.
+  await changeStore(page, "memberships", `(v) => v.memberId === "mem_sneha" && v.status === "active" ? { ...v, endsOn: "2026-10-01", graceUntil: undefined, status: "expired" } : false`);
+  await page.getByRole("button", { name: "Next member" }).click();
+  await search.fill("sneha");
+  await page.getByRole("option", { name: /Sneha Patil/ }).getByRole("button").click();
+  await expect(result).toHaveAttribute("data-result", "denied");
+  await expect(result).toContainText("Not checked in");
+  await expect(result).toContainText("membership ended on 1 Oct 2026");
+  await page.getByRole("button", { name: "Let in anyway…" }).click();
+  const sheet = page.getByRole("dialog", { name: "Let in anyway" });
+  await sheet.getByRole("button", { name: "Let in" }).click();
+  await expect(sheet.getByRole("alert")).toContainText("Say why you are letting them in.");
+  await sheet.getByLabel("Reason").fill("Paid by cheque this morning, manager confirmed");
+  await sheet.getByRole("button", { name: "Let in" }).click();
+  await expect(result).toHaveAttribute("data-result", "override");
+  await expect(result).toContainText("Checked in by override");
+  await expect(result).toContainText("Paid by cheque this morning");
+  const rows = page.getByRole("list", { name: "Today’s check-ins" });
+  await expect(rows).toContainText("Turned away");
+  await expect(rows).toContainText("Override");
+  const audit = (await readStore(page, "auditEvents")).filter((e) => e.action === "checkin.override");
+  expect(audit).toHaveLength(1);
+  expect(audit[0]).toMatchObject({ actorId: "u_desk_andheri", memberId: "mem_sneha", reason: "Paid by cheque this morning, manager confirmed" });
+  await noSideways(page, "Result: override");
+
+  // Next member clears the screen.
+  await page.getByRole("button", { name: "Next member" }).click();
+  await expect(page.getByText("Ready for the next member")).toBeVisible();
+  await expect(search).toBeFocused();
 }

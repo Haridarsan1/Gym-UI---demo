@@ -254,6 +254,31 @@ test.describe("trainer screens at every width", () => {
   }
 });
 
+test.describe("front desk screens at every width", () => {
+  // Each screen the desk gets in M3 is added here when it is built.
+  const DESK_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk", h1: "Check-in" }];
+  for (const width of WIDTHS) {
+    test(`no sideways scroll, a capped width and 44 px targets at ${width} px`, async ({ page }) => {
+      for (const { path, h1 } of DESK_SCREENS) {
+        await at(page, width, "u_desk_andheri", path);
+        await expect(page.getByRole("heading", { name: h1, level: 1 })).toBeVisible();
+        expect(await hasHorizontalScroll(page), `${path} scrolls sideways`).toBe(false);
+        expect((await box(page, "main")).width, `${path} is wider than 1200 px`).toBeLessThanOrEqual(1200);
+        if (width < 1024) {
+          const small = await page.evaluate(() =>
+            [...document.querySelectorAll<HTMLElement>("a, button, [role=radio], [role=switch], input:not([type=hidden])")]
+              .filter((el) => el.offsetParent !== null && !el.closest("p, li > p, summary") && !el.classList.contains("sr-only"))
+              .map((el) => ({ el, r: el.getBoundingClientRect() }))
+              .filter(({ r }) => r.width > 0 && r.height > 0 && (r.height < 43.5 || r.width < 43.5))
+              .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 30)}" ${Math.round(r.width)}x${Math.round(r.height)}`),
+          );
+          expect(small, `${path} has small touch targets`).toEqual([]);
+        }
+      }
+    });
+  }
+});
+
 test.describe("member screens at every width", () => {
   const SCREENS: Array<[string, string | RegExp]> = [
     ["/m", /^Good (morning|afternoon|evening)/],

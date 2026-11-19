@@ -62,3 +62,18 @@ export function checkInDecision(i: DecisionInput): Decision {
   const over = m.status === "expired" || (m.endsOn !== undefined && m.endsOn < i.today);
   return { result: i.hasOpenDues ? "allowed_with_dues" : "allowed", visitDebited: visitPass, inGrace: over };
 }
+
+/** What the front desk reads when a member can’t be let in: plain, about the member, with what to do next. */
+export function staffDenyText(reason: DenyReason, firstName: string, m: { startsOn?: string; endsOn?: string; freezeTo?: string } | undefined): string {
+  const date = (d?: string) => (d ? new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "");
+  switch (reason) {
+    case "no_membership": return `${firstName} has no membership. Offer a plan from New member or the member’s profile.`;
+    case "pending": return `${firstName}’s membership starts after the first payment. Collect the open invoice and they can come in.`;
+    case "scheduled": return `${firstName}’s membership starts on ${date(m?.startsOn)}.`;
+    case "frozen": return m?.freezeTo ? `${firstName}’s membership is frozen until ${date(m.freezeTo)}.` : `${firstName}’s membership is frozen.`;
+    case "expired": return m?.endsOn ? `${firstName}’s membership ended on ${date(m.endsOn)}. Renew it to let them in.` : `${firstName}’s membership has ended. Renew it to let them in.`;
+    case "canceled": return `${firstName}’s membership was canceled. A new membership is needed to come in.`;
+    case "branch": return `${firstName}’s plan doesn’t cover this branch. Upgrade the plan, or use an override if the gym allows it.`;
+    case "no_visits": return `${firstName} has used every visit on their pass. Renew or top up to let them in.`;
+  }
+}

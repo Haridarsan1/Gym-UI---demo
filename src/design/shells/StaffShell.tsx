@@ -76,7 +76,7 @@ export function StaffShell({ area }: { area: StaffArea }) {
               </Link>
               {area !== "admin" && <BranchSwitcher branches={branches} />}
               <div className="flex-1" />
-              <button type="button" onClick={() => setPaletteOpen(true)} className="flex h-11 items-center gap-2 rounded-full bg-white px-3 text-sm text-clay-muted shadow-sm hover:text-clay-ink sm:px-4" aria-label="Open command palette">
+              <button type="button" onClick={() => setPaletteOpen(true)} className="flex h-11 min-w-[2.75rem] items-center justify-center gap-2 rounded-full bg-white px-3 text-sm text-clay-muted shadow-sm hover:text-clay-ink sm:px-4" aria-label="Open command palette">
                 <Search className="h-4 w-4" aria-hidden="true" />
                 <span className="hidden sm:inline">Search</span>
                 <kbd className="ml-1 hidden rounded-md bg-clay-canvas px-1.5 py-0.5 text-xs font-sans text-clay-subtle sm:inline">⌘K</kbd>

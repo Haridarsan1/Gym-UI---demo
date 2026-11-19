@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
-import { coachLogJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
+import { checkInJourney, coachLogJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
  * Member flows on wide screens. The M1 journeys again, but driven the way a person on a tablet or a desktop drives them: through
@@ -571,6 +571,19 @@ for (const width of WIDTHS) {
       await page.getByRole("navigation", { name: "Schedule sections" }).getByRole("button", { name: /Availability/ }).click();
       await expect(page).toHaveURL(/tab=availability/);
       await noSideways(page, "Schedule layout");
+    });
+  });
+
+  test.describe(`front desk check-in at ${width} px`, () => {
+    test("Check-in: search, every result state, override with a reason, and the live list beside it", async ({ page }) => {
+      const problems = await open(page, width, "u_desk_andheri", "/desk");
+      await checkInJourney(page);
+      if (width >= 1280) {
+        const r = (await page.getByRole("region", { name: "Find a member" }).boundingBox())!;
+        const l = (await page.getByRole("heading", { name: "Today’s check-ins" }).boundingBox())!;
+        expect(l.x).toBeGreaterThan(r.x + r.width - 2);
+      }
+      expect(problems).toEqual([]);
     });
   });
 

@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import { AreaRoutes } from "@/app/AreaRoutes";
 import { registerScreens } from "@/app/screens";
 import { deskScreens } from "@/app/screens/desk";
@@ -5,7 +6,11 @@ import { StaffShell } from "@/design/shells/StaffShell";
 
 registerScreens("desk", deskScreens);
 
-/** Desk area. Screens built in this area’s milestone are added to `implemented`, keyed by screen id. */
+/** Desk area. Each screen is a separate file, loaded when it is opened. Keys are screen ids from src/app/screens/desk.ts. */
+const implemented = {
+  checkin: lazy(() => import("@/features/desk/CheckIn")),
+};
+
 export default function DeskArea() {
-  return <AreaRoutes area="desk" shell={<StaffShell area="desk" />} />;
+  return <AreaRoutes area="desk" shell={<StaffShell area="desk" />} implemented={implemented} />;
 }
