@@ -168,6 +168,8 @@ export const GymPolicies = z.object({
   noShowAfterMinutes: z.number().int().min(0).max(120),
   /** Hours after a session starts during which the trainer can still mark it. */
   markWindowHours: z.number().int().min(1).max(336),
+  /** Whether the desk may record a payment smaller than the amount due (M03). Off by default. */
+  partialPaymentsEnabled: z.boolean(),
 });
 export type GymPolicies = z.infer<typeof GymPolicies>;
 

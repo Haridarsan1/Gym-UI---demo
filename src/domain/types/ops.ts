@@ -29,6 +29,8 @@ export const Booking = z.object({
   kind: z.enum(["pt_session", "class"]),
   trainerId: id.optional(),
   classId: id.optional(),
+  /** The room, for sessions that need one. Only conflict-checked when set (M3). */
+  roomId: id.optional(),
   startsAt: isoDateTime,
   endsAt: isoDateTime,
   status: BookingStatus,

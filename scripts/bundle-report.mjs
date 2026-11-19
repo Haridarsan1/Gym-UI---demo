@@ -10,13 +10,19 @@ import { chromium } from "@playwright/test";
 
 const PORT = 4173;
 const BASE = `http://localhost:${PORT}`;
-const BUDGET_KB = { "/m": 170 };
+const BUDGET_KB = { "/m": 170, "/desk": 170 };
 
 /**
  * Code the member app must never download up front. A module in any chunk that /m loads on a return visit (the seed
  * generator runs once, on the first visit only) fails the report. Chunk contents come from the build (vite.config.ts).
  */
-const NOT_FOR_MEMBERS = [/^src\/features\/(trainer|desk|owner|admin)\//, /^src\/app\/screens\/(trainer|desk|owner|admin)\./, /^src\/api\/(trainer|trainerHooks|clients|book|assessments|library|programs|templates|assignments)\./, /^src\/domain\/trainerToday\./];
+const SCREENS_OF = (areas) => new RegExp(`^src/app/screens/(${areas})\\.`);
+const TRAINER_API = /^src\/api\/(trainer|trainerHooks|clients|book|assessments|library|programs|templates|assignments|coachLog|review|schedule)\./;
+const NOT_FOR = {
+  "/m": [/^src\/features\/(trainer|desk|owner|admin)\//, SCREENS_OF("trainer|desk|owner|admin"), TRAINER_API, /^src\/domain\/trainerToday\./],
+  // The desk never downloads the member or trainer apps, the owner or admin consoles, or the QR scanner and finance screens up front.
+  "/desk": [/^src\/features\/(member|trainer|owner|admin)\//, SCREENS_OF("member|trainer|owner|admin"), /^src\/api\/(trainer|trainerHooks|clients|book|assessments|library|programs|templates|coachLog|review|schedule)\./, /^src\/domain\/trainerToday\./, /^node_modules\/@zxing\//],
+};
 const chunkModules = JSON.parse(readFileSync("node_modules/.cache/ember/chunk-modules.json", "utf8"));
 
 const routes = [
@@ -82,16 +88,16 @@ for (const route of routes) {
     notes.push("FAIL: home page loaded");
     failed = true;
   }
-  if (route.path === "/m") {
+  if (NOT_FOR[route.path]) {
     // A second visit in the same browser: the demo gym exists, so only what the member app itself needs is downloaded.
     const again = await ctx.newPage();
     const seen = new Set();
     again.on("response", (res) => res.url().endsWith(".js") && seen.add(res.url().split("/").pop()));
     await again.goto(BASE + route.path, { waitUntil: "networkidle" });
     const leaks = [];
-    for (const file of seen) for (const mod of chunkModules[`assets/${file}`] ?? []) if (NOT_FOR_MEMBERS.some((re) => re.test(mod))) leaks.push(`${mod} (${file})`);
-    if (seen.size === 0) notes.push("FAIL: member check saw no scripts");
-    if (leaks.length) notes.push(`FAIL: trainer, desk or owner code in /m: ${[...new Set(leaks)].join(", ")}`);
+    for (const file of seen) for (const mod of chunkModules[`assets/${file}`] ?? []) if (NOT_FOR[route.path].some((re) => re.test(mod))) leaks.push(`${mod} (${file})`);
+    if (seen.size === 0) notes.push("FAIL: the code check saw no scripts");
+    if (leaks.length) notes.push(`FAIL: code that does not belong in ${route.path}: ${[...new Set(leaks)].join(", ")}`);
     if (seen.size === 0 || leaks.length) failed = true;
   }
   const budget = BUDGET_KB[route.path];

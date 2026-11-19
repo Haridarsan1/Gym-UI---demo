@@ -452,13 +452,21 @@ Every trainer screen is responsive from the start: single column on phones, list
 - **Done when:** publishing a new plan version leaves earlier prescriptions and logs intact, and trainer transfer (A02) works. **Met** (see M2 acceptance above).
 
 ### M3 · Front desk and finance (R03)
-- [ ] Check-in with QR, eligibility, repeat-scan protection, overrides
-- [ ] New member wizard
-- [ ] Member profile with lifecycle actions (freeze, renew, upgrade, cancel)
-- [ ] Payments, receipts, dues
-- [ ] PT credits ledger
-- [ ] Bookings calendar with conflict safety
-- [ ] Finance: invoices, refunds, reconciliation, exports
+Console style: calm and fast, dense tables that become card lists on phones, ⌘K, keyboard shortcuts for frequent desk actions, a sticky action bar. No confetti, mascots or badges. Checkpoint 1 follows step 2; Checkpoint 2 follows finance.
+- [x] Step 0: foundations
+  - **GST document numbers** (`domain/numbering.ts`, `api/numbering.ts`, `NumberSeries`, tested): consecutive and unique within each Indian financial year (April to March) for each series, at most 16 characters. An invoice is the branch’s prefix, the year and four digits, for example `PFAND/26-27/0001` (`Branch.invoicePrefix`, 3 to 5 capital letters or digits: PFAND, PFBAN, PFPOW); a credit note has its own series (`CNAND/26-27/0001`). The number is taken from the series counter inside the transaction that stores the document, so concurrent documents get different numbers, a failed transaction gives its number back (no gaps), and a void invoice keeps its number. The seed numbers every invoice in issue order per branch and year (seed v12, Dexie v7), checkout allocates through it, and the receipt page shows it. Your example `PF-AND/26-27/0001` is 17 characters, so the prefix has no hyphen.
+  - **Desk API door** (`api/desk.ts`): `openDesk` (desk, finance, branch managers and owners only; an action check; the branches they may act in), `assertInBranch`, `memberInScope` (a member in another branch is “not found”).
+  - **No health access, anywhere** (`api/deskRestrictions.test.ts`): every health and training action is refused to front desk and finance for any record, no desk screen is behind or named for one, the sensitive door and the trainer and member APIs refuse them (and the owner and branch manager, who have no switch on here), and nothing is audited for a refused view.
+  - **Records and policies:** `Booking.roomId` (optional; conflict-checked only when set), `GymPolicies.partialPaymentsEnabled` (off).
+  - **Bundle guard** also for `/desk`: no member, trainer, owner or admin code, and no QR scanner, in its first download (budget 170 KB; 149.6 KB now).
+  - **Hooks:** `.githooks/pre-commit` (the docs check) and `.githooks/pre-push` (typecheck and unit tests; a failure refuses the push), installed by `npm install`.
+- [ ] Step 1: Check-in (M05): search and lazy camera QR scan, a large readable result (allowed, with dues, grace, denied, repeat scan, override), override with reason, live list of today’s check-ins
+- [ ] Step 2: New member wizard (T01, M01, M03, O03): duplicate check, consent, plan sale with snapshot terms, trainer and effective date, invoice and payment, QR pass sent. **Checkpoint 1**
+- [ ] Step 3: Member profile and lifecycle (M02): freeze, unfreeze, renew, upgrade with proration and a GST credit note, cancel with an effective date and “Request refund”, the trainer transfer screen (A02)
+- [ ] Step 4: Collect payment, receipts, dues and reminders (M03, O04); the PT credit ledger (M06)
+- [ ] Step 5: Bookings calendar by trainer and room, conflict-safe (A03), with the desk side of trainer leave conflicts
+- [ ] Step 6: Finance: invoices and payments, refund requests and approval (M04), reconciliation and flagged duplicate events, role-scoped CSV exports, day close for cash. **Checkpoint 2**
+- [ ] Step 7: Acceptance A01, A03 and A04
 - **Done when:** A01, A03 and A04 pass end to end.
 
 ### M4 · Owner and branch manager (R02)
@@ -530,6 +538,13 @@ Every trainer screen is responsive from the start: single column on phones, list
 | GST place of supply and rates | Branch state for in-gym services (CGST + SGST), 18%, SAC 999723. GST rules to be confirmed by the gym’s accountant before launch. |
 | Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6. Bundle budget for `/m` is met: 150 KB of 170 KB after step 6. The workout API (which uses Zod) is loaded on demand with the program and workout screens, so it stays out of every area’s first download. |
 | Retention of member records, including assessments withdrawn by consent | Kept, hidden from all staff, until the retention period ends or the member asks for deletion. Retention policy to be confirmed with the gym’s accountant and legal adviser (GST record-keeping, Digital Personal Data Protection Act 2023). |
+| Proration and credit-note treatment (M3) | An upgrade credits the unused days of the old plan pro rata on its pre-tax price and invoices the difference. The credit is issued as a GST credit note linked to the original invoice, not netted silently. A downgrade (the credit is more than the new plan’s price) is not refunded automatically: it takes effect at period end. **Proration and credit-note treatment to be confirmed with the gym’s accountant.** |
+| Invoice numbering format (M3) | Consecutive and unique within each financial year (April to March), at most 16 characters, a per-branch prefix, for example `PFAND/26-27/0001`; credit notes have their own series; allocated inside the invoice’s transaction. **Invoice numbering format to be confirmed with the gym’s accountant.** |
+| Cancellation (M3) | No automatic refund. Access continues until the effective date. The desk sees what the member may be eligible for under policy, with “Request refund”. **Confirmed.** |
+| Refund requests (M3) | The desk can’t approve refunds. “Request refund” puts a request (amount, reason, member, invoice) in a finance queue, where finance or the owner approves or rejects it. Both steps are audited. **Confirmed.** |
+| Leads (M3) | The new member wizard has a duplicate check and a lead-source field. The leads list stays in M7. **Confirmed.** |
+| Day close (M3) | Closing a day locks that day’s cash records; corrections are new entries. Only the owner can reopen a closed day, with a reason, and it is audited. **Confirmed.** |
+| Rooms (M3) | `Booking.roomId` is optional and only conflict-checked when set. **Confirmed.** |
 | Trainer leave and existing bookings (M2) | Leave blocks new bookings. Bookings that clash show as conflicts for the trainer and the front desk. Either can reschedule or move the session to another trainer; the member gets an email and the credit is not affected. **Confirmed.** |
 | Private notes after a trainer transfer (M2) | They stay with their author. A new trainer never sees a previous trainer’s private notes. **Confirmed.** |
 | Assessment consent withdrawn (M2) | New assessments are blocked and existing ones are hidden from all staff, trainer included, who see “Assessment consent withdrawn”. Records are kept until the retention period ends or the member asks for deletion. **Confirmed.** |

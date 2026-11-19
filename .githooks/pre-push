@@ -1,0 +1,7 @@
+#!/bin/sh
+# Refuses a push unless the typecheck and every unit test pass. Installed by `npm install` (prepare).
+echo "pre-push: typecheck"
+npm run --silent typecheck || { echo "Push refused: the typecheck failed."; exit 1; }
+echo "pre-push: unit tests"
+npm run --silent test > /tmp/ember-prepush.log 2>&1 || { tail -30 /tmp/ember-prepush.log; echo "Push refused: unit tests failed."; exit 1; }
+tail -4 /tmp/ember-prepush.log

@@ -87,10 +87,14 @@ export const InvoicePurpose = z.object({
   selfServe: z.boolean().optional(),
 });
 
+/** The last number given out in one series (a prefix in a financial year). Counted inside the transaction that makes the document, so there are no gaps and no duplicates. */
+export const NumberSeries = z.object({ id, tenantId: id, prefix: z.string(), financialYear: z.string(), last: z.number().int().nonnegative() });
+export type NumberSeries = z.infer<typeof NumberSeries>;
+
 export const Invoice = z.object({
   id,
   tenantId: id,
-  /** Printed number, for example INV-2026-0042. */
+  /** Printed GST number: the branch prefix, the financial year and four digits, 16 characters, for example PFAND/26-27/0042 (domain/numbering.ts). */
   number: z.string(),
   memberId: id,
   membershipId: id.optional(),

@@ -47,6 +47,8 @@ export const Branch = z.object({
   address: z.string().optional(),
   /** GST state code of the branch (for example "27" for Maharashtra). Services performed here are taxed in this state. */
   stateCode: z.string().regex(/^\d{2}$/),
+  /** The start of this branch’s GST document numbers, 3 to 5 capital letters or digits, for example PFAND (see domain/numbering.ts). */
+  invoicePrefix: z.string().regex(/^[A-Z0-9]{3,5}$/),
   /** Days with no entry are closed. Times are local "HH:mm". */
   hours: z.array(dayHours),
   rooms: z.array(z.object({ id, name: z.string(), capacity: z.number().int().positive() })),

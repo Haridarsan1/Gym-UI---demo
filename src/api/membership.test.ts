@@ -80,7 +80,7 @@ describe("the membership screen’s data (M01, M02)", () => {
   it("closes renewal while frozen, and while a renewal invoice is unpaid, saying why", async () => {
     expect((await getMembership(rahul)).renewal).toMatchObject({ options: [], blockedReason: expect.stringMatching(/frozen/) });
     const p = await getMembership(priya);
-    expect(p.renewal.blockedReason).toMatch(/Pay invoice INV-\d{4}-\d{4} first/);
+    expect(p.renewal.blockedReason).toMatch(/Pay invoice [A-Z]{5}\/\d{2}-\d{2}\/\d{4} first/);
     expect(p.dues).toMatchObject({ duePaise: 295_000, overdue: true });
   });
 

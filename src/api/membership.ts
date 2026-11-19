@@ -2,6 +2,7 @@ import { z } from "zod";
 import { db } from "@/demo/db";
 import { configureSimulation, getSimulation } from "@/demo/simulate";
 import { assertCan } from "@/api/context";
+import { allocateNumber } from "@/api/numbering";
 import { ApiError } from "@/api/errors";
 import { openMember, type MemberContext } from "@/api/member";
 import { amountDuePaise, amountInWords, invoiceLines, invoiceTotals, isOverdue, isUnpaidCart, paidPaise, placeOfSupplyFor, stateOfGstin, STATE_NAMES, SAC_FITNESS, taxBreakup } from "@/domain/billing";
@@ -376,15 +377,13 @@ async function createInvoice(
   existing: Invoice[],
   line: { description: string; quantity: number; unitPaise: number; taxRateBp: number; purpose: NonNullable<Invoice["purpose"]>; membershipId?: string },
 ): Promise<Invoice> {
-  const year = c.today.slice(0, 4);
-  const all = await db.invoices.where("tenantId").equals(c.tenantId).toArray();
   // Another renewal invoice that is still unpaid is replaced by this one: the member has changed their mind about the plan.
   for (const old of existing.filter((i) => i.status === "open" && i.purpose?.kind === "renewal" && i.purpose.selfServe && line.purpose.kind === "renewal")) {
     if ((await db.payments.where("invoiceId").equals(old.id).filter((p) => p.status === "succeeded").count()) === 0) await db.invoices.update(old.id, { status: "void" });
   }
   const lines = [{ description: line.description, quantity: line.quantity, unitPaise: line.unitPaise, taxRateBp: line.taxRateBp }];
   const invoice: Invoice = {
-    id: rid("inv"), tenantId: c.tenantId, number: await nextNumber("INV", all.map((i) => i.number), year), memberId: c.memberId, membershipId: line.membershipId, branchId: member.homeBranchId,
+    id: rid("inv"), tenantId: c.tenantId, number: await allocateNumber(c.tenantId, "invoice", (await db.branches.get(member.homeBranchId))!, c.today), memberId: c.memberId, membershipId: line.membershipId, branchId: member.homeBranchId,
     placeOfSupply: placeOfSupplyFor(stateCode), issuedOn: c.today, dueOn: c.today, lines, ...invoiceTotals(lines), status: "open", purpose: line.purpose, createdAt: c.nowIso,
   };
   await db.invoices.add(invoice);

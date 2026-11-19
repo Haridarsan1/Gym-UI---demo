@@ -2,9 +2,10 @@ import { ALL_BRANCHES, BRANCH, DEMO_ACCOUNTS, TENANT_ID } from "@/app/demoAccoun
 import { addDays, todayIST, weekStart } from "@/domain/dates";
 import type {
   AuditEvent, BadgeAward, Booking, Assessment, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, GymClass, GymPolicies, Goal, Invoice, Measurement, Member, MemberSettings,
-  Membership, MembershipPlan, Payment, ProgramTemplate, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion,
+  Membership, MembershipPlan, NumberSeries, Payment, ProgramTemplate, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion,
 } from "@/domain/types";
 import { rng } from "@/demo/rng";
+import { financialYear, formatNumber, seriesKey } from "@/domain/numbering";
 import { PERSONAS } from "@/demo/personas";
 import { TRAINER_POLICY_DEFAULTS } from "@/domain/trainerToday";
 import { buildRoster } from "@/demo/seedTrainer";
@@ -43,6 +44,7 @@ export interface SeedData {
   badgeAwards: BadgeAward[];
   trainerAvailability: TrainerAvailability[];
   trainerShifts: TrainerShift[];
+  numberSeries: NumberSeries[];
   trainerLeave: TrainerLeave[];
   gymPolicies: GymPolicies[];
   assessments: Assessment[];
@@ -83,14 +85,14 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   const week = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, open: "05:30", close: "22:30" }));
   const hours = [...week, { weekday: 6, open: "06:00", close: "20:00" }, { weekday: 0, open: "07:00", close: "13:00" }];
   const branches: Branch[] = [
-    { id: BRANCH.andheri, tenantId: TENANT_ID, name: "Andheri", city: "Mumbai", address: "Veera Desai Road, Andheri West", stateCode: "27", hours, rooms: [{ id: "rm_andheri_a", name: "Studio A", capacity: 20 }, { id: "rm_andheri_b", name: "Studio B", capacity: 15 }], active: true },
-    { id: BRANCH.bandra, tenantId: TENANT_ID, name: "Bandra", city: "Mumbai", address: "Hill Road, Bandra West", stateCode: "27", hours, rooms: [{ id: "rm_bandra_a", name: "Studio A", capacity: 18 }], active: true },
-    { id: BRANCH.powai, tenantId: TENANT_ID, name: "Powai", city: "Mumbai", address: "Hiranandani Gardens, Powai", stateCode: "27", hours, rooms: [{ id: "rm_powai_a", name: "Studio A", capacity: 25 }, { id: "rm_powai_b", name: "Cycle room", capacity: 12 }], active: true },
+    { id: BRANCH.andheri, tenantId: TENANT_ID, invoicePrefix: "PFAND", name: "Andheri", city: "Mumbai", address: "Veera Desai Road, Andheri West", stateCode: "27", hours, rooms: [{ id: "rm_andheri_a", name: "Studio A", capacity: 20 }, { id: "rm_andheri_b", name: "Studio B", capacity: 15 }], active: true },
+    { id: BRANCH.bandra, tenantId: TENANT_ID, invoicePrefix: "PFBAN", name: "Bandra", city: "Mumbai", address: "Hill Road, Bandra West", stateCode: "27", hours, rooms: [{ id: "rm_bandra_a", name: "Studio A", capacity: 18 }], active: true },
+    { id: BRANCH.powai, tenantId: TENANT_ID, invoicePrefix: "PFPOW", name: "Powai", city: "Mumbai", address: "Hiranandani Gardens, Powai", stateCode: "27", hours, rooms: [{ id: "rm_powai_a", name: "Studio A", capacity: 25 }, { id: "rm_powai_b", name: "Cycle room", capacity: 12 }], active: true },
   ];
 
   const policies: GymPolicies = {
     id: `pol_${TENANT_ID}`, tenantId: TENANT_ID, cancellationCutoffHours: 12, lateCancelConsumesCredit: true, noShowConsumesCredit: true,
-    streakThresholdPercent: 75, bookingHorizonDays: 14, sessionMinutes: 60, membersMayChooseTrainer: false, ...TRAINER_POLICY_DEFAULTS,
+    streakThresholdPercent: 75, bookingHorizonDays: 14, sessionMinutes: 60, membersMayChooseTrainer: false, partialPaymentsEnabled: false, ...TRAINER_POLICY_DEFAULTS,
   };
 
   // Trainers take sessions 6 to 11 am and 5 to 9 pm. With two branches they alternate: first on Mon, Wed, Fri, second on Tue, Thu, Sat.
@@ -293,6 +295,23 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
   // Training, billing and activity for the sample members. Everyone else gets this in the milestone that first shows it.
   const memberData = buildMemberData({ today, r, branches, members, memberships, membershipPlans, deskFor });
+
+  // GST numbers: consecutive within each branch and financial year, in the order the invoices were issued. A void invoice keeps its number.
+  const numbered = (() => {
+    const prefix = new Map(branches.map((b) => [b.id, b.invoicePrefix]));
+    const last = new Map<string, NumberSeries>();
+    const invoices = [...memberData.invoices].sort((a, b) => a.issuedOn.localeCompare(b.issuedOn) || a.id.localeCompare(b.id)).map((inv) => {
+      const p = prefix.get(inv.branchId)!;
+      const fy = financialYear(inv.issuedOn);
+      const key = seriesKey(TENANT_ID, p, fy);
+      const row = last.get(key) ?? { id: key, tenantId: TENANT_ID, prefix: p, financialYear: fy, last: 0 };
+      row.last += 1;
+      last.set(key, row);
+      return { ...inv, number: formatNumber(p, fy, row.last) };
+    });
+    return { invoices, series: [...last.values()] };
+  })();
+
   // The trainers’ books of clients (M2): plans, logs, reviews and today’s sessions for everyone else with a trainer.
   // Rahul has withdrawn his assessment consent since his assessment, so Coach Farah sees “Assessment consent withdrawn”.
   const rahulConsent = consents.find((c) => c.id === "cn_mem_rahul_assessments");
@@ -303,7 +322,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   return {
     tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,
     creditLedger: [...creditLedger, ...memberData.creditLedger, ...roster.creditLedger],
-    invoices: memberData.invoices, payments: memberData.payments, refunds: [], classes: [], bookings: [...memberData.bookings, ...roster.bookings], checkIns: memberData.checkIns,
+    invoices: numbered.invoices, numberSeries: numbered.series, payments: memberData.payments, refunds: [], classes: [], bookings: [...memberData.bookings, ...roster.bookings], checkIns: memberData.checkIns,
     exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: [...memberData.goals, ...roster.goals], assessments: [...memberData.assessments, ...roster.assessments], programTemplates: buildTemplates(today, createdAt),
     measurements: memberData.measurements, auditEvents: [], trainerReviews: [...memberData.trainerReviews, ...roster.trainerReviews], memberSettings: memberData.memberSettings,
     badgeAwards: memberData.badgeAwards, trainerAvailability: availability, trainerShifts: shifts, trainerLeave: leave, gymPolicies: [policies],

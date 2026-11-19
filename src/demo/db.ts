@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import type {
   Assessment, AuditEvent, BadgeAward, Booking, EmailLogEntry, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
-  MembershipPlan, MemberSettings, ProgramTemplate, GatewayEvent, DataRequest, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
+  MembershipPlan, MemberSettings, NumberSeries, ProgramTemplate, GatewayEvent, DataRequest, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
 } from "@/domain/types";
 
 export interface MetaRow {
@@ -47,6 +47,7 @@ export class EmberDB extends Dexie {
   badgeAwards!: EntityTable<BadgeAward, "id">;
   trainerAvailability!: EntityTable<TrainerAvailability, "id">;
   trainerShifts!: EntityTable<TrainerShift, "id">;
+  numberSeries!: EntityTable<NumberSeries, "id">;
   trainerLeave!: EntityTable<TrainerLeave, "id">;
   gymPolicies!: EntityTable<GymPolicies, "id">;
   assessments!: EntityTable<Assessment, "id">;
@@ -116,6 +117,10 @@ export class EmberDB extends Dexie {
     this.version(6).stores({
       trainerShifts: "id, tenantId, trainerId, date",
       trainerLeave: "id, tenantId, trainerId, from",
+    });
+    // Version 7 (M3): the counters behind GST invoice and credit-note numbers.
+    this.version(7).stores({
+      numberSeries: "id, tenantId",
     });
   }
 }
