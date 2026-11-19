@@ -186,7 +186,8 @@ describe("one key makes one member", () => {
     const child = await registerMember(desk, base({ member: { name: "Kabir’s Son", phone: "98765 43210", dateOfBirth: "2011-02-02" }, sharesContactWith: [first.memberId], payment: full }));
     expect((await db.members.get(child.memberId))).toMatchObject({ name: "Kabir’s Son", phone: "9876543210", sharesContactWith: [first.memberId] });
     expect(await db.members.where("phone").equals("9876543210").count()).toBe(2);
-    expect((await db.auditEvents.where("action").equals("membership.create").toArray()).at(-1)!.details).toMatchObject({ sharesContactWith: [first.memberId] });
+    // Found by member: audit ids are random, so “the last one” is not a stable way to find it.
+    expect((await db.auditEvents.where("action").equals("membership.create").toArray()).find((e) => e.memberId === child.memberId)!.details).toMatchObject({ sharesContactWith: [first.memberId] });
     // Each has their own membership, invoice and pass.
     expect((await db.members.get(child.memberId))!.qrToken).not.toBe((await db.members.get(first.memberId))!.qrToken);
   });
