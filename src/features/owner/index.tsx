@@ -9,6 +9,7 @@ registerScreens("owner", ownerScreens);
 /** Owner area. Each screen is a separate file, loaded when it is opened. Keys are screen ids from src/app/screens/owner.ts. */
 const implemented = {
   dashboard: lazy(() => import("@/features/owner/Dashboard")),
+  reports: lazy(() => import("@/features/owner/Reports")),
 };
 
 export default function OwnerArea() {

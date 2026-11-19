@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
 import { a01Journey } from "./a01";
 import { a03Journey } from "./a03";
-import { bookingsJourney, dashboardJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
+import { bookingsJourney, dashboardJourney, reportsJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
  * Member flows on wide screens. The M1 journeys again, but driven the way a person on a tablet or a desktop drives them: through
@@ -667,6 +667,15 @@ for (const width of WIDTHS) {
     test("Dashboard: figures, charts, alerts, a branch and a range, and a branch manager’s own branch only", async ({ page }) => {
       const problems = await open(page, width, "u_owner", "/owner");
       await dashboardJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`owner reports at ${width} px`, () => {
+    test("Reports: every report, the CSV, the owner’s reopen of a cash day, and a branch manager’s own branch only", async ({ page }) => {
+      test.setTimeout(90_000);
+      const problems = await open(page, width, "u_desk_andheri", "/desk");
+      await reportsJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
       expect(problems).toEqual([]);
     });
   });

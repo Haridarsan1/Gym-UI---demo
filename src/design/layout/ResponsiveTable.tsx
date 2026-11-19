@@ -19,7 +19,7 @@ export interface Column<T> {
  * Filters go in a Sheet on phones, and primary actions in a StickyActions bar. Pair it with the screen’s own loading
  * skeleton, empty state and error state (see design/States).
  */
-export function ResponsiveTable<T>({ rows, columns, rowKey, onRowClick, caption }: { rows: T[]; columns: Column<T>[]; rowKey: (row: T) => string; onRowClick?: (row: T) => void; caption: string }) {
+export function ResponsiveTable<T>({ rows, columns, rowKey, onRowClick, caption }: { rows: T[]; columns: Column<T>[]; rowKey: (row: T, index: number) => string; onRowClick?: (row: T) => void; caption: string }) {
   const primary = columns.find((c) => c.primary) ?? columns[0]!;
   const rest = columns.filter((c) => c !== primary && !c.hideOnPhone && !c.action);
   const actions = columns.filter((c) => c.action);
@@ -38,8 +38,8 @@ export function ResponsiveTable<T>({ rows, columns, rowKey, onRowClick, caption 
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={rowKey(r)} onClick={onRowClick ? () => onRowClick(r) : undefined} className={cn("border-b border-clay-line last:border-0", onRowClick && "cursor-pointer hover:bg-clay-canvas")}>
+            {rows.map((r, i) => (
+              <tr key={rowKey(r, i)} onClick={onRowClick ? () => onRowClick(r) : undefined} className={cn("border-b border-clay-line last:border-0", onRowClick && "cursor-pointer hover:bg-clay-canvas")}>
                 {columns.map((c) => (
                   <td key={c.key} className={cn("min-h-[2.75rem] px-4 py-3", c.align === "right" && "text-right tabular-nums")}>
                     {c.cell(r)}
@@ -51,8 +51,8 @@ export function ResponsiveTable<T>({ rows, columns, rowKey, onRowClick, caption 
         </table>
       </div>
       <ul aria-label={caption} className="grid gap-3 sm:hidden">
-        {rows.map((r) => (
-          <li key={rowKey(r)} className="clay-flat p-4">
+        {rows.map((r, i) => (
+          <li key={rowKey(r, i)} className="clay-flat p-4">
             <button type="button" disabled={!onRowClick} onClick={onRowClick ? () => onRowClick(r) : undefined} className="block min-h-[2.75rem] w-full text-left">
               <div className="font-semibold">{primary.cell(r)}</div>
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">

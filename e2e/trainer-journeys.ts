@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, type Page } from "@playwright/test";
 import { changeStore, hasHorizontalScroll, logRemainingSets, readStore } from "./helpers";
 
@@ -821,4 +822,81 @@ export async function dashboardJourney(page: Page, signIn: (userId: string, path
   await expect(page.getByText("Andheri")).toHaveCount(0);
   await expect(page.getByText("Powai")).toHaveCount(0);
   await noSideways(page, "Branch manager dashboard");
+}
+
+/**
+ * O06, O07: the owner’s reports. Every report opens with its definition and three figures; the CSV is what is on screen; the cash day close a desk made is reopened by the owner with a
+ * reason (and the desk can close it again); a branch manager’s reports and file hold only their own branch.
+ */
+export async function reportsJourney(page: Page, signIn: (userId: string, path: string) => Promise<void>) {
+  const TITLES = ["Memberships", "Renewals", "Check-ins", "Trainer utilisation", "Training credits", "Invoices", "Collections", "Dues", "Refunds", "Cash day closes"];
+  const pick = async (title: string) => {
+    const list = page.getByRole("navigation", { name: "Reports" }).getByRole("button", { name: title, exact: true });
+    if (await list.isVisible()) await list.click();
+    else await page.getByRole("combobox", { name: "Report" }).selectOption({ label: title });
+  };
+  // The cash day close a desk made, for the owner to reopen.
+  await page.goto("/desk/finance/day-close");
+  await page.getByLabel("Cash counted (₹)").fill("150");
+  await page.getByLabel(/^Note/).fill("A member left a tip");
+  await page.getByRole("button", { name: "Close the day" }).click();
+  await expect(page.getByText("Cash for this day is locked.", { exact: false })).toBeVisible();
+
+  await signIn("u_owner", "/owner/reports");
+  await expect(page.getByRole("heading", { name: "Reports", level: 1 })).toBeVisible();
+  for (const title of TITLES) {
+    await pick(title);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "Summary" }).or(page.locator("dl[aria-label=Summary]"))).toBeVisible();
+    await expect(page.getByText(/For Andheri, Bandra, Powai\./)).toBeVisible();
+    await noSideways(page, title);
+  }
+  await pick("Invoices");
+  await expect(page.getByText(/^Invoices issued in the range/)).toBeVisible();
+  await expect(page.locator("table:visible, ul[aria-label=Invoices]:visible").first()).toBeVisible();
+  const [file] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download CSV" }).click()]);
+  expect(file.suggestedFilename()).toBe("ember-invoices-all-branches-2026-10-19-to-2026-11-17.csv");
+  const csv = readFileSync((await file.path())!, "utf8");
+  expect(csv.split("\r\n")[0]).toBe("Invoice,Date,Member,Branch,Total,Paid,Due,Status");
+  expect(csv).toContain("Andheri");
+  expect(csv).toContain("Bandra");
+  await expect(page.getByText("Export ready")).toBeVisible();
+  expect((await readStore(page, "auditEvents")).filter((e) => e.action === "export.create")).toHaveLength(1);
+
+  // The owner reopens the day, with a reason.
+  await pick("Cash day closes");
+  await expect(page.locator("li:visible, td:visible").filter({ hasText: "A member left a tip" }).first()).toBeVisible();
+  await page.getByRole("button", { name: /^Reopen Andheri/ }).first().click();
+  const sheet = page.getByRole("dialog", { name: "Reopen cash day" });
+  await sheet.getByRole("button", { name: "Reopen the day" }).click();
+  await expect(sheet.getByRole("alert")).toContainText("Say why the day is being reopened.");
+  await sheet.getByLabel("Reason").fill("A cash payment was missed");
+  await sheet.getByRole("button", { name: "Reopen the day" }).click();
+  await expect(page.getByText("Day reopened")).toBeVisible();
+  await expect(page.locator("li:visible, td:visible").filter({ hasText: /Reopened by Neha Kulkarni: A cash payment was missed/ }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Reopen Andheri/ })).toHaveCount(0);
+  expect((await readStore(page, "dayCloses"))[0]).toMatchObject({ status: "reopened", reopenedBy: "u_owner", reopenReason: "A cash payment was missed" });
+  expect((await readStore(page, "auditEvents")).filter((e) => e.action === "dayclose.reopen")).toHaveLength(1);
+
+  // The desk sees it reopened and counts again.
+  await signIn("u_desk_andheri", "/desk/finance/day-close");
+  await expect(page.getByText(/The owner reopened this day: A cash payment was missed/)).toBeVisible();
+  await page.getByLabel("Cash counted (₹)").fill("150");
+  await page.getByLabel(/^Note/).fill("The same tip, counted again");
+  await page.getByRole("button", { name: "Close the day" }).click();
+  await expect(page.getByText("Cash for this day is locked.", { exact: false })).toBeVisible();
+
+  // A branch manager’s reports and file hold only their own branch, and no reopen.
+  await signIn("u_bm_bandra", "/owner/reports?report=invoices");
+  await expect(page.getByText(/For Bandra\./)).toBeVisible();
+  await expect(page.locator("main").getByText("Andheri")).toHaveCount(0);
+  await expect(page.locator("main").getByText("Powai")).toHaveCount(0);
+  const [mine] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download CSV" }).click()]);
+  expect(mine.suggestedFilename()).toBe("ember-invoices-bandra-2026-10-19-to-2026-11-17.csv");
+  const own = readFileSync((await mine.path())!, "utf8");
+  expect(own).toContain("Bandra");
+  expect(own).not.toContain("Andheri");
+  expect(own).not.toContain("Powai");
+  await pick("Cash day closes");
+  await expect(page.getByRole("button", { name: /^Reopen/ })).toHaveCount(0);
 }

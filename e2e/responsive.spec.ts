@@ -257,7 +257,7 @@ test.describe("trainer screens at every width", () => {
 test.describe("front desk screens at every width", () => {
   // Each screen the desk gets in M3 is added here when it is built.
   const DESK_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk", h1: "Check-in" }, { path: "/desk/new", h1: "New member" }, { path: "/desk/members", h1: "Members" }, { path: "/desk/members/mem_arjun", h1: "Arjun Kumar" }, { path: "/desk/members/mem_arjun?tab=billing", h1: "Arjun Kumar" }, { path: "/desk/dues", h1: "Dues" }, { path: "/desk/payments/new", h1: "Collect payment" }, { path: "/desk/bookings", h1: "Bookings" }]
-  const OWNER_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/owner", h1: "Dashboard" }, { path: "/owner?range=7", h1: "Dashboard" }];
+  const OWNER_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/owner", h1: "Dashboard" }, { path: "/owner?range=7", h1: "Dashboard" }, { path: "/owner/reports", h1: "Reports" }, { path: "/owner/reports?report=invoices", h1: "Reports" }, { path: "/owner/reports?report=cash", h1: "Reports" }];
   const FINANCE_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk/finance/refunds", h1: "Refunds" }, { path: "/desk/finance/invoices", h1: "Invoices and payments" }, { path: "/desk/finance/invoices?view=payments", h1: "Invoices and payments" }, { path: "/desk/finance/reconciliation", h1: "Reconciliation" }, { path: "/desk/finance/exports", h1: "Exports" }, { path: "/desk/finance/day-close", h1: "Day close" }];
   for (const width of WIDTHS) {
     test(`no sideways scroll, a capped width and 44 px targets at ${width} px`, async ({ page }) => {
