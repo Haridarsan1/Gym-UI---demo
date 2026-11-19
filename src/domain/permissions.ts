@@ -97,8 +97,14 @@ const GRANTS = {
   "communication.manage": { owner: O, branch_manager: B },
   "import.run": { owner: O },
   "staff.manage": { owner: O },
+  /** Seeing who works at the gym. A branch manager sees the people at their own branches. */
+  "staff.read": { owner: O, branch_manager: B },
+  /** Inviting, editing and deactivating front desk and trainer accounts at one’s own branches. A branch manager only has it when the owner has granted it (`canManageFrontline`). */
+  "staff.manage.frontline": { owner: O, branch_manager: B },
   "branch.manage": { owner: O, branch_manager: B },
   "policy.manage": { owner: O },
+  /** Reading the gym’s policies. A branch manager can look, and can’t change them. */
+  "policy.read": { owner: O, branch_manager: B },
   "settings.manage": { owner: O },
   "subscription.view": { owner: O },
   "audit.read": { owner: O, branch_manager: B },
@@ -126,6 +132,10 @@ export function scopeFor(role: Role, action: Action): Scope | undefined {
 export interface StaffLimits {
   refundLimitPaise: number | null;
   canOverrideCheckIn: boolean;
+  /** “Can manage front desk and trainer accounts at their branches”: for a branch manager, given by the owner. Off by default. */
+  canManageFrontline?: boolean;
+  /** How many check-in overrides this person may make in a day. Missing or null means no limit. Only matters when `canOverrideCheckIn` is on. */
+  maxOverridesPerDay?: number | null;
   maxDiscountBp: number;
   /**
    * “Can view client health and progress photos”. Off by default. Only an owner can turn it on, and only for an owner or
@@ -183,6 +193,7 @@ function withinScope(p: Principal, scope: Scope, r: Resource): boolean {
 
 function limitsAllow(p: Principal, action: Action): boolean {
   if (action === "checkin.override") return p.limits?.canOverrideCheckIn === true;
+  if (action === "staff.manage.frontline" && p.role === "branch_manager") return p.limits?.canManageFrontline === true;
   // Owners and branch managers need the switch. It is ignored for every other role.
   if (HEALTH_ACTIONS.includes(action) && HEALTH_GRANTABLE_ROLES.includes(p.role)) return p.limits?.canViewClientHealth === true;
   return true;

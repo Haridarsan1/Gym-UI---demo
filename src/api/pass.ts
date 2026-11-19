@@ -1,3 +1,4 @@
+import { policiesFor } from "@/api/policies";
 import { db } from "@/demo/db";
 import { assertCan } from "@/api/context";
 import { ApiError } from "@/api/errors";
@@ -131,7 +132,7 @@ export async function simulateDoorScan(session: Session | null): Promise<ScanRes
     ]);
     const current = currentMembership(memberships);
     const dues = invoices.some((i) => (i.status === "open" || i.status === "partially_paid") && !isUnpaidCart(i, payments.filter((p) => p.invoiceId === i.id)) && amountDuePaise(i, payments.filter((p) => p.invoiceId === i.id)) > 0);
-    const d = checkInDecision({ membership: current, branchId: member.homeBranchId, today: c.today, nowIso: c.nowIso, recent, hasOpenDues: dues });
+    const d = checkInDecision({ membership: current, branchId: member.homeBranchId, today: c.today, nowIso: c.nowIso, recent, hasOpenDues: dues, scanWindowMinutes: (await policiesFor(c.tenantId)).repeatScanWindowMinutes });
     const message = d.reason ? denyText(d.reason, current ? { startsOn: current.startsOn, endsOn: current.endsOn, freezeTo: current.freezes.at(-1)?.to } : undefined) : d.result === "repeat_scan" ? "You scanned a moment ago, so no extra visit was used." : "Checked in.";
     const door = staff.find((s) => s.role === "front_desk" && s.branchIds.includes(member.homeBranchId))?.userId ?? staff.find((s) => s.role === "owner")?.userId ?? c.principal.userId;
     await db.checkIns.add({

@@ -178,6 +178,12 @@ export const GymPolicies = z.object({
   maxFreezesPerMembership: z.number().int().min(0).max(12),
   /** Kept from a cancellation refund, in paise, before the unused days are returned. */
   cancellationFeePaise: z.number().int().nonnegative(),
+  /** A second scan at the same branch within this many minutes of an entry is a repeat, not a new visit (M05). */
+  repeatScanWindowMinutes: z.number().int().min(1).max(60),
+  /** The gym’s default grace period after a membership ends: days the member may still come in. A plan can set its own, and the desk can change one membership’s (M02). */
+  graceDays: z.number().int().min(0).max(30),
+  /** A payment reminder for the same invoice can be sent again after this many days (O04). */
+  reminderGapDays: z.number().int().min(1).max(30),
 });
 export type GymPolicies = z.infer<typeof GymPolicies>;
 

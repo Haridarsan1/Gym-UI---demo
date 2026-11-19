@@ -33,6 +33,8 @@ export interface DecisionInput {
   /** The member’s earlier check-ins, any branch. */
   recent: Array<Pick<CheckIn, "at" | "result" | "branchId">>;
   hasOpenDues?: boolean;
+  /** The gym’s repeat-scan window, in minutes (a policy). Defaults to `SCAN_WINDOW_MINUTES`. */
+  scanWindowMinutes?: number;
 }
 
 const ENTERED: ReadonlySet<CheckIn["result"]> = new Set(["allowed", "allowed_with_dues", "override", "repeat_scan"]);
@@ -59,7 +61,7 @@ export function checkInDecision(i: DecisionInput): Decision {
   if (!m.terms.branchIds.includes(i.branchId)) return { result: "denied", reason: "branch", visitDebited: false };
   const visitPass = m.terms.kind === "visit";
   const now = Date.parse(i.nowIso);
-  const repeat = i.recent.some((c) => c.branchId === i.branchId && enteredOk(c.result) && c.result !== "repeat_scan" && now - Date.parse(c.at) >= 0 && now - Date.parse(c.at) < SCAN_WINDOW_MINUTES * 60_000);
+  const repeat = i.recent.some((c) => c.branchId === i.branchId && enteredOk(c.result) && c.result !== "repeat_scan" && now - Date.parse(c.at) >= 0 && now - Date.parse(c.at) < (i.scanWindowMinutes ?? SCAN_WINDOW_MINUTES) * 60_000);
   if (repeat) return { result: "repeat_scan", visitDebited: false };
   if (visitPass && (m.visitsRemaining ?? 0) <= 0) return { result: "denied", reason: "no_visits", visitDebited: false };
   const over = m.status === "expired" || (m.endsOn !== undefined && m.endsOn < i.today);

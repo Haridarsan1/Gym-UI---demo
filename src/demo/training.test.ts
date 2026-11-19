@@ -57,3 +57,13 @@ describe("the training half of the gym is built for the people who read it", () 
     for (const l of logs) expect(dates.has(new Date(Date.parse(l.startedAt!) - 8 * 60_000).toISOString()), l.scheduledOn).toBe(true);
   });
 });
+
+describe("members registered after the demo began", () => {
+  it("get no history made up for them when the training half is built later", async () => {
+    const { registerMember } = await import("@/api/newMember");
+    const r = await registerMember(as("u_desk_andheri"), { key: "train-late-1", branchId: "br_andheri", member: { name: "Late Joiner", phone: "9876509999" }, consents: { photos: false, assessments: true, marketing: false, dataProcessing: true }, planId: "pl_monthly_plus", payment: { method: "cash", amountPaise: 413_000 }, trainer: { trainerId: "u_trainer_meera", effectiveOn: "2026-11-17" } });
+    await listClients(as("u_trainer_meera"));
+    for (const t of ["workoutPlanVersions", "workoutLogs", "goals", "trainerReviews", "assessments"] as const) expect((await db.table(t).toArray()).filter((x) => x.memberId === r.memberId), t).toHaveLength(0);
+    expect(await db.users.get(`u_${r.memberId}`)).toMatchObject({ role: "member", memberId: r.memberId, status: "active" });
+  });
+});

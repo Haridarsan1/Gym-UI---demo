@@ -28,7 +28,7 @@ const roles: Role[] = [
   { pick: /^Front desk/, built: true, name: "Pooja Nair", url: /\/desk$/, home: "Check-in", phone: ["Check-in", "Members", "Bookings", "Dues"], desktop: ["Check-in", "New member", "Members", "Collect payment", "Bookings", "Dues", "Day close"], absent: ["Refunds", "Reconciliation", "Exports", "Invoices and payments", "Reports", "Settings"] },
   { pick: /^Finance/, built: true, name: "Deepa Menon", url: /\/desk\/finance\/invoices$/, home: "Invoices and payments", phone: ["Members", "Dues", "Collect payment", "Invoices and payments"], desktop: ["Members", "Collect payment", "Dues", "Invoices and payments", "Refunds", "Reconciliation", "Exports"], absent: ["Check-in", "New member", "Bookings", "Settings"] },
   { pick: /^Owner/, name: "Neha Kulkarni", url: /\/owner$/, home: "Dashboard", phone: ["Dashboard", "Reports", "Members", "Plans and pricing"], desktop: ["Dashboard", "Reports", "Members", "Plans and pricing", "Staff and roles", "Branches", "Policies", "Communications", "Import members", "Subscription", "Audit log", "Settings"], absent: ["Check-in", "Tenants"] },
-  { pick: /^Branch manager/, name: "Rohit Sethi", url: /\/owner$/, home: "Dashboard", phone: ["Dashboard", "Reports", "Members", "Plans and pricing"], desktop: ["Dashboard", "Reports", "Members", "Plans and pricing", "Branches", "Communications", "Audit log"], absent: ["Staff and roles", "Policies", "Import members", "Subscription", "Settings"] },
+  { pick: /^Branch manager/, name: "Rohit Sethi", url: /\/owner$/, home: "Dashboard", phone: ["Dashboard", "Reports", "Members", "Plans and pricing"], desktop: ["Dashboard", "Reports", "Members", "Plans and pricing", "Branches", "Communications", "Audit log"], absent: ["Import members", "Subscription", "Settings"] },
   { pick: /^Platform admin/, name: "Ember Admin", url: /\/admin$/, home: "Tenants", phone: ["Tenants", "Support access", "SaaS plans"], desktop: ["Tenants", "Support access", "SaaS plans"], absent: ["Members", "Dashboard", "Check-in"] },
 ];
 
@@ -119,7 +119,7 @@ test("the sample gym is the same for everyone who opens it", async ({ page }) =>
         };
       }),
   );
-  expect(counts).toMatchObject({ members: 150, branches: 3, users: 18 });
+  expect(counts).toMatchObject({ members: 150, branches: 3, users: 19 });
   expect(counts.memberships).toBeGreaterThanOrEqual(150);
 });
 

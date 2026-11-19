@@ -85,7 +85,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
   const policies: GymPolicies = {
     id: `pol_${TENANT_ID}`, tenantId: TENANT_ID, cancellationCutoffHours: 12, lateCancelConsumesCredit: true, noShowConsumesCredit: true,
-    streakThresholdPercent: 75, bookingHorizonDays: 14, sessionMinutes: 60, membersMayChooseTrainer: false, partialPaymentsEnabled: false, freezeMinDays: 7, freezeMaxDays: 30, maxFreezesPerMembership: 2, cancellationFeePaise: 50_000, ...TRAINER_POLICY_DEFAULTS,
+    streakThresholdPercent: 75, bookingHorizonDays: 14, sessionMinutes: 60, membersMayChooseTrainer: false, partialPaymentsEnabled: false, freezeMinDays: 7, freezeMaxDays: 30, maxFreezesPerMembership: 2, repeatScanWindowMinutes: 10, graceDays: 0, reminderGapDays: 3, cancellationFeePaise: 50_000, ...TRAINER_POLICY_DEFAULTS,
   };
 
   // Trainers take sessions 6 to 11 am and 5 to 9 pm. With two branches they alternate: first on Mon, Wed, Fri, second on Tue, Thu, Sat.

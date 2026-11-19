@@ -32,6 +32,7 @@ export interface DemoAccount {
 const owner: StaffLimits = { refundLimitPaise: null, canOverrideCheckIn: true, maxDiscountBp: 2000, canViewClientHealth: false };
 const manager: StaffLimits = { refundLimitPaise: 5_000_000, canOverrideCheckIn: true, maxDiscountBp: 1000, canViewClientHealth: false };
 const desk: StaffLimits = { refundLimitPaise: 0, canOverrideCheckIn: true, maxDiscountBp: 500, canViewClientHealth: false };
+const deskCapped: StaffLimits = { ...desk, maxOverridesPerDay: 2 };
 const finance: StaffLimits = { refundLimitPaise: 2_500_000, canOverrideCheckIn: false, maxDiscountBp: 500, canViewClientHealth: false };
 const trainer: StaffLimits = { refundLimitPaise: 0, canOverrideCheckIn: false, maxDiscountBp: 0, canViewClientHealth: false };
 
@@ -41,6 +42,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   { userId: "u_bm_bandra", name: "Rohit Sethi", role: "branch_manager", tenantId: TENANT_ID, branchIds: [BRANCH.bandra], email: "rohit.sethi@pulsefitness.in", phone: "9820011002", limits: manager, featured: true, blurb: "Bandra branch only" },
   { userId: "u_desk_andheri", name: "Pooja Nair", role: "front_desk", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], email: "pooja.nair@pulsefitness.in", phone: "9820011003", limits: desk, featured: true, blurb: "Front desk, Andheri" },
   { userId: "u_desk_bandra", name: "Imran Qureshi", role: "front_desk", tenantId: TENANT_ID, branchIds: [BRANCH.bandra], email: "imran.qureshi@pulsefitness.in", phone: "9820011004", limits: desk, blurb: "Front desk, Bandra" },
+  { userId: "u_desk_powai", name: "Tanvi Desai", role: "front_desk", tenantId: TENANT_ID, branchIds: [BRANCH.powai], email: "tanvi.desai@pulsefitness.in", phone: "9820011012", limits: deskCapped, blurb: "Front desk, Powai: two check-in overrides a day" },
   { userId: "u_finance", name: "Deepa Menon", role: "finance", tenantId: TENANT_ID, branchIds: ALL_BRANCHES, email: "deepa.menon@pulsefitness.in", phone: "9820011005", limits: finance, featured: true, blurb: "Invoices, refunds and reconciliation" },
   { userId: "u_trainer_meera", name: "Meera Joshi", role: "trainer", tenantId: TENANT_ID, branchIds: [BRANCH.andheri, BRANCH.bandra], email: "meera.joshi@pulsefitness.in", phone: "9820011006", limits: trainer, featured: true, blurb: "Coach Meera, Andheri and Bandra" },
   { userId: "u_trainer_aditya", name: "Aditya Rao", role: "trainer", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], email: "aditya.rao@pulsefitness.in", phone: "9820011007", limits: trainer, blurb: "Trainer, Andheri" },

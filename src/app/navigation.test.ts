@@ -95,10 +95,10 @@ describe("staff consoles", () => {
     expect(side("u_owner")).toEqual(SCREENS.owner.filter((s) => s.place === "side").map((s) => s.title));
   });
 
-  it("keeps a branch manager out of staff, policies, import, subscription and settings", () => {
+  it("gives a branch manager staff and policies to read, and keeps them out of import, subscription and settings", () => {
     const s = side("u_bm_bandra");
-    for (const hidden of ["Staff and roles", "Policies", "Import members", "Subscription", "Settings"]) expect(s).not.toContain(hidden);
-    expect(s).toEqual(expect.arrayContaining(["Dashboard", "Reports", "Members", "Branches", "Audit log"]));
+    for (const hidden of ["Import members", "Subscription", "Settings"]) expect(s).not.toContain(hidden);
+    expect(s).toEqual(expect.arrayContaining(["Dashboard", "Reports", "Members", "Staff and roles", "Policies", "Branches", "Audit log"]));
   });
 
   it("gives the platform admin only platform screens", () => {

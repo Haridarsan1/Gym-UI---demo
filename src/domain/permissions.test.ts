@@ -220,3 +220,30 @@ describe("feature-level checks for navigation", () => {
     expect(can({ ...owner, tenantId: null }, "member.read")).toBe(false);
   });
 });
+
+describe("the branch manager’s limits in M4", () => {
+  it("can read policies and staff at their branches, and change neither", () => {
+    expect(can(manager, "policy.read")).toBe(true);
+    expect(can(manager, "policy.manage")).toBe(false);
+    expect(can(manager, "staff.read", { tenantId: "t1", branchId: "b2" })).toBe(true);
+    expect(can(manager, "staff.read", { tenantId: "t1", branchId: "b1" })).toBe(false);
+    expect(can(manager, "staff.manage")).toBe(false);
+  });
+  it("has no access to settings, subscription or import", () => {
+    for (const a of ["settings.manage", "subscription.view", "import.run"] as const) expect(can(manager, a), a).toBe(false);
+    for (const a of ["settings.manage", "subscription.view", "import.run"] as const) expect(can(owner, a), a).toBe(true);
+  });
+  it("manages front desk and trainer accounts only when the owner has granted it, and only at their own branches", () => {
+    expect(can(manager, "staff.manage.frontline")).toBe(false);
+    const granted = { ...manager, limits: { ...limits, canManageFrontline: true } };
+    expect(can(granted, "staff.manage.frontline")).toBe(true);
+    expect(can(granted, "staff.manage.frontline", { tenantId: "t1", branchId: "b2" })).toBe(true);
+    expect(can(granted, "staff.manage.frontline", { tenantId: "t1", branchId: "b1" })).toBe(false);
+    expect(can(owner, "staff.manage.frontline")).toBe(true);
+    expect(can(desk, "staff.manage.frontline")).toBe(false);
+  });
+  it("only the owner reopens a closed cash day", () => {
+    expect(can(owner, "cash.reopen")).toBe(true);
+    for (const p of [manager, desk, finance]) expect(can(p, "cash.reopen")).toBe(false);
+  });
+});

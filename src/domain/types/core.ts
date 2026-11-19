@@ -90,6 +90,10 @@ export const StaffRole = z
       /** Largest refund this person can approve alone. Null means no limit. */
       refundLimitPaise: z.number().int().nonnegative().nullable(),
       canOverrideCheckIn: z.boolean(),
+      /** For a branch manager: may invite, edit and deactivate front desk and trainer accounts at their branches. Given by the owner. */
+      canManageFrontline: z.boolean().optional(),
+      /** Check-in overrides allowed per day. Null means no limit. */
+      maxOverridesPerDay: z.number().int().min(0).nullable().optional(),
       maxDiscountBp: basisPoints,
       /** “Can view client health and progress photos”. Off by default. See permissions.ts. */
       canViewClientHealth: z.boolean().default(false),
@@ -186,6 +190,12 @@ export const AuditAction = z.enum([
   "payment.record",
   "dayclose.close",
   "dayclose.reopen",
+  "policy.change",
+  "plan.change",
+  "staff.change",
+  "branch.change",
+  "settings.change",
+  "communication.retry",
   "export.create",
   "import.run",
 ]);

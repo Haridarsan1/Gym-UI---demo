@@ -6,6 +6,7 @@ import { buildAuditEvent } from "@/domain/audit";
 import { now } from "@/api/clock";
 import { checkInDecision, enteredOk, staffDenyText, type DenyReason } from "@/domain/checkin";
 import { amountDuePaise, isUnpaidCart } from "@/domain/billing";
+import { policiesFor } from "@/api/policies";
 import { istDateOf } from "@/domain/dates";
 import { currentMembership } from "@/domain/membership";
 import type { CheckIn, Member } from "@/domain/types";
@@ -159,7 +160,7 @@ export async function checkInMember(session: Session | null, raw: CheckInInput):
     ]);
     const cur = currentMembership(memberships);
     const dues = invoices.some((i) => (i.status === "open" || i.status === "partially_paid") && !isUnpaidCart(i, payments.filter((p) => p.invoiceId === i.id)) && amountDuePaise(i, payments.filter((p) => p.invoiceId === i.id)) > 0);
-    const d = checkInDecision({ membership: cur, branchId: input.branchId, today: c.today, nowIso: c.nowIso, recent, hasOpenDues: dues });
+    const d = checkInDecision({ membership: cur, branchId: input.branchId, today: c.today, nowIso: c.nowIso, recent, hasOpenDues: dues, scanWindowMinutes: (await policiesFor(c.tenantId)).repeatScanWindowMinutes });
     const row: CheckIn = {
       id, tenantId: c.tenantId, memberId: member.id, branchId: input.branchId, membershipId: cur?.id, at: c.nowIso, method: input.method, result: d.result,
       message: d.reason ? `reason:${d.reason}` : undefined, visitDebited: d.visitDebited, recordedBy: c.principal.userId,
@@ -194,6 +195,11 @@ export async function overrideCheckIn(session: Session | null, raw: OverrideInpu
     const member = await memberInScope(c, "checkin.record", denied.memberId);
     const prior = await db.checkIns.get(id);
     if (prior) return outcomeFor(c, prior, member, false, true);
+    const cap = c.principal.limits?.maxOverridesPerDay;
+    if (cap != null) {
+      const used = (await db.checkIns.where("tenantId").equals(c.tenantId).filter((x) => x.result === "override" && x.recordedBy === c.principal.userId && istDateOf(x.at) === c.today).toArray()).length;
+      if (used >= cap) throw new ApiError("forbidden", `You have used your ${cap} ${cap === 1 ? "override" : "overrides"} for today. Ask a manager to let ${member.name.split(" ")[0]} in.`);
+    }
     if (denied.result !== "denied") throw new ApiError("conflict", "That check-in wasn’t turned away, so there is nothing to override.");
     const row: CheckIn = { id, tenantId: c.tenantId, memberId: member.id, branchId: denied.branchId, membershipId: denied.membershipId, at: c.nowIso, method: "desk", result: "override", message: denied.message, visitDebited: false, recordedBy: c.principal.userId, overriddenBy: c.principal.userId, overrideReason: reason };
     await db.checkIns.add(row);

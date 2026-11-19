@@ -235,6 +235,8 @@ test.describe("role switcher", () => {
     await page.getByRole("button", { name: /^Owner/ }).click();
     await expect(heading(page, "Dashboard")).toBeVisible();
     await page.keyboard.press("Control+k");
+    // The palette is fetched the first time it is asked for: wait for it to open, then type.
+    await expect(page.getByRole("combobox", { name: "Type a screen or action" })).toBeFocused();
     await page.keyboard.type("switch to trainer");
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/t$/);

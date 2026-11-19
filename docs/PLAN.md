@@ -499,13 +499,24 @@ Console style: calm and fast, dense tables that become card lists on phones, ⌘
 - **Done when:** A01, A03 and A04 pass end to end.
 
 ### M4 · Owner and branch manager (R02)
-- [ ] Dashboard
-- [ ] Reports with O07 definitions and CSV
-- [ ] Plans and pricing, taxes, policies
-- [ ] Staff, roles and branches
-- [ ] Communications templates and log
-- [ ] Member import with preview and row errors (S01)
-- [ ] Subscription page, audit log, settings and logo
+Approved 2026-11-19. One commit per step, a full clean run before each checkpoint, a push at each, and contact sheets at 390, 768 and 1440 px. Owners and branch managers work in `/owner`. Every API starts with `openOwner` (`api/owner.ts`), which limits a branch manager to their own branches, so a report, a list or an export can never reach another branch.
+
+- [x] Step 0: Foundations and strict acceptance
+  - **Bundle:** terser 5.51.2 (exact pin) and a Chrome 92 / Safari 15 build target. The training half of the demo gym (exercise library, templates, the sample members’ plans, workouts, goals, reviews, badges, the trainers’ clients) is built from the stored gym the first time a member or trainer makes a call (`ensureTraining`, `demo/seedTraining.ts`); the front desk, finance, owner and admin never download or build it. The desk’s check-in times come from `demo/seedPlans.ts`, which the training half also reads, so the two agree. First visit, gzipped: `/m` 154.6, `/t` 153.9, `/desk` 153.5, `/owner` 135.3, `/admin` 132.9 KB; every area is at least 10 KB under its 170 KB budget, and the report fails if training code reaches `/desk`, `/owner` or `/admin`.
+  - **Policies moved into `GymPolicies`:** `repeatScanWindowMinutes` (10), `graceDays` (0; wired to plans and memberships in step 4) and `reminderGapDays` (3). The reconciliation matching window stays internal (`SETTLEMENT_WINDOW_DAYS`) and is not on the Policies screen.
+  - **Permissions:** `policy.read` (owner, branch manager: read only), `staff.read` (owner; branch manager for their branches), `staff.manage.frontline` (owner; a branch manager only when the owner has granted `canManageFrontline`: invite, edit and deactivate front desk and trainer accounts at their branches, never managers or owners, never a refund or discount limit above their own). Settings, Subscription and Import stay owner-only. New audit actions: `policy.change`, `plan.change`, `staff.change`, `branch.change`, `settings.change`, `communication.retry`.
+  - **Check-in override limit:** `maxOverridesPerDay` per staff member (null: none). The demo has Tanvi Desai, front desk at Powai, with two a day; the third is refused with the number, a repeated press is not counted twice, and the limit starts again the next day.
+  - **A new member can sign in:** registering a member now creates their login; in the demo they appear in the role switcher under “New members”.
+  - **Acceptance, strict:** A01 as one UI journey (`e2e/a01.ts`) at 390, 768 and 1440 px: register at the desk, record the payment, check in, assign a trainer, publish a workout as Meera, log the session as the new member, review the trend as Meera, renew at the desk, switching roles with the demo role switcher. A03 (`e2e/a03.ts`): two desk screens, two tabs of one browser because contexts do not share the demo database, book one trainer slot for two members in the same instant; exactly one booking, the other desk is told “That time was just taken.” and offered the next times, and the credit ledgers are exact (the winner has one reservation; the other member’s rows are unchanged). A04 (`src/api/m3Acceptance.test.ts`): expiry by moving the clock (17 Dec allowed, 18 Dec denied), post-unfreeze check-in past the repeat window asserted as `allowed` and nothing else, the no-show pinned to the default policy with an exact balance (5 available, 1 reserved, 0 used, then 5, 0, 1), the exact refund reversal (₹2,065 of ₹4,130 takes back 1 of 2 credits), a duplicate gateway notification and the desk’s own Collect pressed four times with one key (one payment, one receipt, one email), and the capped front desk person reaching the limit.
+- [ ] Step 1: Dashboard (O06, O07): billed against collected, dues, active and expiring memberships, renewals against the cohort due to expire, check-in heat map, trainer utilisation, alerts; branch switcher; a branch manager sees only their branches
+- [ ] Step 2: Reports and CSV (O06, O07), each definition exactly as written, by branch and date, role-scoped export; Cash day closes with the owner-only reopen button. **Checkpoint 1** (dashboard and reports)
+- [ ] Step 3: Plans and pricing (M01): trial, time-based and visit-based; effective dates, branch coverage, entitlements, training credits, PT session pricing, taxes and discount limits
+- [ ] Step 4: Policies: every `GymPolicies` value, grouped, with a plain explanation and a live example; changes audited; grace period wired (a default per plan, adjustable per membership); branch manager read-only
+- [ ] Step 5: Staff, roles and branches: invite, roles and branches, refund and discount limits, override limit, the health-data toggle, the frontline grant; branch hours and rooms. **Checkpoint 2** (policies and staff)
+- [ ] Step 6: Communications (O04): templates and the delivery log with retry
+- [ ] Step 7: Member import (S01): CSV, preview, row errors, idempotent retry; a shared number is imported as a separate member with the shared-number flag, shown in the preview, with a tick to leave the row out
+- [ ] Step 8: Subscription (S02), audit log (S05), settings with the logo. **Checkpoint 3** (communications, import, settings, with the logo on the sidebar and on a receipt)
+- [ ] Step 9: Acceptance: a branch manager sees only their branches everywhere, including exports
 - **Done when:** a branch manager sees only their branches everywhere, including exports.
 
 ### M5 · Platform admin (R01)
@@ -522,7 +533,7 @@ Console style: calm and fast, dense tables that become card lists on phones, ⌘
 - [ ] Vercel deploy with demo reset
 
 ### M7 · Release 2
-- [ ] Classes and waitlists · [ ] Leads and trials · [ ] Equipment and incidents · [ ] Notification settings · [ ] Advanced analytics · [ ] Automated reconciliation
+- [ ] Classes and waitlists · [ ] Leads and trials · [ ] Reports that need them: leads and conversions, class utilisation (attended seats over offered seats) and class no-shows (O06, O07) · [ ] Equipment and incidents · [ ] Notification settings · [ ] Advanced analytics · [ ] Automated reconciliation
 
 ---
 

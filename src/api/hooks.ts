@@ -31,3 +31,9 @@ export function useToday() {
   const { session } = useSession();
   return useQuery({ queryKey: ["member", session?.userId, "today"], queryFn: async () => (await import("@/api/member")).getToday(session), enabled: !!session, retry, staleTime: 15_000 });
 }
+
+/** Demo only: members registered at the desk, for the role switcher. */
+export function useNewMemberLogins(enabled: boolean) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["demo", session?.userId, "new-logins"], queryFn: async () => (await import("@/api/demoLogins")).listNewMemberLogins(session), enabled: enabled && !!session, retry, staleTime: 0 });
+}

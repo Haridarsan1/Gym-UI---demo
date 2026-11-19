@@ -8,6 +8,7 @@ import type { Principal } from "@/domain/permissions";
 
 const SEED_KEY = "seedVersion";
 const SEED_TODAY_KEY = "seedToday";
+const SEED_MEMBERS_KEY = "seedMembers";
 const TRAINING_KEY = "trainingVersion";
 let seeding: Promise<void> | null = null;
 
@@ -28,7 +29,7 @@ async function writeSeed(): Promise<void> {
       db.checkIns.bulkAdd(data.checkIns), db.invoices.bulkAdd(data.invoices), db.payments.bulkAdd(data.payments), db.trainerAvailability.bulkAdd(data.trainerAvailability), db.trainerShifts.bulkAdd(data.trainerShifts), db.numberSeries.bulkAdd(data.numberSeries), db.refunds.bulkAdd(data.refunds), db.refundRequests.bulkAdd(data.refundRequests), db.trainerLeave.bulkAdd(data.trainerLeave), db.gatewayEvents.bulkAdd(data.gatewayEvents), db.gatewaySettlements.bulkAdd(data.gatewaySettlements),
       db.gymPolicies.bulkAdd(data.gymPolicies),
     ]);
-    await db.meta.bulkPut([{ key: SEED_KEY, value: SEED_VERSION }, { key: "seededAt", value: new Date().toISOString() }, { key: SEED_TODAY_KEY, value: todayIST(now()) }]);
+    await db.meta.bulkPut([{ key: SEED_KEY, value: SEED_VERSION }, { key: "seededAt", value: new Date().toISOString() }, { key: SEED_TODAY_KEY, value: todayIST(now()) }, { key: SEED_MEMBERS_KEY, value: data.members.map((m) => m.id) }]);
   });
   // The first-open budget is 1 second on a mid-range phone. The e2e test reads this measure.
   performance.measure("demo-seed", "demo-seed-start");
@@ -65,8 +66,13 @@ export function ensureTraining(): Promise<void> {
       if ((await db.meta.get(TRAINING_KEY))?.value === SEED_VERSION) return;
       const { buildTraining } = await import("@/demo/seedTraining");
       const today = ((await db.meta.get(SEED_TODAY_KEY))?.value as string | undefined) ?? todayIST(now());
+      // Only the members the gym began with: someone registered since then has no history to build.
+      const original = new Set(((await db.meta.get(SEED_MEMBERS_KEY))?.value as string[] | undefined) ?? []);
       const [members, memberships, trainerAssignments, consents, checkIns] = await Promise.all([db.members.toArray(), db.memberships.toArray(), db.trainerAssignments.toArray(), db.consents.toArray(), db.checkIns.toArray()]);
-      const t = buildTraining({ today, members, memberships, trainerAssignments, consents, checkIns });
+      const t = buildTraining({
+        today, members: members.filter((m) => original.has(m.id)), memberships: memberships.filter((m) => original.has(m.memberId)), trainerAssignments: trainerAssignments.filter((a) => original.has(a.memberId)),
+        consents: consents.filter((c) => original.has(c.memberId)), checkIns: checkIns.filter((c) => original.has(c.memberId)),
+      });
       await db.transaction("rw", db.tables, async () => {
         if ((await db.meta.get(TRAINING_KEY))?.value === SEED_VERSION) return;
         await Promise.all([db.exercises.clear(), db.programTemplates.clear(), db.workoutPlanVersions.clear(), db.workoutLogs.clear(), db.goals.clear(), db.measurements.clear(), db.trainerReviews.clear(), db.memberSettings.clear(), db.badgeAwards.clear(), db.assessments.clear()]);

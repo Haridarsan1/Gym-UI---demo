@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
+import { a01Journey } from "./a01";
+import { a03Journey } from "./a03";
 import { bookingsJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
@@ -637,6 +639,26 @@ for (const width of WIDTHS) {
     test("Bookings: book a session, then move one that clashes with a trainer’s leave", async ({ page }) => {
       const problems = await open(page, width, "u_desk_andheri", "/desk");
       await bookingsJourney(page, width >= 768);
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`A01 at ${width} px`, () => {
+    test("A01: register, pay, check in, assign a trainer, publish, log as the member, review the trend, renew, switching roles", async ({ page }) => {
+      test.setTimeout(120_000);
+      const problems = await open(page, width, "u_desk_andheri", "/desk");
+      await a01Journey(page);
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`A03 at ${width} px`, () => {
+    test("A03: two desks book the same trainer slot at the same moment", async ({ context, page }) => {
+      test.setTimeout(90_000);
+      const problems = await open(page, width, "u_desk_andheri", "/desk");
+      const second = await context.newPage();
+      await second.setViewportSize({ width, height: HEIGHT(width) });
+      await a03Journey(page, second);
       expect(problems).toEqual([]);
     });
   });

@@ -1,3 +1,4 @@
+import { policiesFor } from "@/api/policies";
 import { db } from "@/demo/db";
 import { now } from "@/api/clock";
 import { ApiError } from "@/api/errors";
@@ -14,6 +15,7 @@ import type { Session } from "@/app/session";
  * time someone presses the button. Failed payments (a gateway decline) are listed beside, with why.
  */
 
+/** The gap before a reminder can go again when the gym has not set one (a policy: `reminderGapDays`). */
 export const REMINDER_COOLDOWN_DAYS = 3;
 
 export interface DueRow {
@@ -62,6 +64,7 @@ export interface DuesData {
 export async function getDues(session: Session | null, params: { branchId?: string } = {}): Promise<DuesData> {
   const c = await openDesk(session, "dues.read");
   if (params.branchId) assertInBranch(c, "dues.read", params.branchId);
+  const GAP = (await policiesFor(c.tenantId)).reminderGapDays;
   const [invoices, payments, members, branches, mail] = await Promise.all([
     db.invoices.where("tenantId").equals(c.tenantId).toArray(), db.payments.where("tenantId").equals(c.tenantId).toArray(), db.members.where("tenantId").equals(c.tenantId).toArray(),
     db.branches.where("tenantId").equals(c.tenantId).toArray(), db.emailLog.where("tenantId").equals(c.tenantId).toArray(),
@@ -79,7 +82,7 @@ export async function getDues(session: Session | null, params: { branchId?: stri
     if (due <= 0 || !m) continue;
     const sent = reminders.filter((e) => e.invoiceId === i.id).sort((a, b) => b.sentAt.localeCompare(a.sentAt));
     const last = sent[0]?.sentAt;
-    const cooling = last && istDateOf(last) > addDays(c.today, -REMINDER_COOLDOWN_DAYS) ? addDays(istDateOf(last), REMINDER_COOLDOWN_DAYS) : undefined;
+    const cooling = last && istDateOf(last) > addDays(c.today, -GAP) ? addDays(istDateOf(last), GAP) : undefined;
     rows.push({
       invoiceId: i.id, number: i.number, memberId: m.id, name: m.name, phone: m.phone, branchId: i.branchId, branchName: bn.get(i.branchId) ?? "", description: i.lines[0]?.description ?? "Invoice", issuedOn: i.issuedOn, dueOn: i.dueOn,
       totalPaise: i.totalPaise, duePaise: due, daysOverdue: isOverdue(i, mine, c.today) ? Math.max(1, daysBetween(i.dueOn, c.today)) : 0, partPaid: i.status === "partially_paid", lastReminderAt: last, reminders: sent.length, coolingUntil: cooling, hasEmail: !!m.email,
@@ -96,6 +99,7 @@ export async function getDues(session: Session | null, params: { branchId?: stri
 /** Sends a payment reminder for one invoice by email. Refused if one went in the last few days, or if the invoice has been paid. */
 export async function sendReminder(session: Session | null, input: { invoiceId: string }): Promise<{ sentTo?: string; skipped: boolean }> {
   const c = await openDesk(session, "message.send");
+  const GAP = (await policiesFor(c.tenantId)).reminderGapDays;
   return db.transaction("rw", db.tables, async () => {
     const invoice = await db.invoices.get(input.invoiceId);
     if (!invoice || invoice.tenantId !== c.tenantId || !c.branchIds.includes(invoice.branchId)) throw new ApiError("not_found", "We couldn’t find that invoice. It may belong to another branch.");
@@ -103,7 +107,7 @@ export async function sendReminder(session: Session | null, input: { invoiceId: 
     const due = amountDuePaise(invoice, payments);
     if ((invoice.status !== "open" && invoice.status !== "partially_paid") || due <= 0) throw new ApiError("conflict", "This invoice is already paid, so no reminder is needed.");
     const last = earlier.filter((e) => e.template === "payment_reminder" && e.invoiceId === invoice.id).sort((a, b) => b.sentAt.localeCompare(a.sentAt))[0];
-    if (last && istDateOf(last.sentAt) > addDays(c.today, -REMINDER_COOLDOWN_DAYS)) throw new ApiError("conflict", `A reminder went on ${formatDate(istDateOf(last.sentAt))}. Another can go from ${formatDate(addDays(istDateOf(last.sentAt), REMINDER_COOLDOWN_DAYS))}.`);
+    if (last && istDateOf(last.sentAt) > addDays(c.today, -GAP)) throw new ApiError("conflict", `A reminder went on ${formatDate(istDateOf(last.sentAt))}. Another can go from ${formatDate(addDays(istDateOf(last.sentAt), GAP))}.`);
     const first = member?.name.split(" ")[0] ?? "there";
     const overdue = isOverdue(invoice, payments, c.today);
     await db.emailLog.add({

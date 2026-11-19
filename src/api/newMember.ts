@@ -198,6 +198,9 @@ export async function registerMember(session: Session | null, raw: RegisterInput
       sharesContactWith: dup.sharing.length ? dup.sharing.map((x) => x.memberId) : undefined,
     };
     await db.members.add(member);
+    // A login, so the member can sign in to their own app (in the demo, from the role switcher; a real backend adds them to the phone and email login).
+    await db.users.add({ id: `u_${memberId}`, tenantId: c.tenantId, name: member.name, email: member.email, phone: member.phone, role: "member", status: "active", mfaEnabled: false, memberId, createdAt: c.nowIso });
+    await db.members.update(memberId, { userId: `u_${memberId}` });
     for (const [scope, on] of [["data_processing", true], ["photos", input.consents.photos], ["assessments", input.consents.assessments], ["marketing", input.consents.marketing]] as const) {
       if (on) await db.consents.add({ id: `cn_${memberId}_${scope}`, tenantId: c.tenantId, memberId, scope, grantedAt: c.nowIso, noticeVersion: NOTICE_VERSION, recordedBy: c.principal.userId });
     }

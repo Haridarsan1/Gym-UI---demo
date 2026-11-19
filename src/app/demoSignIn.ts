@@ -21,6 +21,14 @@ export function signInDemo(userId: string): Session | null {
   return session;
 }
 
+/** Signs in as a member the desk registered after the demo began (they are not in `DEMO_ACCOUNTS`). Demo only. */
+export function signInRegistered(m: { userId: string; name: string; tenantId: string; branchIds: string[]; memberId: string }): Session {
+  const session: Session = { userId: m.userId, name: m.name, role: "member", tenantId: m.tenantId, branchIds: m.branchIds, memberId: m.memberId };
+  writeSession(session);
+  writeGym({ tenantId: m.tenantId, name: TENANT_NAME });
+  return session;
+}
+
 /** The people shown in “Try as…” and in the role switcher: one for each role worth seeing. */
 export const FEATURED_ACCOUNTS: DemoAccount[] = DEMO_ACCOUNTS.filter((a) => a.featured);
 

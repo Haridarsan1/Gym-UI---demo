@@ -16,6 +16,7 @@ import { getReview, saveReview } from "@/api/review";
 import { markAttendance } from "@/api/schedule";
 import { resetDemo } from "@/demo";
 import { db } from "@/demo/db";
+import { isApiError } from "@/api/errors";
 import { amountDuePaise } from "@/domain/billing";
 import { creditBalance } from "@/domain/credits";
 import { toPlanDays, type EditorDoc } from "@/domain/program";
@@ -30,9 +31,9 @@ const as = (userId: string): Session => {
   return { userId: a.userId, name: a.name, role: a.role, tenantId: a.tenantId, branchIds: a.branchIds, memberId: a.memberId, limits: a.limits };
 };
 const desk = as("u_desk_andheri");
-const bandra = as("u_bm_bandra");
 const finance = as("u_finance");
 const meera = as("u_trainer_meera");
+const owner = as("u_owner");
 let n = 0;
 const key = () => `acc-${++n}-${Math.random().toString(36).slice(2)}`;
 const MON_PLUS = "pl_monthly_plus";
@@ -40,6 +41,7 @@ const MON_PLUS = "pl_monthly_plus";
 beforeEach(async () => { setNow(new Date("2026-11-17T06:30:00.000Z")); await resetDemo(); });
 afterAll(() => setNow(null));
 
+const err = async (p: Promise<unknown>) => { try { await p; } catch (e) { return isApiError(e) ? { code: e.code, message: e.message } : { code: "other", message: String(e) }; } return { code: "resolved", message: "" }; };
 const credits = async (memberId: string) => creditBalance(await db.creditLedger.where("memberId").equals(memberId).toArray());
 const checkIn = (memberId: string, branchId = "br_andheri", s = desk) => checkInMember(s, { memberId, branchId, method: "desk", key: key() });
 
@@ -131,73 +133,144 @@ describe("A03: booking conflicts", () => {
   });
 });
 
-describe("A04: lifecycle and finance, with access, invoice status and ledger in step", () => {
-  it("a freeze stops entry and gives the days back; unfreezing lets the member in again", async () => {
-    expect((await checkIn("mem_arjun")).result).toMatch(/allowed|repeat_scan/);
-    const before = (await db.memberships.where("memberId").equals("mem_arjun").toArray()).find((m) => m.status === "active")!;
-    await freezeMembership(desk, { memberId: "mem_arjun", from: "2026-11-17", to: "2026-11-30", reason: "Travel", key: key() });
-    expect((await checkIn("mem_arjun")).result).toBe("denied");
-    const frozen = (await db.memberships.get(before.id))!;
-    expect(frozen.endsOn! > before.endsOn!).toBe(true);
-    await unfreezeMembership(desk, { memberId: "mem_arjun" });
-    expect((await checkIn("mem_arjun")).result).toMatch(/allowed|repeat_scan/);
+describe("A04: lifecycle and finance, strictly: access, invoice status and ledger in step, to the exact figure", () => {
+  const T0 = new Date("2026-11-17T06:30:00.000Z");
+  /** A member registered and paid in full at Andheri: Monthly Plus, ₹4,130 with GST, two training credits, 17 Nov to 17 Dec. */
+  const joiner = async (name: string, phone: string) => (await registerMember(desk, { key: key(), branchId: "br_andheri", member: { name, phone }, consents: { photos: false, assessments: false, marketing: false, dataProcessing: true }, planId: MON_PLUS, payment: { method: "cash", amountPaise: 413_000 } })).memberId;
+
+  it("a freeze stops entry; after unfreezing, and past the 10-minute repeat window, the member is let in: “allowed”, and nothing else", async () => {
+    const id = await joiner("Freya Nair", "9876500011");
+    const original = (await db.memberships.where("memberId").equals(id).first())!.endsOn;
+    expect((await checkIn(id)).result).toBe("allowed");
+    await freezeMembership(desk, { memberId: id, from: "2026-11-17", to: "2026-11-30", reason: "Travel", key: key() });
+    expect((await checkIn(id)).result).toBe("denied");
+    const frozen = (await db.memberships.where("memberId").equals(id).first())!;
+    expect(frozen.status).toBe("frozen");
+    expect(frozen.endsOn! > original!).toBe(true);
+    const un = await unfreezeMembership(desk, { memberId: id });
+    expect(un.unusedDays).toBeGreaterThan(0);
+    expect((await db.memberships.where("memberId").equals(id).first())!.endsOn).toBe(original);
+    // Inside the window a second scan is a repeat; past it, it is a fresh entry.
+    expect((await checkIn(id)).result).toBe("repeat_scan");
+    setNow(new Date(T0.getTime() + 11 * 60_000));
+    const again = await checkIn(id);
+    expect(again.result).toBe("allowed");
+    expect(again.firstAt).toBeUndefined();
   });
 
-  it("an expired membership is turned away, and the branch manager’s override lets the member in with a reason, an audit event and no visit used", async () => {
-    const d = await checkIn("mem_rahul", "br_bandra", bandra);
-    expect(d.result).toBe("denied");
-    const o = await overrideCheckIn(bandra, { checkInId: d.checkInId, reason: "Cheque cleared, confirmed by phone", key: key() });
-    expect(o.result).toBe("override");
-    expect((await db.checkIns.get(o.checkInId))?.visitDebited ?? false).toBe(false);
-    expect((await db.auditEvents.toArray()).filter((e) => e.action === "checkin.override" && e.memberId === "mem_rahul")).toHaveLength(1);
+  it("expiry: the last day is allowed, the next day is turned away, advanced on the clock, and a membership with no grace stays expired", async () => {
+    const id = await joiner("Esha Kapoor", "9876500012");
+    const ends = (await db.memberships.where("memberId").equals(id).first())!.endsOn!;
+    expect(ends).toBe("2026-12-17");
+    setNow(new Date("2026-12-17T06:30:00.000Z"));
+    expect((await checkIn(id)).result).toBe("allowed");
+    setNow(new Date("2026-12-18T06:30:00.000Z"));
+    const late = await checkIn(id);
+    expect(late.result).toBe("denied");
+    expect(late.reason).toBe("expired");
+    expect(late.detail).toMatch(/17 Dec 2026/);
+    // A day on, still denied; the membership row still says active until a job expires it, and the rule reads the date, not the row.
+    setNow(new Date("2026-12-25T06:30:00.000Z"));
+    expect((await checkIn(id)).result).toBe("denied");
   });
 
-  it("cancellation ends access on its date, refunds nothing by itself, and an approved refund returns the money once and takes back the unused credits", async () => {
-    const inv = (await db.invoices.where("memberId").equals("mem_arjun").toArray()).find((i) => i.status === "paid" && !i.purpose)!;
-    const before = await credits("mem_arjun");
-    const c = await cancelMembership(desk, { memberId: "mem_arjun", effectiveOn: "2026-11-17", reason: "Moving city" });
+  it("a front desk person with an override limit: two overrides, then the third is refused with the number, and the limit starts again tomorrow", async () => {
+    const powai = as("u_desk_powai");
+    expect(powai.limits).toMatchObject({ canOverrideCheckIn: true, maxOverridesPerDay: 2 });
+    const members = (await db.members.where("homeBranchId").equals("br_powai").toArray()).slice(0, 4).map((m) => m.id);
+    // Three members who must be turned away: their memberships ended.
+    for (const m of members.slice(0, 3)) for (const ms of await db.memberships.where("memberId").equals(m).toArray()) await db.memberships.update(ms.id, { status: "expired", endsOn: "2026-10-01", graceUntil: undefined });
+    const denied = [] as Array<{ checkInId: string; memberId: string }>;
+    for (const m of members.slice(0, 3)) {
+      const d = await checkInMember(powai, { memberId: m, branchId: "br_powai", method: "desk", key: key() });
+      expect(d.result).toBe("denied");
+      denied.push({ checkInId: d.checkInId, memberId: m });
+    }
+    const k1 = key();
+    expect((await overrideCheckIn(powai, { checkInId: denied[0]!.checkInId, reason: "Cheque cleared this morning", key: k1 })).result).toBe("override");
+    // Repeating the first press changes nothing and is not counted again.
+    expect((await overrideCheckIn(powai, { checkInId: denied[0]!.checkInId, reason: "Cheque cleared this morning", key: k1 })).repeated).toBe(true);
+    expect((await overrideCheckIn(powai, { checkInId: denied[1]!.checkInId, reason: "Manager agreed by phone", key: key() })).result).toBe("override");
+    const third = await err(overrideCheckIn(powai, { checkInId: denied[2]!.checkInId, reason: "One more", key: key() }));
+    expect(third).toEqual({ code: "forbidden", message: `You have used your 2 overrides for today. Ask a manager to let ${(await db.members.get(denied[2]!.memberId))!.name.split(" ")[0]} in.` });
+    expect((await db.checkIns.toArray()).filter((c) => c.result === "override" && c.recordedBy === "u_desk_powai")).toHaveLength(2);
+    expect((await db.auditEvents.toArray()).filter((e) => e.action === "checkin.override" && e.actorId === "u_desk_powai")).toHaveLength(2);
+    // An uncapped person can still do it (the owner), and the capped person has a fresh two tomorrow.
+    expect((await overrideCheckIn(owner, { checkInId: denied[2]!.checkInId, reason: "Owner decision", key: key() })).result).toBe("override");
+    setNow(new Date("2026-11-18T06:30:00.000Z"));
+    const next = await checkInMember(powai, { memberId: denied[0]!.memberId, branchId: "br_powai", method: "desk", key: key() });
+    expect(next.result).toBe("denied");
+    expect((await overrideCheckIn(powai, { checkInId: next.checkInId, reason: "Still sorting the cheque", key: key() })).result).toBe("override");
+  });
+
+  it("cancellation ends access; an approved refund of half returns the money once and takes back exactly one of the two training credits", async () => {
+    const id = await joiner("Rhea Menon", "9876500013");
+    const inv = (await db.invoices.where("memberId").equals(id).toArray())[0]!;
+    expect(await credits(id)).toEqual({ available: 2, reserved: 0, consumed: 0 });
+    const c = await cancelMembership(desk, { memberId: id, effectiveOn: "2026-11-17", reason: "Moving city" });
     expect(c.takesEffectNow).toBe(true);
-    expect((await checkIn("mem_arjun")).result).toBe("denied");
-    expect((await db.refunds.toArray()).filter((r) => r.invoiceId === inv.id && r.reason === "Moving city").length).toBe(0);
-    const rq = await requestRefund(desk, { memberId: "mem_arjun", invoiceId: inv.id, amountPaise: 30_000, reason: "Moving city", source: "manual", key: key() });
+    expect((await checkIn(id)).result).toBe("denied");
+    expect((await db.refunds.toArray()).filter((r) => r.invoiceId === inv.id)).toHaveLength(0);
+    const rq = await requestRefund(desk, { memberId: id, invoiceId: inv.id, amountPaise: 206_500, reason: "Moving city", source: "manual", key: key() });
     const d = await decideRefund(finance, { requestId: rq.requestId, decision: "approve", key: key() });
-    expect(d.status).toBe("approved");
-    const again = await decideRefund(finance, { requestId: rq.requestId, decision: "approve", key: key() });
-    expect(again.repeated).toBe(true);
-    const refunds = (await db.refunds.toArray()).filter((r) => r.reason === "Moving city");
+    expect(d).toMatchObject({ status: "approved", amountPaise: 206_500, creditsReversed: 1, repeated: false });
+    expect((await decideRefund(finance, { requestId: rq.requestId, decision: "approve", key: key() })).repeated).toBe(true);
+    const refunds = (await db.refunds.toArray()).filter((r) => r.invoiceId === inv.id);
     expect(refunds).toHaveLength(1);
-    expect(refunds[0]).toMatchObject({ amountPaise: 30_000, status: "completed", approvedBy: "u_finance" });
-    // The invoice keeps its status (paid money was refunded, not unpaid) and the ledger has at most one reversal for it.
+    expect(refunds[0]).toMatchObject({ amountPaise: 206_500, status: "completed", approvedBy: "u_finance", creditsReversed: 1 });
     expect((await db.invoices.get(inv.id))!.status).toBe("paid");
-    const reversals = (await db.creditLedger.where("memberId").equals("mem_arjun").toArray()).filter((e) => e.kind === "reversal");
-    expect(reversals.length).toBeLessThanOrEqual(1);
-    expect((await credits("mem_arjun")).available).toBeLessThanOrEqual(before.available);
+    const reversals = (await db.creditLedger.where("memberId").equals(id).toArray()).filter((e) => e.kind === "reversal");
+    expect(reversals).toHaveLength(1);
+    expect(reversals[0]).toMatchObject({ credits: 1, refEntryId: `cr_${id}_buy_${(await db.memberships.where("memberId").equals(id).first())!.id}` });
+    expect(await credits(id)).toEqual({ available: 1, reserved: 0, consumed: 0 });
   });
 
-  it("a duplicate payment notification makes one payment and one renewal, and the invoice, membership and receipts agree", async () => {
+  it("a duplicate from the member’s gateway and one from the desk’s own Collect each make exactly one payment, one receipt and one renewal", async () => {
+    // The gateway repeats its notification.
     const priya = as("u_member_priya");
     const inv = (await db.invoices.where("memberId").equals("mem_priya").toArray()).find((i) => i.status === "open")!;
     const r = await payInvoice(priya, { invoiceId: inv.id, method: "upi", idempotencyKey: key() });
     await Promise.all([replayGatewayEvent(priya, r.eventId), replayGatewayEvent(priya, r.eventId)]);
-    const payments = await db.payments.where("invoiceId").equals(inv.id).toArray();
-    expect(payments.filter((p) => p.status === "succeeded")).toHaveLength(1);
-    expect((await db.invoices.get(inv.id))!.status).toBe("paid");
-    expect(amountDuePaise((await db.invoices.get(inv.id))!, payments)).toBe(0);
+    expect((await db.payments.where("invoiceId").equals(inv.id).toArray()).filter((p) => p.status === "succeeded")).toHaveLength(1);
     expect(await db.memberships.where("invoiceId").equals(inv.id).count()).toBe(1);
     expect((await db.gatewayEvents.get(r.eventId))!.deliveries).toBe(3);
+
+    // The desk presses Collect twice, once more at the same moment, and again afterwards, with one key.
+    const due = (await db.invoices.where("memberId").equals("mem_sneha").toArray()).find((i) => i.status === "open" || i.status === "partially_paid");
+    const target = due ?? (await db.invoices.toArray()).find((i) => i.branchId === "br_andheri" && i.status === "open" && i.id !== inv.id)!;
+    const owed = amountDuePaise(target, await db.payments.where("invoiceId").equals(target.id).toArray());
+    const k = key();
+    const input = { invoiceId: target.id, method: "cash" as const, amountPaise: owed, key: k };
+    const first = await collectPayment(desk, input);
+    const [x, y] = await Promise.all([collectPayment(desk, input), collectPayment(desk, input)]);
+    const last = await collectPayment(desk, input);
+    expect([x.repeated, y.repeated, last.repeated]).toEqual([true, true, true]);
+    expect(new Set([first.paymentId, x.paymentId, y.paymentId, last.paymentId]).size).toBe(1);
+    expect(new Set([first.receiptNumber, x.receiptNumber, y.receiptNumber, last.receiptNumber]).size).toBe(1);
+    const payments = (await db.payments.where("invoiceId").equals(target.id).toArray()).filter((p) => p.status === "succeeded" && p.idempotencyKey === `desk:${k}`);
+    expect(payments).toHaveLength(1);
+    expect(payments[0]!.amountPaise).toBe(owed);
+    expect((await db.invoices.get(target.id))!.status).toBe("paid");
+    expect(first.invoice.duePaise).toBe(0);
+    // A fresh key on a paid invoice is refused, not paid twice.
+    expect((await err(collectPayment(desk, { ...input, key: key() }))).message).toBe("This invoice is already paid.");
+    expect((await db.emailLog.toArray()).filter((e) => e.invoiceId === target.id).filter((e) => e.template === "payment_receipt")).toHaveLength(1);
   });
 
-  it("a no-show uses the credit by the gym’s rule, once, and the ledger and the booking agree", async () => {
-    setNow(new Date("2026-11-17T14:00:00.000Z")); // 7:30 pm: the evening sessions began over 15 minutes ago
-    const session = (await db.bookings.where("trainerId").equals("u_trainer_meera").toArray()).find((x) => x.status === "booked" && x.startsAt.startsWith("2026-11-17") && Date.parse(x.startsAt) + 15 * 60_000 <= Date.now())!;
-    const before = await credits(session.memberId);
+  it("a no-show uses the credit by the default policy, once, and the balance is exact", async () => {
+    const policy = (await db.gymPolicies.toArray())[0]!;
+    expect(policy).toMatchObject({ noShowConsumesCredit: true, noShowAfterMinutes: 15, markWindowHours: 48 });
+    setNow(new Date("2026-11-17T14:00:00.000Z")); // 7:30 pm
+    const ledger = await db.creditLedger.toArray();
+    const packs = new Set(ledger.filter((e) => e.kind === "purchase").map((e) => e.memberId));
+    void packs;
+    const session = (await db.bookings.where("trainerId").equals("u_trainer_meera").toArray()).find((x) => x.id.startsWith("bk_roster_") && x.status === "booked" && Date.parse(x.startsAt) + 15 * 60_000 <= Date.now() && ledger.filter((e) => e.memberId === x.memberId && e.kind === "purchase").length === 1)!;
+    expect(await credits(session.memberId)).toEqual({ available: 5, reserved: 1, consumed: 0 });
     const m = await markAttendance(meera, { bookingId: session.id, outcome: "no_show" });
-    expect(m.outcome).toBe("no_show");
-    const mAgain = await markAttendance(meera, { bookingId: session.id, outcome: "no_show" });
-    expect(mAgain.repeated).toBe(true);
+    expect(m).toMatchObject({ outcome: "no_show", credit: "used", repeated: false });
+    expect((await markAttendance(meera, { bookingId: session.id, outcome: "no_show" })).repeated).toBe(true);
     expect((await db.bookings.get(session.id))!.status).toBe("no_show");
-    const after = await credits(session.memberId);
-    if (m.credit === "used") { expect(after.consumed).toBe(before.consumed + 1); expect(after.reserved).toBe(before.reserved - 1); } else { expect(after.available).toBe(before.available + 1); }
-    expect((await db.creditLedger.toArray()).filter((e) => e.bookingId === session.id && (e.kind === "consumption" || e.kind === "release") && String(e.idempotencyKey).startsWith("mark:"))).toHaveLength(1);
+    expect(await credits(session.memberId)).toEqual({ available: 5, reserved: 0, consumed: 1 });
+    expect((await db.creditLedger.toArray()).filter((e) => e.bookingId === session.id && e.kind === "consumption" && String(e.idempotencyKey).startsWith("mark:"))).toHaveLength(1);
   });
 });
