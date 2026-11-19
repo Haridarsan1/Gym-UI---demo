@@ -52,7 +52,19 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   { userId: "u_member_priya", name: "Priya Sharma", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], memberId: "mem_priya", email: "priya.sharma@example.in", phone: "9820022003", sample: true, blurb: "Rest day today, a renewal invoice is overdue" },
   { userId: "u_member_rahul", name: "Rahul Mehta", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.bandra], memberId: "mem_rahul", email: "rahul.mehta@example.in", phone: "9820022004", sample: true, blurb: "Membership frozen for travel, streak paused" },
   { userId: "u_member_sneha", name: "Sneha Patil", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], memberId: "mem_sneha", email: "sneha.patil@example.in", phone: "9820022005", sample: true, blurb: "10-visit pass, trainer is still preparing a plan" },
+  // A parent and a teenage child who share one mobile number and one email, as families often do (the login asks “Which profile?”).
+  { userId: "u_member_meena", name: "Meena Ramaswamy", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], memberId: "mem_040", email: "meena.ramaswamy@example.in", phone: "9820022090", sample: true, blurb: "Shares a phone number and email with her son Aarav" },
+  { userId: "u_member_aarav", name: "Aarav Ramaswamy", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], memberId: "mem_041", email: "meena.ramaswamy@example.in", phone: "9820022090", sample: true, blurb: "Teenager on his mother’s number and email" },
 ];
 
-export const findAccountByEmail = (email: string): DemoAccount | undefined => DEMO_ACCOUNTS.find((a) => a.email.toLowerCase() === email.trim().toLowerCase());
-export const findAccountByPhone = (phone: string): DemoAccount | undefined => DEMO_ACCOUNTS.find((a) => a.phone === phone.replace(/\s/g, ""));
+/** Every person who signs in with this email: more than one when a family shares it. */
+export const findAccountsByEmail = (email: string): DemoAccount[] => DEMO_ACCOUNTS.filter((a) => a.email.toLowerCase() === email.trim().toLowerCase());
+/** Every person who signs in with this mobile number: more than one when a family shares it. */
+export const findAccountsByPhone = (phone: string): DemoAccount[] => DEMO_ACCOUNTS.filter((a) => a.phone === phone.replace(/\s/g, ""));
+/** The other profiles on the same phone number or email as this person, for the “Switch profile” choice. */
+export const otherProfiles = (userId: string): DemoAccount[] => {
+  const me = DEMO_ACCOUNTS.find((a) => a.userId === userId);
+  if (!me || me.role !== "member") return [];
+  return DEMO_ACCOUNTS.filter((a) => a.userId !== userId && a.role === "member" && ((me.phone && a.phone === me.phone) || a.email.toLowerCase() === me.email.toLowerCase()));
+};
+

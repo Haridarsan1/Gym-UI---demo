@@ -18,7 +18,9 @@ import type { Session } from "@/app/session";
  * Registering a new member at the desk (T01, M01, M03, O03): who they are (with a duplicate check), what they agree to, the plan they
  * buy (its terms copied into the membership, so later price changes never touch it), their trainer and from when, the invoice and the
  * first payment, and the QR pass. It is one transaction behind one key: a double tap or a retry makes one member, one membership, one
- * invoice and one payment. A phone number or an email that already belongs to a member is refused, because they are how members log in.
+ * invoice and one payment. A phone number or an email that already belongs to a member is not refused (families share them, and parents
+ * register children on their own number): the desk is shown who has it and chooses “Same person” (open their profile) or “Different person
+ * sharing this number”, which is recorded on the new member, and the member signs in by choosing their profile.
  */
 
 const digits = (s: string) => s.replace(/\D/g, "").slice(-10);
@@ -29,14 +31,14 @@ export interface Duplicate {
   name: string;
   phone: string;
   branchName: string;
-  /** Why it matched. “phone” and “email” stop registration; “name” is a warning. */
+  /** Why it matched. “phone” and “email” need the desk to say whether it is the same person; “name” is a warning. */
   match: "phone" | "email" | "name";
   status?: string;
 }
 
 export interface DuplicateCheck {
-  /** Stops registration: the member already exists. */
-  blocking: Duplicate[];
+  /** Members who already have this phone number or email. Registration continues only when the desk says this is a different person sharing it. */
+  sharing: Duplicate[];
   /** The same name and date of birth, or the same name at the same branch: worth a look before continuing. */
   warnings: Duplicate[];
 }
@@ -58,15 +60,15 @@ export async function checkDuplicates(session: Session | null, q: DuplicateQuery
   const phone = digits(q.phone);
   const email = q.email?.trim().toLowerCase();
   const name = norm(q.name);
-  const blocking: Duplicate[] = [];
+  const sharing: Duplicate[] = [];
   const warnings: Duplicate[] = [];
   for (const m of members) {
     if (m.archivedAt) continue;
-    if (phone.length === 10 && digits(m.phone) === phone) blocking.push(hit(m, "phone"));
-    else if (email && m.email?.toLowerCase() === email) blocking.push(hit(m, "email"));
+    if (phone.length === 10 && digits(m.phone) === phone) sharing.push(hit(m, "phone"));
+    else if (email && m.email?.toLowerCase() === email) sharing.push(hit(m, "email"));
     else if (name.length >= 3 && norm(m.name) === name && (!q.dateOfBirth || !m.dateOfBirth || m.dateOfBirth === q.dateOfBirth)) warnings.push(hit(m, "name"));
   }
-  return { blocking, warnings: warnings.slice(0, 5) };
+  return { sharing, warnings: warnings.slice(0, 5) };
 }
 
 export interface WizardOptions {
@@ -111,8 +113,10 @@ const Input = z.object({
     emergencyContact: z.object({ name: z.string().trim().min(1), phone: z.string().transform((s) => digits(s)).pipe(MemberSchema.shape.phone) }).optional(),
     leadSource: z.string().max(60).optional(),
   }),
-  /** The member agreed to a name-only duplicate warning being a different person. */
+  /** The desk said the same name is a different person. */
   notADuplicate: z.boolean().optional(),
+  /** The desk said this is a different person sharing a phone number or email: the members who already have it. */
+  sharesContactWith: z.array(z.string()).optional(),
   consents: z.object({ photos: z.boolean(), assessments: z.boolean(), marketing: z.boolean(), dataProcessing: z.literal(true, { message: "Using their details is required to register a member." }) }),
   planId: z.string().min(1, "Choose a plan."),
   startsOn: z.string().optional(),
@@ -158,7 +162,8 @@ export async function registerMember(session: Session | null, raw: RegisterInput
     if (existing) return summary(c.tenantId, existing, true);
 
     const dup = await checkDuplicates(session, { name: input.member.name, phone: input.member.phone, email: input.member.email, dateOfBirth: input.member.dateOfBirth });
-    if (dup.blocking[0]) throw new ApiError("conflict", `${dup.blocking[0].name} already has this ${dup.blocking[0].match === "phone" ? "phone number" : "email address"}. Open their profile instead of registering them again.`, { duplicate: dup.blocking[0] });
+    const unanswered = dup.sharing.filter((x) => !(input.sharesContactWith ?? []).includes(x.memberId));
+    if (unanswered[0]) throw new ApiError("conflict", `${unanswered[0].name} already has this ${unanswered[0].match === "phone" ? "phone number" : "email address"}. Open their profile if it is the same person, or say it is a different person sharing it.`, { sharing: unanswered[0] });
     if (dup.warnings.length && !input.notADuplicate) throw new ApiError("conflict", `A member called ${dup.warnings[0]!.name} already exists. Check it is a different person, then continue.`, { warning: dup.warnings[0] });
 
     const [plan, branch, policy, staff] = await Promise.all([db.membershipPlans.get(input.planId), db.branches.get(input.branchId), db.gymPolicies.where("tenantId").equals(c.tenantId).first(), db.staffRoles.where("tenantId").equals(c.tenantId).toArray()]);
@@ -190,6 +195,7 @@ export async function registerMember(session: Session | null, raw: RegisterInput
     const member: Member = {
       id: memberId, tenantId: c.tenantId, name: input.member.name.replace(/\s+/g, " "), phone: input.member.phone, email: input.member.email, dateOfBirth: input.member.dateOfBirth, gender: input.member.gender,
       homeBranchId: input.branchId, joinedOn: c.today, qrToken: `qr-${memberId}-${(globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36)).replace(/-/g, "").slice(0, 8)}`, emergencyContact: input.member.emergencyContact, leadSource: input.member.leadSource?.trim() || undefined,
+      sharesContactWith: dup.sharing.length ? dup.sharing.map((x) => x.memberId) : undefined,
     };
     await db.members.add(member);
     for (const [scope, on] of [["data_processing", true], ["photos", input.consents.photos], ["assessments", input.consents.assessments], ["marketing", input.consents.marketing]] as const) {
@@ -229,7 +235,7 @@ export async function registerMember(session: Session | null, raw: RegisterInput
       const credit: CreditLedgerEntry = { id: `cr_${memberId}_buy_${membership.id}`, tenantId: c.tenantId, memberId, membershipId: membership.id, kind: "purchase", credits: plan.ptCredits, expiresOn: membership.endsOn, createdBy: c.principal.userId, createdAt: c.nowIso, idempotencyKey: `join:${membership.id}` };
       await db.creditLedger.add(credit);
     }
-    await db.auditEvents.add(buildAuditEvent(c.principal, { action: "membership.create", reason: "Registered at the front desk", entityType: "membership", entityId: membership.id, memberId, details: { plan: plan.name, branchId: input.branchId, invoice: invoice?.number ?? null, paidPaise: payment?.amountPaise ?? 0, trainerId: trainerRow?.trainerId ?? null, leadSource: member.leadSource ?? null } }, rid("ae"), now()));
+    await db.auditEvents.add(buildAuditEvent(c.principal, { action: "membership.create", reason: "Registered at the front desk", entityType: "membership", entityId: membership.id, memberId, details: { plan: plan.name, branchId: input.branchId, invoice: invoice?.number ?? null, paidPaise: payment?.amountPaise ?? 0, trainerId: trainerRow?.trainerId ?? null, leadSource: member.leadSource ?? null, sharesContactWith: member.sharesContactWith ?? null } }, rid("ae"), now()));
 
     // The pass and the receipt go to the member’s email (O04). With no email, the desk prints the pass.
     const tenant = await db.tenants.get(c.tenantId);

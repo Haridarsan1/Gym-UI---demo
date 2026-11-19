@@ -4,7 +4,7 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Kettlebell } from "@/components/gym/Equipment";
 import { brand } from "@/config/brand";
-import { findAccountByEmail, findAccountByPhone } from "@/app/demoAccounts";
+import { findAccountsByEmail, findAccountsByPhone, type DemoAccount } from "@/app/demoAccounts";
 import { FEATURED_ACCOUNTS, SAMPLE_MEMBERS, signInDemo } from "@/app/demoSignIn";
 import { readSession, writeSession } from "@/app/session";
 import { AREA_PATH, ROLE_LABEL, areaFor, homePathFor, type Role } from "@/domain/roles";
@@ -34,6 +34,8 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
   const [otpSentTo, setOtpSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Set after the password or code when the email or number belongs to more than one member (a family): they choose a profile. */
+  const [choose, setChoose] = useState<DemoAccount[] | null>(null);
   /** Set when the email or phone number is not one of the sample accounts. Draws attention to the picker. */
   const [pointToPicker, setPointToPicker] = useState(false);
   const picker = useRef<HTMLElement>(null);
@@ -64,11 +66,12 @@ export default function LoginPage() {
     setPointToPicker(false);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return setError("Enter the email you signed up with.");
     if (password.length < 1) return setError("Enter your password.");
-    const account = findAccountByEmail(email);
-    if (!account) return unknownAccount();
+    const accounts = findAccountsByEmail(email);
+    if (accounts.length === 0) return unknownAccount();
     setError(null);
     setPointToPicker(false);
-    enter(account.userId, account.role);
+    if (accounts.length > 1) return setChoose(accounts);
+    enter(accounts[0]!.userId, accounts[0]!.role);
   };
 
   const onPhoneSubmit = (e: FormEvent) => {
@@ -77,19 +80,20 @@ export default function LoginPage() {
     const digits = phone.replace(/\s/g, "");
     if (!otpSentTo) {
       if (!/^[6-9]\d{9}$/.test(digits)) return setError("Enter a 10-digit mobile number.");
-      const account = findAccountByPhone(digits);
-      if (!account) return unknownAccount();
-      if (account.role !== "member") return setError("Staff log in with email and password.");
+      const accounts = findAccountsByPhone(digits);
+      if (accounts.length === 0) return unknownAccount();
+      if (accounts.every((a) => a.role !== "member")) return setError("Staff log in with email and password.");
       setError(null);
       setPointToPicker(false);
       setOtp("");
       return setOtpSentTo(digits);
     }
     if (!/^\d{6}$/.test(otp)) return setError("Enter the 6-digit code.");
-    const account = findAccountByPhone(otpSentTo);
-    if (!account) return setError("We couldn’t sign you in. Go back and enter your number again.");
+    const accounts = findAccountsByPhone(otpSentTo).filter((a) => a.role === "member");
+    if (accounts.length === 0) return setError("We couldn’t sign you in. Go back and enter your number again.");
     setError(null);
-    enter(account.userId, account.role);
+    if (accounts.length > 1) return setChoose(accounts);
+    enter(accounts[0]!.userId, accounts[0]!.role);
   };
 
   const switchMethod = (m: Method) => {
@@ -127,6 +131,24 @@ export default function LoginPage() {
 
         <div className="clay mt-6 p-7">
           <h1 className="text-2xl font-bold tracking-tight">Log in to your gym</h1>
+          {choose && (
+            <section aria-labelledby="which-profile" className="mt-1">
+              <h2 id="which-profile" className="text-xl font-bold">Which profile?</h2>
+              <p className="mt-1 text-sm text-clay-muted">This {method === "phone" ? "number" : "email"} is used by more than one member. Choose who is signing in.</p>
+              <ul className="mt-4 space-y-2">
+                {choose.map((a) => (
+                  <li key={a.userId}>
+                    <button type="button" onClick={() => enter(a.userId, a.role)} className="clay-flat flex min-h-[3.5rem] w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-white">
+                      <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-lilac-100 font-bold text-lilac-700">{a.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
+                      <span className="min-w-0"><span className="block font-semibold">{a.name}</span><span className="block truncate text-sm text-clay-muted">{a.blurb}</span></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <button type="button" onClick={() => { setChoose(null); setOtpSentTo(null); setOtp(""); setPassword(""); }} className="mt-4 min-h-[2.75rem] w-full text-center text-sm font-semibold underline underline-offset-4">Not you? Start again</button>
+            </section>
+          )}
+          <div hidden={!!choose}>
           <p className="mt-1 text-sm text-clay-muted">Owners, staff, trainers and members all log in here.</p>
 
           <div role="group" aria-label="Log in with" className="clay-well mt-6 grid grid-cols-2 gap-1 !rounded-full p-1">
@@ -184,6 +206,8 @@ export default function LoginPage() {
               This demo uses sample accounts. Pick one below to explore.
             </p>
           )}
+
+          </div>
 
           <p className="mt-5 text-center text-sm text-clay-muted">
             New here? <Link to="/signup" className="font-semibold text-clay-ink underline decoration-ember-500/70 decoration-2 underline-offset-4">Start a free trial</Link>

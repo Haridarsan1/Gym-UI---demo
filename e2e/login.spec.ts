@@ -221,8 +221,8 @@ test.describe("role switcher", () => {
     await chrome(page).getByText("More accounts", { exact: true }).click();
     const more = chrome(page).getByRole("list", { name: "More accounts" });
     // Meera and Arjun are in the main list; the other five trainers and three sample members are here.
-    for (const n of ["Aditya Rao", "Farah Khan", "Sanjay Patil", "Kavya Reddy", "Vikrant Singh", "Priya Sharma", "Rahul Mehta", "Sneha Patil"]) await expect(more).toContainText(n);
-    await expect(more.getByRole("listitem")).toHaveCount(8);
+    for (const n of ["Aditya Rao", "Farah Khan", "Sanjay Patil", "Kavya Reddy", "Vikrant Singh", "Priya Sharma", "Rahul Mehta", "Sneha Patil", "Meena Ramaswamy", "Aarav Ramaswamy"]) await expect(more).toContainText(n);
+    await expect(more.getByRole("listitem")).toHaveCount(10);
     await more.getByRole("button", { name: /Farah Khan/ }).click();
     await expect(page).toHaveURL(/\/t$/);
     await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening), Farah/, level: 1 })).toBeVisible();
@@ -270,4 +270,88 @@ test("the login page does not download or create any app data", async ({ page })
   await expect(page.getByRole("button", { name: /^Owner/ })).toBeVisible();
   const names = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name));
   expect(names).not.toContain("ember-demo");
+});
+
+test.describe("a phone number or email shared by a family", () => {
+  test("after the password, “Which profile?” lists each member with initials and signs in to the one chosen", async ({ page }) => {
+    await fastDemo(page);
+    await page.goto("/login");
+    await page.getByLabel("Email").fill("meena.ramaswamy@example.in");
+    await page.getByLabel("Password").fill("anything");
+    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    const which = page.getByRole("region", { name: "Which profile?" });
+    await expect(which).toBeVisible();
+    await expect(which.getByRole("list").getByRole("button")).toHaveCount(2);
+    await expect(which).toContainText("Meena Ramaswamy");
+    await expect(which).toContainText("Aarav Ramaswamy");
+    await expect(which).toContainText("MR");
+    expect(await page.evaluate(() => localStorage.getItem("ember.session"))).toBeNull();
+    await which.getByRole("button", { name: /Aarav Ramaswamy/ }).click();
+    await expect(page).toHaveURL(/\/m$/);
+    expect(JSON.parse((await page.evaluate(() => localStorage.getItem("ember.session")))!)).toMatchObject({ userId: "u_member_aarav", memberId: "mem_041" });
+    await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening), Aarav/, level: 1 })).toBeVisible();
+  });
+
+  test("with a phone number and a code, the same choice is asked, and “Not you?” starts again", async ({ page }) => {
+    await fastDemo(page);
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Phone and code" }).click();
+    await page.getByLabel("Mobile number").fill("98200 22090");
+    await page.getByRole("button", { name: "Send code" }).click();
+    await page.getByLabel("6-digit code").fill("123456");
+    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    const which = page.getByRole("region", { name: "Which profile?" });
+    await expect(which.getByRole("list").getByRole("button")).toHaveCount(2);
+    await which.getByRole("button", { name: "Not you? Start again" }).click();
+    await expect(which).toHaveCount(0);
+    await page.getByLabel("Mobile number").fill("98200 22090");
+    await page.getByRole("button", { name: "Send code" }).click();
+    await page.getByLabel("6-digit code").fill("123456");
+    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await page.getByRole("region", { name: "Which profile?" }).getByRole("button", { name: /Meena Ramaswamy/ }).click();
+    await expect(page).toHaveURL(/\/m$/);
+    await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening), Meena/, level: 1 })).toBeVisible();
+  });
+
+  test("a number used by one member signs in at once, with no question", async ({ page }) => {
+    await fastDemo(page);
+    await page.goto("/login");
+    await page.getByLabel("Email").fill("arjun.kumar@example.in");
+    await page.getByLabel("Password").fill("anything");
+    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await expect(page).toHaveURL(/\/m$/);
+  });
+
+  test("the avatar menu offers “Switch profile” to the other member on the number, and to nobody else", async ({ page }) => {
+    await fastDemo(page);
+    await page.goto("/login");
+    await page.getByLabel("Email").fill("meena.ramaswamy@example.in");
+    await page.getByLabel("Password").fill("anything");
+    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await page.getByRole("region", { name: "Which profile?" }).getByRole("button", { name: /Meena Ramaswamy/ }).click();
+    await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening), Meena/, level: 1 })).toBeVisible();
+    await page.getByRole("button", { name: /Account menu/ }).click();
+    const sw = chrome(page).getByRole("list", { name: "Switch profile" });
+    await expect(sw.getByRole("listitem")).toHaveCount(1);
+    await expect(sw).toContainText("Aarav Ramaswamy");
+    await sw.getByRole("button", { name: /Aarav Ramaswamy/ }).click();
+    await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening), Aarav/, level: 1 })).toBeVisible();
+    // Back again, and the data is each person’s own.
+    await page.getByRole("button", { name: /Account menu/ }).click();
+    await chrome(page).getByRole("list", { name: "Switch profile" }).getByRole("button", { name: /Meena Ramaswamy/ }).click();
+    await expect(page.getByRole("heading", { name: /Good (morning|afternoon|evening), Meena/, level: 1 })).toBeVisible();
+  });
+
+  test("each profile opens on their own page", async ({ page }) => {
+    await fastDemo(page);
+    await page.goto("/login");
+    await page.getByLabel("Email").fill("meena.ramaswamy@example.in");
+    await page.getByLabel("Password").fill("x");
+    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await page.getByRole("region", { name: "Which profile?" }).getByRole("button", { name: /Aarav Ramaswamy/ }).click();
+    await page.goto("/m/pass");
+    await expect(page.getByRole("heading", { name: "Check-in pass", level: 1 })).toBeVisible();
+    await expect(page.getByText("Aarav Ramaswamy").first()).toBeAttached();
+    await expect(page.getByText("Meena Ramaswamy")).toHaveCount(0);
+  });
 });

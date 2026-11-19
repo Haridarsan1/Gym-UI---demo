@@ -87,7 +87,7 @@ test("New member: every step, with the duplicate stop and warning", async ({ pag
   await shot(page, "wizard-details");
   await page.getByLabel("Full name").fill("Kabir Anand");
   await page.getByLabel("Mobile number").fill("98200 22002");
-  await expect(page.getByRole("alert").filter({ hasText: "This person is already a member" })).toContainText("Arjun Kumar");
+  await expect(page.getByRole("alert", { name: "This phone number or email is already used" })).toContainText("Arjun Kumar");
   await shot(page, "wizard-blocked");
   await page.getByLabel("Mobile number").fill("98765 43210");
   await page.getByLabel("Full name").fill("Rahul Mehta");

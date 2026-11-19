@@ -6,7 +6,7 @@ import { menuFor, screenPath } from "@/app/navigation";
 import { useCan, useSession } from "@/app/SessionContext";
 import { useResetDemo, useSignOut, useSwitchAccount } from "@/app/useSessionActions";
 import { FEATURED_ACCOUNTS } from "@/app/demoSignIn";
-import { DEMO_ACCOUNTS } from "@/app/demoAccounts";
+import { DEMO_ACCOUNTS, otherProfiles } from "@/app/demoAccounts";
 import { DEMO_MODE } from "@/app/mode";
 import { Avatar } from "@/design/Avatar";
 import { ROLE_LABEL, areaFor } from "@/domain/roles";
@@ -73,6 +73,21 @@ export function AvatarMenu({ drop = "down" }: { drop?: "down" | "up" }) {
                 </li>
               ))}
             </ul>
+          )}
+          {DEMO_MODE && otherProfiles(session.userId).length > 0 && (
+            <div className="border-t border-clay-line py-1">
+              <p className="px-3 pb-1 pt-2 text-xs font-semibold text-clay-subtle">Switch profile</p>
+              <ul aria-label="Switch profile">
+                {otherProfiles(session.userId).map((a) => (
+                  <li key={a.userId}>
+                    <button type="button" className={row} onClick={() => { setOpen(false); switchAccount(a.userId); }}>
+                      <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-lilac-100 text-xs font-bold text-lilac-700">{a.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
+                      <span className="flex-1">{a.name}<span className="block text-xs text-clay-muted">Same phone number or email</span></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           {DEMO_MODE && (
             <div className="border-t border-clay-line py-1">

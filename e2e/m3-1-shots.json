@@ -11,7 +11,7 @@
   { "key": "checkin-list", "caption": "Today’s check-ins" },
   { "key": "checkin-scan", "caption": "Scan a pass with the camera" },
   { "key": "wizard-details", "caption": "New member: details" },
-  { "key": "wizard-blocked", "caption": "Duplicate: phone belongs to a member" },
+  { "key": "wizard-blocked", "caption": "Shared number: same person or not" },
   { "key": "wizard-warning", "caption": "Duplicate: same name, a warning" },
   { "key": "wizard-consent", "caption": "New member: consent" },
   { "key": "wizard-plan", "caption": "New member: plan, terms copied" },

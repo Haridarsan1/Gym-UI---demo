@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { AlertTriangle, Ban } from "lucide-react";
+import { AlertTriangle, Users } from "lucide-react";
 import type { DuplicateCheck, WizardOptions } from "@/api/newMember";
 import { Switch } from "@/design/Switch";
 import { Field, inputClass } from "@/features/trainer/assessment/fields";
@@ -14,24 +14,26 @@ const input = inputClass;
 /** Step 1: who they are. A phone number or an email that already belongs to a member stops the registration; the same name is a warning. */
 export function DetailsStep({ d, set, dup, errors }: { d: Draft; set: Set; dup?: DuplicateCheck; errors: Record<string, string> }) {
   const v = d.details;
-  const up = (patch: Partial<Draft["details"]>) => set({ details: { ...v, ...patch }, notADuplicate: false });
+  const up = (patch: Partial<Draft["details"]>) => set({ details: { ...v, ...patch }, notADuplicate: false, sharesWith: [] });
   return (
     <div className="space-y-4">
-      {dup && dup.blocking.length > 0 && (
-        <div role="alert" className="rounded-2xl bg-status-danger-bg p-4 text-status-danger-fg">
-          <p className="flex items-center gap-2 font-bold"><Ban className="h-5 w-5" aria-hidden="true" />This person is already a member</p>
+      {dup && dup.sharing.length > 0 && (
+        <div role="alert" aria-label="This phone number or email is already used" className="rounded-2xl bg-status-pending-bg p-4 text-status-pending-fg">
+          <p className="flex items-center gap-2 font-bold"><Users className="h-5 w-5" aria-hidden="true" />A member already has this {dup.sharing.some((m) => m.match === "phone") ? "phone number" : "email address"}</p>
           <ul className="mt-2 space-y-1">
-            {dup.blocking.map((m) => (
-              <li key={m.memberId}>
-                <span className="font-semibold">{m.name}</span> has this {m.match === "phone" ? "phone number" : "email address"} ({m.branchName}{m.status ? `, ${m.status}` : ""}).{" "}
-                <Link to={`/desk/members/${m.memberId}`} className="font-bold underline underline-offset-4">Open their profile</Link>
-              </li>
+            {dup.sharing.map((m) => (
+              <li key={m.memberId}><span className="font-semibold">{m.name}</span> ({m.branchName}{m.status ? `, ${m.status}` : ""}) has this {m.match === "phone" ? "phone number" : "email address"}.</li>
             ))}
           </ul>
-          <p className="mt-2 text-sm">A phone number and an email belong to one member, because they are how a member signs in. Change it if you mistyped, or open the profile instead.</p>
+          <p className="mt-2 text-sm">Families often share one number. Is this the same person, or someone else?</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link to={`/desk/members/${dup.sharing[0]!.memberId}`} className="inline-flex min-h-[2.75rem] items-center rounded-2xl bg-white px-4 font-bold text-clay-ink hover:bg-clay-canvas">Same person: open their profile</Link>
+            <button type="button" role="radio" aria-checked={dup.sharing.every((m) => d.sharesWith.includes(m.memberId))} onClick={() => set({ sharesWith: dup.sharing.map((m) => m.memberId) })} className={cn("min-h-[2.75rem] cursor-pointer rounded-2xl border-2 px-4 font-bold", dup.sharing.every((m) => d.sharesWith.includes(m.memberId)) ? "border-ember-600 bg-ember-50 text-clay-ink" : "border-clay-ink/20 bg-white text-clay-ink hover:bg-clay-canvas")}>Different person sharing this number</button>
+          </div>
+          {dup.sharing.every((m) => d.sharesWith.includes(m.memberId)) && <p className="mt-2 text-sm font-semibold">Noted. This is recorded on the new member, and at login they choose their own profile.</p>}
         </div>
       )}
-      {dup && dup.blocking.length === 0 && dup.warnings.length > 0 && (
+      {dup && dup.warnings.length > 0 && (
         <div role="alert" className="rounded-2xl bg-status-pending-bg p-4 text-status-pending-fg">
           <p className="flex items-center gap-2 font-bold"><AlertTriangle className="h-5 w-5" aria-hidden="true" />A member with this name already exists</p>
           <ul className="mt-2 space-y-1">

@@ -156,6 +156,15 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     [statuses[k], statuses[at]] = [statuses[at]!, statuses[k]!];
   });
 
+  // The shared-number family (a parent and a teenager) are two ordinary generated members made active, so there are no more rich personas.
+  const FAMILY = DEMO_ACCOUNTS.filter((a) => a.memberId && !PERSONAS.some((p) => p.memberId === a.memberId));
+  FAMILY.forEach((a) => {
+    const k = Number(a.memberId!.slice(4));
+    if (statuses[k] === "active") return;
+    const at = statuses.findIndex((st, j) => j >= PERSONAS.length && st === "active" && !FAMILY.some((f) => Number(f.memberId!.slice(4)) === j));
+    [statuses[k], statuses[at]] = [statuses[at]!, statuses[k]!];
+  });
+
   const trainerAccounts = DEMO_ACCOUNTS.filter((a) => a.role === "trainer");
   const trainersAt = (branchId: string) => trainerAccounts.filter((t) => t.branchIds.includes(branchId));
   const deskFor = (branchId: string) => DEMO_ACCOUNTS.find((a) => a.role === "front_desk" && a.branchIds.includes(branchId))?.userId ?? "u_owner";
@@ -169,13 +178,17 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
   for (let i = 0; i < 150; i++) {
     const persona = PERSONAS[i];
+    const family = FAMILY.find((a) => a.memberId === `mem_${String(i).padStart(3, "0")}`);
     const status = statuses[i]!;
-    const branchId = persona?.branchId ?? r.weighted([[BRANCH.andheri, 55], [BRANCH.bandra, 50], [BRANCH.powai, 45]]);
+    // The family members draw exactly what any generated member draws and then take their own values, so every other member is unchanged.
+    const drawnBranch = persona ? undefined : r.weighted([[BRANCH.andheri, 55], [BRANCH.bandra, 50], [BRANCH.powai, 45]]);
+    const branchId = persona?.branchId ?? family?.branchIds[0] ?? drawnBranch!;
     let name = persona?.name ?? "";
     if (!persona) {
       do name = `${r.pick(FIRST)} ${r.pick(LAST)}`;
       while (usedNames.has(name));
       usedNames.add(name);
+      if (family) name = family.name;
     }
 
     let planId = persona?.planId ?? r.weighted(planWeights);
@@ -249,11 +262,13 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     });
 
     const joinedOn = addDays(earliest, -r.int(0, 3));
+    const drawnPhone = persona ? undefined : String(9_100_000_000 + i * 3719 + r.int(0, 3000));
+    const drawnEmail = persona ? persona.email : r.next() < 0.7 ? `${name.toLowerCase().replace(/\s+/g, ".")}@example.in` : undefined;
     members.push({
-      id: memberId, tenantId: TENANT_ID, userId: persona?.userId, name,
-      phone: persona?.phone ?? String(9_100_000_000 + i * 3719 + r.int(0, 3000)),
-      email: persona ? persona.email : r.next() < 0.7 ? `${name.toLowerCase().replace(/\s+/g, ".")}@example.in` : undefined,
-      dateOfBirth: `${r.int(1975, 2005)}-${String(r.int(1, 12)).padStart(2, "0")}-${String(r.int(1, 28)).padStart(2, "0")}`,
+      id: memberId, tenantId: TENANT_ID, userId: persona?.userId ?? family?.userId, name,
+      phone: persona?.phone ?? family?.phone ?? drawnPhone!,
+      email: family ? family.email : drawnEmail,
+      dateOfBirth: ((): string => { const d = `${r.int(1975, 2005)}-${String(r.int(1, 12)).padStart(2, "0")}-${String(r.int(1, 28)).padStart(2, "0")}`; return family?.userId === "u_member_aarav" ? "2010-03-14" : family ? "1982-09-02" : d; })(),
       gender: r.pick(["female", "male", "male", "female", "undisclosed"] as const), homeBranchId: branchId, joinedOn, qrToken: `qr-${memberId}-${r.int(100000, 999999)}`,
       leadSource: r.pick(["Walk-in", "Instagram", "Referral", "Google", "Society tie-up"]),
     });

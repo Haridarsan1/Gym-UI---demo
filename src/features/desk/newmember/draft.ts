@@ -5,6 +5,8 @@ export interface Draft {
   key: string;
   details: { name: string; phone: string; email: string; dateOfBirth: string; gender: string; leadSource: string; emergencyName: string; emergencyPhone: string };
   notADuplicate: boolean;
+  /** Members who already have this phone number or email, when the desk said it is a different person sharing it. */
+  sharesWith: string[];
   consents: { photos: boolean; assessments: boolean; marketing: boolean };
   planId: string;
   startsOn: string;
@@ -20,7 +22,7 @@ export interface Draft {
 export const newKey = () => `reg-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}${Math.random().toString(36).slice(2)}`}`;
 
 export const emptyDraft = (today: string): Draft => ({
-  step: 0, key: newKey(), details: { name: "", phone: "", email: "", dateOfBirth: "", gender: "", leadSource: "", emergencyName: "", emergencyPhone: "" }, notADuplicate: false,
+  step: 0, key: newKey(), details: { name: "", phone: "", email: "", dateOfBirth: "", gender: "", leadSource: "", emergencyName: "", emergencyPhone: "" }, notADuplicate: false, sharesWith: [],
   consents: { photos: false, assessments: false, marketing: false }, planId: "", startsOn: today, trainerId: "", trainerOn: today, discount: "", payNow: true, method: "cash", amount: "", reference: "",
 });
 

@@ -13,6 +13,27 @@ test.describe("New member on a phone", () => {
     expect(problems).toEqual([]);
   });
 
+  test("a child can be registered on a parent’s number: it is recorded on the new member, and each has their own pass", async ({ page }) => {
+    await signInAs(page, "u_desk_andheri", "/desk/new");
+    await page.getByLabel("Full name").fill("Ishaan Kumar");
+    await page.getByLabel("Mobile number").fill("98200 22002");
+    await page.getByLabel("Date of birth").fill("2011-06-01");
+    const shared = page.getByRole("alert", { name: "This phone number or email is already used" });
+    await expect(shared).toContainText("Arjun Kumar");
+    await shared.getByRole("radio", { name: "Different person sharing this number" }).click();
+    for (let i = 0; i < 2; i++) await page.getByRole("button", { name: "Next", exact: true }).click();
+    await page.getByRole("radio", { name: /^3-day trial/ }).click();
+    for (let i = 0; i < 2; i++) await page.getByRole("button", { name: "Next", exact: true }).click();
+    await page.getByRole("button", { name: "Register member" }).click();
+    await expect(page.getByRole("heading", { name: "Ishaan Kumar is a member" })).toBeVisible();
+    const kid = (await readStore(page, "members")).find((m) => m.name === "Ishaan Kumar")!;
+    expect(kid).toMatchObject({ phone: "9820022002", sharesContactWith: ["mem_arjun"] });
+    expect(kid.qrToken).not.toBe((await readStore(page, "members")).find((m) => m.id === "mem_arjun")!.qrToken);
+    await page.getByRole("link", { name: "Back to check-in" }).click();
+    await page.getByRole("combobox", { name: /Search members/ }).fill("98200 22002");
+    await expect(page.getByRole("option")).toHaveCount(2);
+  });
+
   test("the draft survives a reload, and Start over clears it", async ({ page }) => {
     await signInAs(page, "u_desk_andheri", "/desk/new");
     await page.getByLabel("Full name").fill("Tara Bose");

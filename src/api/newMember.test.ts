@@ -56,23 +56,28 @@ describe("the wizard’s choices", () => {
 });
 
 describe("the duplicate check", () => {
-  it("a phone number or an email that belongs to a member stops registration, however it is typed", async () => {
+  it("a phone number or an email that belongs to a member is flagged, however it is typed, and does not stop registration", async () => {
     const byPhone = await checkDuplicates(desk, { name: "Someone Else", phone: "+91 98200 22002" });
-    expect(byPhone.blocking[0]).toMatchObject({ memberId: "mem_arjun", match: "phone", branchName: "Andheri" });
+    expect(byPhone.sharing[0]).toMatchObject({ memberId: "mem_arjun", match: "phone", branchName: "Andheri" });
     const byEmail = await checkDuplicates(desk, { name: "Someone Else", phone: "9999999999", email: "ARJUN.KUMAR@example.in" });
-    expect(byEmail.blocking[0]).toMatchObject({ memberId: "mem_arjun", match: "email" });
+    expect(byEmail.sharing[0]).toMatchObject({ memberId: "mem_arjun", match: "email" });
+  });
+
+  it("a family that already shares a number lists every member on it", async () => {
+    const r = await checkDuplicates(desk, { name: "Third Child", phone: "98200 22090" });
+    expect(r.sharing.map((m) => m.name).sort()).toEqual(["Aarav Ramaswamy", "Meena Ramaswamy"]);
   });
 
   it("the same name is a warning, and looks across every branch", async () => {
     const w = await checkDuplicates(desk, { name: "  rahul   mehta ", phone: "9999999999" });
-    expect(w.blocking).toEqual([]);
+    expect(w.sharing).toEqual([]);
     expect(w.warnings[0]).toMatchObject({ memberId: "mem_rahul", match: "name", branchName: "Bandra" });
     expect(w.warnings[0]!.status).toBeTruthy();
     expect((await checkDuplicates(desk, { name: "Rahul Mehta", phone: "9999999999", dateOfBirth: "1900-01-01" })).warnings.length).toBeLessThanOrEqual(1);
   });
 
   it("a new person has none", async () => {
-    expect(await checkDuplicates(desk, { name: "Kabir Anand", phone: "98765 43210", email: "kabir@example.in" })).toEqual({ blocking: [], warnings: [] });
+    expect(await checkDuplicates(desk, { name: "Kabir Anand", phone: "98765 43210", email: "kabir@example.in" })).toEqual({ sharing: [], warnings: [] });
   });
 });
 
@@ -171,11 +176,34 @@ describe("one key makes one member", () => {
     expect(await db.invoices.where("memberId").equals(a.memberId).count()).toBe(1);
   });
 
-  it("the same phone with a new key is refused as a duplicate", async () => {
-    await registerMember(desk, base({ payment: full }));
-    const e = await err(registerMember(desk, base({ payment: full })));
+  it("the same phone with a new key needs the desk to say it is a different person sharing it", async () => {
+    const first = await registerMember(desk, base({ payment: full }));
+    const e = await err(registerMember(desk, base({ member: { name: "Kabir’s Son", phone: "98765 43210" }, payment: full })));
     expect(e).toMatchObject({ code: "conflict" });
     expect(e.message).toMatch(/Kabir Anand already has this phone number/);
+    expect(e.message).toMatch(/different person sharing it/);
+    expect(await db.members.where("phone").equals("9876543210").count()).toBe(1);
+    const child = await registerMember(desk, base({ member: { name: "Kabir’s Son", phone: "98765 43210", dateOfBirth: "2011-02-02" }, sharesContactWith: [first.memberId], payment: full }));
+    expect((await db.members.get(child.memberId))).toMatchObject({ name: "Kabir’s Son", phone: "9876543210", sharesContactWith: [first.memberId] });
+    expect(await db.members.where("phone").equals("9876543210").count()).toBe(2);
+    expect((await db.auditEvents.where("action").equals("membership.create").toArray()).at(-1)!.details).toMatchObject({ sharesContactWith: [first.memberId] });
+    // Each has their own membership, invoice and pass.
+    expect((await db.members.get(child.memberId))!.qrToken).not.toBe((await db.members.get(first.memberId))!.qrToken);
+  });
+
+  it("choosing “different person” for someone who doesn’t have the number is not enough, and an answer must cover everyone who has it", async () => {
+    const e = await err(registerMember(desk, base({ member: { name: "Visitor Rao", phone: "98200 22090" }, sharesContactWith: ["mem_040"] })));
+    expect(e.code).toBe("conflict");
+    expect(e.message).toMatch(/Aarav Ramaswamy already has this phone number/);
+    const ok = await registerMember(desk, base({ member: { name: "Visitor Rao", phone: "98200 22090" }, sharesContactWith: ["mem_040", "mem_041"] }));
+    expect((await db.members.get(ok.memberId))!.sharesContactWith).toEqual(["mem_040", "mem_041"]);
+  });
+
+  it("a shared email is flagged the same way", async () => {
+    const e = await err(registerMember(desk, base({ member: { name: "Visitor Rao", phone: "9111111111", email: "ARJUN.KUMAR@example.in" } })));
+    expect(e.message).toMatch(/Arjun Kumar already has this email address/);
+    const ok = await registerMember(desk, base({ member: { name: "Visitor Rao", phone: "9111111111", email: "arjun.kumar@example.in" }, sharesContactWith: ["mem_arjun"] }));
+    expect((await db.members.get(ok.memberId))!.sharesContactWith).toEqual(["mem_arjun"]);
   });
 });
 

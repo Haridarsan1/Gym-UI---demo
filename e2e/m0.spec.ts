@@ -119,7 +119,7 @@ test("the sample gym is the same for everyone who opens it", async ({ page }) =>
         };
       }),
   );
-  expect(counts).toMatchObject({ members: 150, branches: 3, users: 16 });
+  expect(counts).toMatchObject({ members: 150, branches: 3, users: 18 });
   expect(counts.memberships).toBeGreaterThanOrEqual(150);
 });
 

@@ -71,7 +71,7 @@ function Wizard({ o }: { o: NonNullable<ReturnType<typeof useWizardOptions>["dat
       if (!/^[6-9]\d{9}$/.test(phone)) e.phone = "Enter a 10-digit mobile number.";
       if (v.email.trim() && !/^\S+@\S+\.\S+$/.test(v.email.trim())) e.email = "Enter an email like name@example.in, or leave it empty.";
       if (v.emergencyPhone.trim() && !/^[6-9]\d{9}$/.test(digits(v.emergencyPhone))) e.emergencyPhone = "Enter a 10-digit mobile number, or leave it empty.";
-      if (!e.name && !e.phone && !e.email && dup.data?.blocking.length) e.phone = "This person is already a member. Open their profile instead.";
+      if (!e.name && !e.phone && !e.email && dup.data?.sharing.length && !dup.data.sharing.every((m) => d.sharesWith.includes(m.memberId))) e.phone = "Choose: the same person (open their profile), or a different person sharing this number.";
       if (!e.name && !e.phone && !e.email && dup.data?.warnings.length && !d.notADuplicate) e.name = "Check it is a different person, then continue.";
     }
     if (step === 2 && !d.planId) e.plan = "Choose a plan.";
@@ -109,7 +109,7 @@ function Wizard({ o }: { o: NonNullable<ReturnType<typeof useWizardOptions>["dat
     const v = d.details;
     try {
       const r = await register.mutateAsync({
-        key: d.key, branchId: o.branchId, notADuplicate: d.notADuplicate,
+        key: d.key, branchId: o.branchId, notADuplicate: d.notADuplicate, sharesContactWith: d.sharesWith.length ? d.sharesWith : undefined,
         member: { name: v.name, phone: v.phone, email: v.email, dateOfBirth: v.dateOfBirth, gender: (v.gender || undefined) as never, leadSource: v.leadSource || undefined, emergencyContact: v.emergencyName.trim() && v.emergencyPhone.trim() ? { name: v.emergencyName, phone: v.emergencyPhone } : undefined },
         consents: { ...d.consents, dataProcessing: true }, planId: d.planId, startsOn: d.startsOn, discountPaise: disc || undefined,
         trainer: d.trainerId ? { trainerId: d.trainerId, effectiveOn: d.trainerOn } : undefined,

@@ -116,6 +116,8 @@ export const Member = z.object({
   qrToken: z.string().min(8),
   emergencyContact: z.object({ name: z.string(), phone: mobile }).optional(),
   leadSource: z.string().optional(),
+  /** Other members on the same phone number or email, for example a parent and child. Set when the desk says “Different person sharing this number”. */
+  sharesContactWith: z.array(id).optional(),
   archivedAt: isoDateTime.optional(),
 });
 export type Member = z.infer<typeof Member>;

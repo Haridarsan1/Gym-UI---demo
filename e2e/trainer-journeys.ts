@@ -346,15 +346,19 @@ export async function newMemberJourney(page: Page) {
   await noSideways(page, "Wizard step 1");
   const next = page.getByRole("button", { name: "Next", exact: true });
 
-  // A phone number that already belongs to a member stops it, and says who.
+  // A phone number that already belongs to a member is flagged, with two choices: families share numbers, so it does not stop registration.
   await page.getByLabel("Full name").fill("Kabir Anand");
   await page.getByLabel("Mobile number").fill("98200 22002");
-  const blocked = page.getByRole("alert").filter({ hasText: "This person is already a member" });
-  await expect(blocked).toContainText("Arjun Kumar");
-  await expect(blocked.getByRole("link", { name: "Open their profile" })).toHaveAttribute("href", "/desk/members/mem_arjun");
+  const shared = page.getByRole("alert", { name: "This phone number or email is already used" });
+  await expect(shared).toContainText("Arjun Kumar");
+  await expect(shared.getByRole("link", { name: "Same person: open their profile" })).toHaveAttribute("href", "/desk/members/mem_arjun");
   await next.click();
   await expect(page.getByRole("heading", { name: "Step 1 of 5: Details" })).toBeVisible();
-  await noSideways(page, "Duplicate: blocked");
+  await expect(page.getByText("Choose: the same person (open their profile), or a different person sharing this number.")).toBeVisible();
+  await noSideways(page, "Shared number: asked");
+  await shared.getByRole("radio", { name: "Different person sharing this number" }).click();
+  await expect(shared).toContainText("Noted. This is recorded on the new member");
+  await noSideways(page, "Shared number: answered");
 
   // The same name as someone else is a warning: it has to be answered.
   await page.getByLabel("Mobile number").fill("98765 43210");

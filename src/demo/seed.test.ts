@@ -52,7 +52,13 @@ describe("demo seed", () => {
 
   it("has 150 members in every membership state, with unique ids, names and phone numbers", () => {
     expect(seed.members).toHaveLength(150);
-    for (const key of ["id", "name", "phone", "qrToken"] as const) expect(new Set(seed.members.map((m) => m[key])).size, key).toBe(150);
+    for (const key of ["id", "name", "qrToken"] as const) expect(new Set(seed.members.map((m) => m[key])).size, key).toBe(150);
+    // One family shares a mobile number and an email (a parent and a teenager); every other phone number is one member’s.
+    expect(new Set(seed.members.map((m) => m.phone)).size).toBe(149);
+    const family = seed.members.filter((m) => m.phone === "9820022090");
+    expect(family.map((m) => m.name).sort()).toEqual(["Aarav Ramaswamy", "Meena Ramaswamy"]);
+    expect(new Set(family.map((m) => m.email)).size).toBe(1);
+    expect(family.map((m) => m.userId).sort()).toEqual(["u_member_aarav", "u_member_meena"]);
     const states = new Set(seed.memberships.map((m) => m.status));
     expect([...states].sort()).toEqual(["active", "canceled", "expired", "frozen", "pending", "scheduled"]);
     const current = seed.memberships.filter((m) => !m.id.includes("_prior"));
