@@ -439,3 +439,109 @@ export async function newMemberJourney(page: Page) {
   await page.getByRole("option", { name: /Kabir Anand/ }).getByRole("button").click();
   await expect(page.getByRole("region", { name: "Check-in result" })).toHaveAttribute("data-result", "allowed");
 }
+
+/**
+ * M02, M03, A02: the front desk works on Arjun Kumar’s membership. Freeze and unfreeze; upgrade to Quarterly with a GST credit note, paid by UPI;
+ * cancel with the amount he may be eligible for, and “Request refund”; change his trainer.
+ */
+export async function memberLifecycleJourney(page: Page) {
+  await page.goto("/desk/members");
+  await expect(page.getByRole("heading", { name: "Members", level: 1 })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search members" }).fill("arjun");
+  await expect(page.getByText("1 member")).toBeVisible();
+  await noSideways(page, "Members");
+  await page.locator("text=Arjun Kumar >> visible=true").first().click();
+  await expect(page.getByRole("heading", { name: "Arjun Kumar", level: 1 })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Membership" })).toContainText("Monthly Plus");
+  await noSideways(page, "Profile");
+  const dialog = (name: string) => page.getByRole("dialog", { name });
+
+  // Freeze, then unfreeze early.
+  await page.getByRole("button", { name: "Freeze", exact: true }).click();
+  const fz = dialog("Freeze membership");
+  await fz.getByRole("button", { name: "Freeze membership" }).click();
+  await expect(fz.getByRole("alert")).toContainText("Say why it is being frozen.");
+  await fz.getByLabel("Reason").fill("Travel for work");
+  await expect(fz).toContainText("7 days frozen");
+  await fz.getByRole("button", { name: "Freeze membership" }).click();
+  await expect(page.getByText("Arjun’s membership is frozen")).toBeVisible();
+  await expect(page.getByText(/Frozen 17 Nov 2026 to 23 Nov 2026: Travel for work/)).toBeVisible();
+  expect((await readStore(page, "memberships")).find((m) => m.id === "ms_mem_arjun")).toMatchObject({ status: "frozen" });
+  await page.getByRole("button", { name: "Unfreeze", exact: true }).click();
+  await dialog("Unfreeze membership").getByRole("button", { name: "Unfreeze now" }).click();
+  await expect(page.getByText("Arjun can come in again")).toBeVisible();
+  expect((await readStore(page, "memberships")).find((m) => m.id === "ms_mem_arjun")).toMatchObject({ status: "active" });
+  await noSideways(page, "Unfrozen");
+
+  // Upgrade with a credit note, then collect the difference by UPI.
+  await page.getByRole("button", { name: "Renew or change plan" }).click();
+  const chg = dialog("Change plan");
+  await expect(chg.getByRole("radio", { name: /Monthly ₹/ })).toContainText("Starts");
+  await chg.getByRole("radio", { name: /Quarterly/ }).click();
+  await expect(chg.getByRole("radio", { name: /Quarterly/ })).toContainText("Upgrade now: pay ₹");
+  await expect(chg.getByRole("radio", { name: /Quarterly/ })).toContainText(/Credit note for \d+ of 30 unused days/);
+  await noSideways(page, "Change plan");
+  await chg.getByRole("button", { name: "Confirm" }).click();
+  const made = dialog("Plan change made");
+  await expect(made).toContainText(/GST credit note CNAND\/26-27\/0001 for ₹/);
+  await expect(made).toContainText(/Invoice PFAND\/26-27\/\d{4}: ₹7,670/);
+  await made.getByRole("button", { name: "Collect payment" }).click();
+  const pay = dialog("Collect payment");
+  await pay.getByRole("radio", { name: "UPI" }).click();
+  await pay.getByLabel("UPI reference").fill("arjun@okbank");
+  await pay.getByRole("button", { name: "Record payment" }).click();
+  const done = dialog("Payment recorded");
+  await expect(done).toContainText(/Receipt RCP-2026-\d{4}/);
+  await expect(done).toContainText("Paid in full");
+  await expect(done).toContainText("Upgrade started: Quarterly, active 17 Nov 2026");
+  await done.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("region", { name: "Membership" })).toContainText("Quarterly");
+  const cns = await readStore(page, "creditNotes");
+  expect(cns).toHaveLength(1);
+  expect(cns[0]).toMatchObject({ memberId: "mem_arjun", number: "CNAND/26-27/0001" });
+  expect((await readStore(page, "memberships")).find((m) => m.id === "ms_mem_arjun")).toMatchObject({ status: "expired", endsOn: "2026-11-16" });
+  await page.getByRole("tab", { name: "Invoices and payments" }).click();
+  await expect(page.getByRole("list", { name: "Credit notes" })).toContainText("CNAND/26-27/0001");
+  await expect(page.getByRole("list", { name: "Payments" })).toContainText("Credit note");
+  await expect(page.getByRole("list", { name: "Payments" })).toContainText("UPI");
+  await noSideways(page, "Billing");
+
+  // Cancel: access continues until the date; the amount he may be owed is shown, and “Request refund” asks finance.
+  await page.getByRole("tab", { name: "Membership" }).click();
+  await page.getByRole("button", { name: "Cancel membership" }).first().click();
+  const cn = dialog("Cancel membership");
+  await cn.getByLabel("Takes effect on").fill("2026-11-24");
+  await cn.getByLabel("Reason").fill("Moving to another city");
+  await expect(cn).toContainText(/May be eligible for ₹[\d,.]+ under policy/);
+  await cn.getByRole("button", { name: "Cancel membership" }).click();
+  const canceled = dialog("Membership canceled");
+  await expect(canceled).toContainText("Access continues until 24 Nov 2026");
+  await expect(canceled).toContainText("Nothing is refunded automatically");
+  expect(await readStore(page, "refunds")).toHaveLength(0);
+  await canceled.getByRole("button", { name: "Request refund" }).click();
+  const ask = dialog("Request refund");
+  await expect(ask.getByLabel("Reason")).toHaveValue("Cancellation: Moving to another city");
+  await ask.getByRole("button", { name: "Send to finance" }).click();
+  await expect(page.getByText("Refund requested")).toBeVisible();
+  const reqs = await readStore(page, "refundRequests");
+  expect(reqs).toHaveLength(1);
+  expect(reqs[0]).toMatchObject({ memberId: "mem_arjun", status: "pending", source: "cancellation", requestedBy: "u_desk_andheri" });
+  await canceled.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("list", { name: "Refund requests" })).toContainText("waiting for finance");
+  await expect(page.getByRole("region", { name: "Membership" })).toContainText("Being canceled from 24 Nov 2026: Moving to another city");
+  await noSideways(page, "Canceled");
+
+  // The trainer transfer screen (A02).
+  await page.getByRole("tab", { name: "Trainer" }).click();
+  await expect(page.getByRole("heading", { name: "Trainer", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Change trainer" }).click();
+  const tr = dialog("Change trainer");
+  await tr.getByRole("radio", { name: "Aditya Rao" }).click();
+  await tr.getByLabel("Reason").fill("Meera is moving to Bandra");
+  await tr.getByRole("button", { name: "Change trainer" }).click();
+  await expect(page.getByText("Trainer changed")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Trainer history" })).toContainText("Aditya Rao");
+  await expect(page.getByRole("list", { name: "Trainer history" })).toContainText("Meera Joshi");
+  await expect(page.getByRole("list", { name: "Trainer history" })).toContainText("Meera is moving to Bandra");
+  expect((await readStore(page, "trainerAssignments")).filter((a) => a.memberId === "mem_arjun" && !a.effectiveTo)).toHaveLength(1);
+}

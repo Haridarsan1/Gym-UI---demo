@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 5173;
+// E2E_PORT lets the tests run beside a dev server someone already has open on 5173 (which would show the Query devtools button).
+const PORT = Number(process.env.E2E_PORT ?? 5173);
 
 export default defineConfig({
   testDir: "./e2e",

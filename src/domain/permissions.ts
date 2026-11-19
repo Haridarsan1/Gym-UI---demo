@@ -45,6 +45,8 @@ const GRANTS = {
   "membership.autorenew": { member: W },
   "payment.record": { owner: O, branch_manager: B, front_desk: B, finance: B },
   "refund.create": { owner: O, branch_manager: B, finance: B },
+  /** Asking finance for a refund. The front desk can’t approve one. */
+  "refund.request": { owner: O, branch_manager: B, front_desk: B, finance: B },
   "reconciliation.manage": { owner: O, finance: B },
   "credits.read": { owner: O, branch_manager: B, front_desk: B, finance: B, trainer: A, member: W },
   "credits.adjust": { owner: O, branch_manager: B },

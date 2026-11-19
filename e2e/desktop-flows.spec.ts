@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
-import { checkInJourney, coachLogJourney, newMemberJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
+import { checkInJourney, coachLogJourney, memberLifecycleJourney, newMemberJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
  * Member flows on wide screens. The M1 journeys again, but driven the way a person on a tablet or a desktop drives them: through
@@ -606,6 +606,14 @@ for (const width of WIDTHS) {
         expect(a.x).toBeGreaterThan(f.x);
       } else await expect(page.getByRole("complementary", { name: "This registration" })).toBeHidden();
       await noSideways(page, "Wizard layout");
+    });
+  });
+
+  test.describe(`front desk member profile at ${width} px`, () => {
+    test("Member profile: freeze, upgrade with a credit note, cancel with Request refund, and change trainer", async ({ page }) => {
+      const problems = await open(page, width, "u_desk_andheri", "/desk");
+      await memberLifecycleJourney(page);
+      expect(problems).toEqual([]);
     });
   });
 

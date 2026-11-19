@@ -88,7 +88,7 @@ export function autoRenewTerms(current: Pick<Membership, "endsOn" | "status">, p
 // ── The simulated gateway’s messages ──────────────────────────────────────────────────────────────
 
 export type PayMethod = "upi" | "card" | "netbanking";
-export const PAY_METHOD_LABEL: Record<PayMethod | "cash" | "transfer" | "online", string> = { upi: "UPI", card: "Card", netbanking: "Net banking", cash: "Cash", transfer: "Bank transfer", online: "Online" };
+export const PAY_METHOD_LABEL: Record<PayMethod | "cash" | "transfer" | "online" | "credit_note", string> = { credit_note: "Credit note", upi: "UPI", card: "Card", netbanking: "Net banking", cash: "Cash", transfer: "Bank transfer", online: "Online" };
 
 /** What the member is told when the bank said no. Says what happened, that nothing was taken, and what to do. */
 export const PAYMENT_DECLINED = "The payment didn’t go through, and no money was taken. Try again, or choose another way to pay.";

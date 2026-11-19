@@ -170,6 +170,14 @@ export const GymPolicies = z.object({
   markWindowHours: z.number().int().min(1).max(336),
   /** Whether the desk may record a payment smaller than the amount due (M03). Off by default. */
   partialPaymentsEnabled: z.boolean(),
+  /** A freeze must be at least this many days… */
+  freezeMinDays: z.number().int().min(1).max(60),
+  /** …and at most this many. */
+  freezeMaxDays: z.number().int().min(1).max(180),
+  /** How many freezes one membership may have. */
+  maxFreezesPerMembership: z.number().int().min(0).max(12),
+  /** Kept from a cancellation refund, in paise, before the unused days are returned. */
+  cancellationFeePaise: z.number().int().nonnegative(),
 });
 export type GymPolicies = z.infer<typeof GymPolicies>;
 

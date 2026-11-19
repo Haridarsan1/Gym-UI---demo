@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import type {
   Assessment, AuditEvent, BadgeAward, Booking, EmailLogEntry, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
-  MembershipPlan, MemberSettings, NumberSeries, ProgramTemplate, GatewayEvent, DataRequest, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
+  MembershipPlan, MemberSettings, NumberSeries, CreditNote, RefundRequest, ProgramTemplate, GatewayEvent, DataRequest, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
 } from "@/domain/types";
 
 export interface MetaRow {
@@ -48,6 +48,8 @@ export class EmberDB extends Dexie {
   trainerAvailability!: EntityTable<TrainerAvailability, "id">;
   trainerShifts!: EntityTable<TrainerShift, "id">;
   numberSeries!: EntityTable<NumberSeries, "id">;
+  creditNotes!: EntityTable<CreditNote, "id">;
+  refundRequests!: EntityTable<RefundRequest, "id">;
   trainerLeave!: EntityTable<TrainerLeave, "id">;
   gymPolicies!: EntityTable<GymPolicies, "id">;
   assessments!: EntityTable<Assessment, "id">;
@@ -121,6 +123,11 @@ export class EmberDB extends Dexie {
     // Version 7 (M3): the counters behind GST invoice and credit-note numbers.
     this.version(7).stores({
       numberSeries: "id, tenantId",
+    });
+    // Version 8 (M3, lifecycle and money): GST credit notes and the refund requests the desk makes to finance.
+    this.version(8).stores({
+      creditNotes: "id, tenantId, memberId, invoiceId",
+      refundRequests: "id, tenantId, memberId, invoiceId, status",
     });
   }
 }

@@ -1,3 +1,4 @@
+import { effectiveStatus } from "@/domain/lifecycle";
 import type { CheckIn, Membership } from "@/domain/types";
 
 /**
@@ -22,7 +23,7 @@ export interface Decision {
   inGrace?: boolean;
 }
 
-type MembershipFacts = Pick<Membership, "status" | "startsOn" | "endsOn" | "visitsRemaining" | "graceUntil"> & { terms: Pick<Membership["terms"], "kind" | "branchIds"> };
+type MembershipFacts = Pick<Membership, "status" | "startsOn" | "endsOn" | "visitsRemaining" | "graceUntil"> & Partial<Pick<Membership, "freezes" | "canceledEffectiveOn">> & { terms: Pick<Membership["terms"], "kind" | "branchIds"> };
 
 export interface DecisionInput {
   membership: MembershipFacts | undefined;
@@ -40,11 +41,13 @@ export const enteredOk = (result: CheckIn["result"]): boolean => ENTERED.has(res
 /** Why a membership can’t be used today, or undefined when it can. Ignores the branch, which depends on the door. */
 export function whyNotValid(m: MembershipFacts | undefined, today: string): { reason: DenyReason; inGrace?: boolean } | undefined {
   if (!m) return { reason: "no_membership" };
-  if (m.status === "pending") return { reason: "pending" };
-  if (m.status === "scheduled" || m.startsOn > today) return { reason: "scheduled" };
-  if (m.status === "frozen") return { reason: "frozen" };
-  if (m.status === "canceled") return { reason: "canceled" };
-  const over = m.status === "expired" || (m.endsOn !== undefined && m.endsOn < today);
+  // What it is today: a freeze that has ended and a cancellation that has taken effect count (domain/lifecycle.ts).
+  const status = effectiveStatus({ status: m.status, freezes: m.freezes ?? [], canceledEffectiveOn: m.canceledEffectiveOn, endsOn: m.endsOn }, today);
+  if (status === "pending") return { reason: "pending" };
+  if (status === "scheduled" || m.startsOn > today) return { reason: "scheduled" };
+  if (status === "frozen") return { reason: "frozen" };
+  if (status === "canceled") return { reason: "canceled" };
+  const over = status === "expired" || (m.endsOn !== undefined && m.endsOn < today);
   if (over) return m.graceUntil && m.graceUntil >= today ? undefined : { reason: "expired" };
   return undefined;
 }

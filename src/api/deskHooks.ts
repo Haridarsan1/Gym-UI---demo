@@ -46,3 +46,41 @@ export function useRegisterMember() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: async (i: import("@/api/newMember").RegisterInput) => (await newMemberApi()).registerMember(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["desk", session?.userId] }) });
 }
+
+const profileApi = () => import("@/api/memberProfile");
+const lifecycleApi = () => import("@/api/lifecycle");
+const paymentsApi = () => import("@/api/payments");
+
+/** One member for the desk and finance: membership, what can be done to it, billing, credits, bookings, check-ins, messages, trainer. */
+export function useMemberProfile(memberId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "profile", memberId], queryFn: async () => (await profileApi()).getMemberProfile(session, memberId!), enabled: !!session && !!memberId, retry, staleTime: 0 });
+}
+
+export function usePlanChoices(memberId: string, enabled: boolean) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "plan-choices", memberId], queryFn: async () => (await lifecycleApi()).getPlanChoices(session, memberId), enabled: !!session && enabled, retry, staleTime: 0, gcTime: 0 });
+}
+
+export function useCancelPreview(memberId: string, effectiveOn: string, enabled: boolean) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "cancel-preview", memberId, effectiveOn], queryFn: async () => (await lifecycleApi()).previewCancel(session, { memberId, effectiveOn }), enabled: !!session && enabled, retry, staleTime: 0, gcTime: 0 });
+}
+
+/** Every write on a member: it refreshes the profile, the member lists and Today’s check-ins afterwards. */
+export function useMemberActions(memberId: string) {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  const refresh = () => qc.invalidateQueries({ queryKey: ["desk", session?.userId] });
+  const life = <I, O>(fn: (api: typeof import("@/api/lifecycle"), input: I) => Promise<O>) => ({ mutationFn: async (input: I) => fn(await lifecycleApi(), input), onSuccess: refresh });
+  return {
+    freeze: useMutation(life((api, i: import("@/api/lifecycle").FreezeInput) => api.freezeMembership(session, i))),
+    unfreeze: useMutation(life((api, _: void) => api.unfreezeMembership(session, { memberId }))),
+    change: useMutation(life((api, i: import("@/api/lifecycle").ChangeInput) => api.changePlan(session, i))),
+    cancel: useMutation(life((api, i: import("@/api/lifecycle").CancelInput) => api.cancelMembership(session, i))),
+    keep: useMutation(life((api, _: void) => api.keepMembership(session, { memberId }))),
+    requestRefund: useMutation(life((api, i: import("@/api/lifecycle").RefundRequestInput) => api.requestRefund(session, i))),
+    collect: useMutation({ mutationFn: async (i: import("@/api/payments").CollectInput) => (await paymentsApi()).collectPayment(session, i), onSuccess: refresh }),
+    transfer: useMutation({ mutationFn: async (i: import("@/api/assignments").TransferInput) => (await import("@/api/assignments")).transferTrainer(session, i), onSuccess: refresh }),
+  };
+}

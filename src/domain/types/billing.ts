@@ -57,6 +57,8 @@ export const Membership = z.object({
   /** What an auto-renew charge is taken from, chosen when the member opted in. */
   autoRenewMethod: z.enum(["upi", "card"]).optional(),
   renewsMembershipId: id.optional(),
+  /** Set when this membership replaced another mid-term (an upgrade); the older one ends the day before this starts. */
+  upgradeOf: id.optional(),
   /** The invoice that bought this membership. One invoice buys at most one membership, however many times its payment event arrives. */
   invoiceId: id.optional(),
   createdAt: isoDateTime,
@@ -114,7 +116,8 @@ export const Invoice = z.object({
 });
 export type Invoice = z.infer<typeof Invoice>;
 
-export const PaymentMethod = z.enum(["cash", "upi", "card", "netbanking", "transfer", "online"]);
+/** “credit_note” is not money: it applies a GST credit note (an upgrade’s unused days) to an invoice. Reports count it apart from collections. */
+export const PaymentMethod = z.enum(["cash", "upi", "card", "netbanking", "transfer", "online", "credit_note"]);
 export const PaymentStatus = z.enum(["pending", "succeeded", "failed"]);
 
 export const Payment = z.object({
@@ -187,3 +190,56 @@ export const CreditLedgerEntry = z.object({
   idempotencyKey,
 });
 export type CreditLedgerEntry = z.infer<typeof CreditLedgerEntry>;
+
+/**
+ * A GST credit note (M03, M04): a document that reduces an earlier invoice, with its own number series. An upgrade issues one for the unused days of
+ * the old plan, linked to the original invoice, and applies it to the new invoice as a payment of method “credit_note”, so it is never netted silently.
+ */
+export const CreditNote = z.object({
+  id,
+  tenantId: id,
+  /** Printed number from the branch’s credit-note series, for example CNAND/26-27/0001. */
+  number: z.string(),
+  memberId: id,
+  branchId: id,
+  /** The invoice this credit note reduces. */
+  invoiceId: id,
+  /** The invoice the credit was applied to, when it was. */
+  appliedToInvoiceId: id.optional(),
+  placeOfSupply: z.string().regex(/^\d{2}$/),
+  issuedOn: isoDate,
+  reason: z.string(),
+  lines: z.array(InvoiceLine).min(1),
+  subtotalPaise: paise,
+  taxPaise: paise,
+  totalPaise: paise,
+  createdBy: id,
+  createdAt: isoDateTime,
+});
+export type CreditNote = z.infer<typeof CreditNote>;
+
+/**
+ * A request for a refund that someone who can’t approve it makes (M04). The front desk requests; finance or the owner approves or rejects, and both
+ * steps are audited. Approving makes the `Refund` and reverses unused credits; the request keeps pointing at it.
+ */
+export const RefundRequest = z.object({
+  id,
+  tenantId: id,
+  memberId: id,
+  branchId: id,
+  invoiceId: id,
+  amountPaise: paise.refine((n) => n > 0, "Refund amount must be more than zero."),
+  reason: z.string().min(1),
+  /** Where it came from: a cancellation (the amount the policy says they may be owed) or a request the desk wrote. */
+  source: z.enum(["cancellation", "manual"]),
+  status: z.enum(["pending", "approved", "rejected"]),
+  requestedBy: id,
+  requestedAt: isoDateTime,
+  decidedBy: id.optional(),
+  decidedAt: isoDateTime.optional(),
+  decisionNote: z.string().optional(),
+  /** The refund made when it was approved. */
+  refundId: id.optional(),
+  idempotencyKey,
+});
+export type RefundRequest = z.infer<typeof RefundRequest>;
