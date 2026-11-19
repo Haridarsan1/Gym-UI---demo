@@ -256,11 +256,12 @@ test.describe("trainer screens at every width", () => {
 
 test.describe("front desk screens at every width", () => {
   // Each screen the desk gets in M3 is added here when it is built.
-  const DESK_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk", h1: "Check-in" }, { path: "/desk/new", h1: "New member" }, { path: "/desk/members", h1: "Members" }, { path: "/desk/members/mem_arjun", h1: "Arjun Kumar" }, { path: "/desk/members/mem_arjun?tab=billing", h1: "Arjun Kumar" }];
+  const DESK_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk", h1: "Check-in" }, { path: "/desk/new", h1: "New member" }, { path: "/desk/members", h1: "Members" }, { path: "/desk/members/mem_arjun", h1: "Arjun Kumar" }, { path: "/desk/members/mem_arjun?tab=billing", h1: "Arjun Kumar" }, { path: "/desk/dues", h1: "Dues" }, { path: "/desk/payments/new", h1: "Collect payment" }]
+  const FINANCE_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk/finance/refunds", h1: "Refunds" }];
   for (const width of WIDTHS) {
     test(`no sideways scroll, a capped width and 44 px targets at ${width} px`, async ({ page }) => {
-      for (const { path, h1 } of DESK_SCREENS) {
-        await at(page, width, "u_desk_andheri", path);
+      for (const { path, h1, user } of [...DESK_SCREENS.map((x) => ({ ...x, user: "u_desk_andheri" })), ...FINANCE_SCREENS.map((x) => ({ ...x, user: "u_finance" }))]) {
+        await at(page, width, user, path);
         await expect(page.getByRole("heading", { name: h1, level: 1 })).toBeVisible();
         expect(await hasHorizontalScroll(page), `${path} scrolls sideways`).toBe(false);
         expect((await box(page, "main")).width, `${path} is wider than 1200 px`).toBeLessThanOrEqual(1200);

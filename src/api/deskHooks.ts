@@ -84,3 +84,36 @@ export function useMemberActions(memberId: string) {
     transfer: useMutation({ mutationFn: async (i: import("@/api/assignments").TransferInput) => (await import("@/api/assignments")).transferTrainer(session, i), onSuccess: refresh }),
   };
 }
+
+const duesApi = () => import("@/api/dues");
+
+/** Unpaid and part-paid invoices, and recent declined payments, at the person’s branches. */
+export function useDues(branchId?: string) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "dues", branchId ?? "all"], queryFn: async () => (await duesApi()).getDues(session, { branchId }), enabled: !!session, retry, staleTime: 0 });
+}
+
+export function useSendReminder() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async (invoiceId: string) => (await duesApi()).sendReminder(session, { invoiceId }), onSuccess: () => qc.invalidateQueries({ queryKey: ["desk", session?.userId] }) });
+}
+
+export function useDeskReceipt(invoiceId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "receipt", invoiceId], queryFn: async () => (await paymentsApi()).getDeskReceipt(session, invoiceId!), enabled: !!session && !!invoiceId, retry, staleTime: 0 });
+}
+
+const refundsApi = () => import("@/api/refunds");
+
+/** The finance queue: refund requests waiting for a decision, and the decided ones. */
+export function useRefunds() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["desk", session?.userId, "refunds"], queryFn: async () => (await refundsApi()).getRefunds(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+export function useDecideRefund() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: async (i: import("@/api/refunds").DecideInput) => (await refundsApi()).decideRefund(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["desk", session?.userId] }) });
+}

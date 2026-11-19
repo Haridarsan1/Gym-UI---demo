@@ -44,8 +44,10 @@ function Profile({ p }: { p: MemberProfileData }) {
   const [params, setParams] = useSearchParams();
   const raw = params.get("tab");
   const tab: Tab = TABS.some((t) => t.value === raw) ? (raw as Tab) : "membership";
-  const [sheet, setSheet] = useState<Sheet>(null);
-  const [invoiceId, setInvoiceId] = useState<string>();
+  // A link from Dues (?collect=invoice) opens the payment sheet straight away.
+  const fromLink = params.get("collect");
+  const [sheet, setSheet] = useState<Sheet>(fromLink ? "collect" : null);
+  const [invoiceId, setInvoiceId] = useState<string | undefined>(fromLink ?? undefined);
   const canManage = useCan()("membership.manage");
   const canPay = useCan()("payment.record");
   const canRefund = useCan()("refund.request");

@@ -146,3 +146,12 @@ export async function collectPayment(session: Session | null, raw: CollectInput)
   });
 }
 
+
+/** The tax receipt for an invoice, for the desk to show or print. Same document the member gets (`api/receiptData.ts`). */
+export async function getDeskReceipt(session: Session | null, invoiceId: string): Promise<import("@/api/receiptData").ReceiptData> {
+  const c = await openDesk(session, "invoice.read");
+  const invoice = await db.invoices.get(invoiceId);
+  if (!invoice || invoice.tenantId !== c.tenantId || !c.branchIds.includes(invoice.branchId) || invoice.status === "draft") throw new ApiError("not_found", "We couldn’t find that invoice. It may belong to another branch.");
+  const { buildReceipt } = await import("@/api/receiptData");
+  return buildReceipt(invoice, c.today);
+}

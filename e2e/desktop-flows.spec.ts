@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
-import { checkInJourney, coachLogJourney, memberLifecycleJourney, newMemberJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
+import { checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
  * Member flows on wide screens. The M1 journeys again, but driven the way a person on a tablet or a desktop drives them: through
@@ -613,6 +613,22 @@ for (const width of WIDTHS) {
     test("Member profile: freeze, upgrade with a credit note, cancel with Request refund, and change trainer", async ({ page }) => {
       const problems = await open(page, width, "u_desk_andheri", "/desk");
       await memberLifecycleJourney(page);
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`front desk money at ${width} px`, () => {
+    test("Money: a reminder, a part payment, the rest by UPI, and the printable receipt", async ({ page }) => {
+      const problems = await open(page, width, "u_desk_andheri", "/desk");
+      await moneyJourney(page);
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`finance refunds at ${width} px`, () => {
+    test("Refunds: the desk asks, finance approves from the queue and rejects another with a reason", async ({ page }) => {
+      const problems = await open(page, width, "u_desk_andheri", "/desk");
+      await refundJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
       expect(problems).toEqual([]);
     });
   });

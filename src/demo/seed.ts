@@ -2,10 +2,12 @@ import { ALL_BRANCHES, BRANCH, DEMO_ACCOUNTS, TENANT_ID } from "@/app/demoAccoun
 import { addDays, todayIST, weekStart } from "@/domain/dates";
 import type {
   AuditEvent, BadgeAward, Booking, Assessment, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, GymClass, GymPolicies, Goal, Invoice, Measurement, Member, MemberSettings,
-  Membership, MembershipPlan, NumberSeries, Payment, ProgramTemplate, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion,
+  Membership, MembershipPlan, NumberSeries, Payment, ProgramTemplate, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, RefundRequest, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion,
 } from "@/domain/types";
 import { rng } from "@/demo/rng";
 import { financialYear, formatNumber, seriesKey } from "@/domain/numbering";
+import { invoiceTotals, placeOfSupplyFor } from "@/domain/billing";
+import { hash } from "@/demo/seedMember";
 import { PERSONAS } from "@/demo/personas";
 import { TRAINER_POLICY_DEFAULTS } from "@/domain/trainerToday";
 import { buildRoster } from "@/demo/seedTrainer";
@@ -44,6 +46,7 @@ export interface SeedData {
   badgeAwards: BadgeAward[];
   trainerAvailability: TrainerAvailability[];
   trainerShifts: TrainerShift[];
+  refundRequests: RefundRequest[];
   numberSeries: NumberSeries[];
   trainerLeave: TrainerLeave[];
   gymPolicies: GymPolicies[];
@@ -311,6 +314,44 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   // Training, billing and activity for the sample members. Everyone else gets this in the milestone that first shows it.
   const memberData = buildMemberData({ today, r, branches, members, memberships, membershipPlans, deskFor });
 
+  // Dues for the desk and finance to work on (M3): some members with a renewal invoice unpaid for a while, a part payment, and a few declined online payments.
+  // Chosen by a hash of the member id, so they are the same every time and every other record is untouched.
+  {
+    const current = new Map(memberships.filter((m) => m.status === "active").map((m) => [m.memberId, m]));
+    const stateOf = new Map(branches.map((b) => [b.id, b.stateCode]));
+    const owing = members.filter((m) => !PERSONAS.some((p) => p.memberId === m.id) && current.has(m.id) && hash(`${m.id}dues`) % 9 === 0).slice(0, 12);
+    owing.forEach((m, k) => {
+      const ms = current.get(m.id)!;
+      const issuedOn = addDays(today, -(3 + ((hash(m.id) % 18))));
+      const lines = [{ description: `${ms.terms.name} renewal`, quantity: 1, unitPaise: ms.terms.pricePaise, taxRateBp: ms.terms.taxRateBp }];
+      const totals = invoiceTotals(lines);
+      const id = `inv_due_${m.id}`;
+      const part = k % 4 === 1;
+      memberData.invoices.push({ id, tenantId: TENANT_ID, number: "", memberId: m.id, branchId: m.homeBranchId, placeOfSupply: placeOfSupplyFor(stateOf.get(m.homeBranchId)!), issuedOn, dueOn: addDays(issuedOn, 7), lines, ...totals, status: part ? "partially_paid" : "open", purpose: { kind: "renewal", planId: ms.planId }, createdAt: createdAt(issuedOn) });
+      if (part) memberData.payments.push({ id: `pay_due_${m.id}`, tenantId: TENANT_ID, invoiceId: id, memberId: m.id, branchId: m.homeBranchId, method: "cash", amountPaise: Math.round(totals.totalPaise * 0.4), status: "succeeded", receivedAt: createdAt(addDays(issuedOn, 2)), receivedBy: deskFor(m.homeBranchId), receiptNumber: `RCP-2026-${String(9000 + k).padStart(4, "0")}`, idempotencyKey: `seed-due-${m.id}`, reconciliation: { status: "unmatched" } });
+      if (k % 5 === 2) memberData.payments.push({ id: `pay_fail_${m.id}`, tenantId: TENANT_ID, invoiceId: id, memberId: m.id, branchId: m.homeBranchId, method: "upi", amountPaise: totals.totalPaise, status: "failed", receivedAt: createdAt(addDays(today, -2)), failureReason: "The payment didn’t go through, and no money was taken.", idempotencyKey: `seed-fail-${m.id}`, reconciliation: { status: "unmatched" } });
+    });
+  }
+
+  // Refunds for finance to work on (M4): one request from the desk waiting for approval, one approved and paid back last week, one rejected.
+  const refundSeed = (() => {
+    const paidOnce = memberData.invoices
+      .filter((i) => i.status === "paid" && ["mem_priya", "mem_rahul", "mem_sneha"].includes(i.memberId) && !i.purpose)
+      .map((i) => ({ i, pay: memberData.payments.find((p) => p.invoiceId === i.id && p.status === "succeeded") }))
+      .filter((x): x is { i: typeof x.i; pay: NonNullable<typeof x.pay> } => !!x.pay);
+    const pick = (k: number) => paidOnce[k % paidOnce.length]!;
+    const [a, b, c] = [pick(1), pick(2), pick(3)];
+    const refunds: Refund[] = [];
+    const requests: RefundRequest[] = [];
+    const base = (x: typeof a, id: string, pct: number, reason: string, ageDays: number) => ({ id, tenantId: TENANT_ID, memberId: x.i.memberId, branchId: x.i.branchId, invoiceId: x.i.id, amountPaise: Math.round((x.i.totalPaise * pct) / 100), reason, source: "manual" as const, requestedBy: deskFor(x.i.branchId), requestedAt: createdAt(addDays(today, -ageDays)), idempotencyKey: `seed-${id}` });
+    requests.push({ ...base(a, "rq_seed_pending", 25, "Member relocated and asked for part of the plan back", 1), status: "pending" });
+    const done = base(b, "rq_seed_approved", 15, "Charged twice at the desk, one by card and one in cash", 8);
+    refunds.push({ id: "rf_seed_1", tenantId: TENANT_ID, paymentId: b.pay.id, invoiceId: b.i.id, amountPaise: done.amountPaise, reason: done.reason, status: "completed", requestedBy: done.requestedBy, approvedBy: "u_finance", creditsReversed: 0, createdAt: createdAt(addDays(today, -7)), idempotencyKey: "seed-rf-1" });
+    requests.push({ ...done, status: "approved", decidedBy: "u_finance", decidedAt: createdAt(addDays(today, -7)), refundId: "rf_seed_1" });
+    requests.push({ ...base(c, "rq_seed_rejected", 60, "Wants most of the plan back after using it for three weeks", 5), status: "rejected", decidedBy: "u_finance", decidedAt: createdAt(addDays(today, -4)), decisionNote: "Outside the policy: the plan was mostly used." });
+    return { refunds, requests };
+  })();
+
   // GST numbers: consecutive within each branch and financial year, in the order the invoices were issued. A void invoice keeps its number.
   const numbered = (() => {
     const prefix = new Map(branches.map((b) => [b.id, b.invoicePrefix]));
@@ -337,7 +378,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   return {
     tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,
     creditLedger: [...creditLedger, ...memberData.creditLedger, ...roster.creditLedger],
-    invoices: numbered.invoices, numberSeries: numbered.series, payments: memberData.payments, refunds: [], classes: [], bookings: [...memberData.bookings, ...roster.bookings], checkIns: memberData.checkIns,
+    invoices: numbered.invoices, numberSeries: numbered.series, payments: memberData.payments, refunds: refundSeed.refunds, refundRequests: refundSeed.requests, classes: [], bookings: [...memberData.bookings, ...roster.bookings], checkIns: memberData.checkIns,
     exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: [...memberData.goals, ...roster.goals], assessments: [...memberData.assessments, ...roster.assessments], programTemplates: buildTemplates(today, createdAt),
     measurements: memberData.measurements, auditEvents: [], trainerReviews: [...memberData.trainerReviews, ...roster.trainerReviews], memberSettings: memberData.memberSettings,
     badgeAwards: memberData.badgeAwards, trainerAvailability: availability, trainerShifts: shifts, trainerLeave: leave, gymPolicies: [policies],

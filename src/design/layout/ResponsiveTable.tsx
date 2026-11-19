@@ -10,6 +10,8 @@ export interface Column<T> {
   /** Hide on phones: the card keeps only the key fields. */
   hideOnPhone?: boolean;
   align?: "left" | "right";
+  /** Buttons and links for the row. On phones they sit under the card instead of inside it, so the card can open the row without nesting buttons. */
+  action?: boolean;
 }
 
 /**
@@ -19,7 +21,8 @@ export interface Column<T> {
  */
 export function ResponsiveTable<T>({ rows, columns, rowKey, onRowClick, caption }: { rows: T[]; columns: Column<T>[]; rowKey: (row: T) => string; onRowClick?: (row: T) => void; caption: string }) {
   const primary = columns.find((c) => c.primary) ?? columns[0]!;
-  const rest = columns.filter((c) => c !== primary && !c.hideOnPhone);
+  const rest = columns.filter((c) => c !== primary && !c.hideOnPhone && !c.action);
+  const actions = columns.filter((c) => c.action);
   return (
     <>
       <div className="clay-flat hidden overflow-x-auto sm:block">
@@ -61,6 +64,7 @@ export function ResponsiveTable<T>({ rows, columns, rowKey, onRowClick, caption 
                 ))}
               </dl>
             </button>
+            {actions.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{actions.map((c) => <span key={c.key} className="contents">{c.cell(r)}</span>)}</div>}
           </li>
         ))}
       </ul>

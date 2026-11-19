@@ -57,7 +57,7 @@ describe("sample members: data is valid and consistent", () => {
   });
 
   it("has unique invoice numbers, receipt numbers and idempotency keys", () => {
-    for (const rows of [seed.invoices.map((i) => i.number), seed.payments.map((p) => p.receiptNumber), seed.payments.map((p) => p.idempotencyKey), seed.workoutLogs.map((l) => l.idempotencyKey), seed.bookings.map((b) => b.idempotencyKey), seed.creditLedger.map((c) => c.idempotencyKey)]) {
+    for (const rows of [seed.invoices.map((i) => i.number), seed.payments.map((p) => p.receiptNumber).filter(Boolean), seed.payments.map((p) => p.idempotencyKey), seed.workoutLogs.map((l) => l.idempotencyKey), seed.bookings.map((b) => b.idempotencyKey), seed.creditLedger.map((c) => c.idempotencyKey)]) {
       expect(new Set(rows).size).toBe(rows.length);
     }
   });
@@ -65,7 +65,8 @@ describe("sample members: data is valid and consistent", () => {
   it("has an invoice total that matches its lines, and a payment for every paid invoice", () => {
     for (const inv of seed.invoices) {
       expect(inv.totalPaise).toBe(inv.subtotalPaise - inv.discountPaise + inv.taxPaise);
-      expect(seed.payments.some((p) => p.invoiceId === inv.id), inv.number).toBe(inv.status === "paid");
+      // A paid or part-paid invoice has a payment that went through; an open one may have a declined attempt but no payment.
+      expect(seed.payments.some((p) => p.invoiceId === inv.id && p.status === "succeeded"), inv.number).toBe(inv.status === "paid" || inv.status === "partially_paid");
     }
   });
 

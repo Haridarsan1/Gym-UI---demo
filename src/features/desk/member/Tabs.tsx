@@ -20,7 +20,7 @@ export function Billing({ p, canPay, canRefund, collect, refund }: { p: MemberPr
           <ul aria-label="Invoices" className="mt-2 divide-y divide-clay-line">
             {p.invoices.map((i) => (
               <li key={i.id} className="flex flex-wrap items-start justify-between gap-2 py-3">
-                <span className="min-w-0"><span className="font-semibold">{i.number}</span> <span className="text-sm text-clay-muted">{formatDate(i.issuedOn)}</span><span className="block text-[0.95rem]">{i.description}</span>{i.creditNote && <span className="block text-sm text-clay-muted">Credit note {i.creditNote.number}: −{formatRupees(i.creditNote.totalPaise)}</span>}</span>
+                <span className="min-w-0"><Link to={`/desk/members/${p.member.id}/invoices/${i.id}`} className="inline-flex min-h-[2.75rem] items-center font-semibold underline underline-offset-4">{i.number}</Link> <span className="text-sm text-clay-muted">{formatDate(i.issuedOn)}</span><span className="block text-[0.95rem]">{i.description}</span>{i.creditNote && <span className="block text-sm text-clay-muted">Credit note {i.creditNote.number}: −{formatRupees(i.creditNote.totalPaise)}</span>}</span>
                 <span className="text-right"><span className="block font-semibold tabular">{formatRupees(i.totalPaise)}</span><span className="block text-sm text-clay-muted">{STATUS[i.status]}{i.duePaise > 0 ? `, ${formatRupees(i.duePaise)} due` : ""}{i.overdue ? ", overdue" : ""}</span></span>
               </li>
             ))}

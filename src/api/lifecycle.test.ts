@@ -180,8 +180,9 @@ describe("cancelling", () => {
     expect(p.invoiceNumber).toMatch(/^PFAND\//);
     const r = await cancelMembership(desk, { memberId: "mem_arjun", effectiveOn: "2026-11-17", reason: "Moving city" });
     expect(r).toMatchObject({ takesEffectNow: true, eligible: { amountPaise: p.amountPaise } });
-    expect(await db.refunds.count()).toBe(0);
-    expect(await db.refundRequests.count()).toBe(0);
+    // The seed has a few refunds and requests of its own; cancelling adds none.
+    expect(await db.refunds.count()).toBe(1);
+    expect(await db.refundRequests.count()).toBe(3);
     expect((await current("mem_arjun"))).toMatchObject({ status: "canceled", canceledEffectiveOn: "2026-11-17", cancelReason: "Moving city" });
     expect((await db.auditEvents.where("action").equals("membership.cancel").toArray()).at(-1)).toMatchObject({ reason: "Moving city", details: { eligiblePaise: p.amountPaise } });
   });
@@ -220,7 +221,7 @@ describe("asking finance for a refund", () => {
     const r = await requestRefund(desk, { memberId: "mem_arjun", invoiceId: inv.id, amountPaise: 100_000, reason: "Cancelled, within policy", source: "cancellation", key: key() });
     expect(r.repeated).toBe(false);
     expect((await db.refundRequests.get(r.requestId))).toMatchObject({ status: "pending", requestedBy: "u_desk_andheri", amountPaise: 100_000, invoiceId: inv.id, memberId: "mem_arjun", source: "cancellation" });
-    expect(await db.refunds.count()).toBe(0);
+    expect(await db.refunds.count()).toBe(1);
     expect((await db.auditEvents.where("action").equals("refund.request").toArray()).at(-1)).toMatchObject({ actorId: "u_desk_andheri", reason: "Cancelled, within policy" });
   });
 
@@ -229,7 +230,7 @@ describe("asking finance for a refund", () => {
     const k = key();
     await requestRefund(desk, { memberId: "mem_arjun", invoiceId: inv.id, amountPaise: 100_000, reason: "Cancelled", source: "manual", key: k });
     expect((await requestRefund(desk, { memberId: "mem_arjun", invoiceId: inv.id, amountPaise: 100_000, reason: "Cancelled", source: "manual", key: k })).repeated).toBe(true);
-    expect(await db.refundRequests.count()).toBe(1);
+    expect((await db.refundRequests.where("memberId").equals("mem_arjun").toArray())).toHaveLength(1);
     const e = await err(requestRefund(desk, { memberId: "mem_arjun", invoiceId: inv.id, amountPaise: paid, reason: "Too much", source: "manual", key: key() }));
     expect(e.code).toBe("invalid");
     expect(e.message).toMatch(/At most/);

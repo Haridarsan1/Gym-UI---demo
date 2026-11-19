@@ -11,6 +11,10 @@ const implemented = {
   checkin: lazy(() => import("@/features/desk/CheckIn")),
   members: lazy(() => import("@/features/desk/Members")),
   member: lazy(() => import("@/features/desk/MemberProfile")),
+  collect: lazy(() => import("@/features/desk/CollectPayment")),
+  dues: lazy(() => import("@/features/desk/Dues")),
+  "desk-receipt": lazy(() => import("@/features/desk/DeskReceipt")),
+  refunds: lazy(() => import("@/features/desk/Refunds")),
   "new-member": lazy(() => import("@/features/desk/NewMember")),
 };
 

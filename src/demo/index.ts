@@ -24,7 +24,7 @@ async function writeSeed(): Promise<void> {
       db.consents.bulkAdd(data.consents), db.exercises.bulkAdd(data.exercises), db.workoutPlanVersions.bulkAdd(data.workoutPlanVersions),
       db.workoutLogs.bulkAdd(data.workoutLogs), db.goals.bulkAdd(data.goals), db.measurements.bulkAdd(data.measurements), db.bookings.bulkAdd(data.bookings),
       db.checkIns.bulkAdd(data.checkIns), db.invoices.bulkAdd(data.invoices), db.payments.bulkAdd(data.payments), db.trainerReviews.bulkAdd(data.trainerReviews),
-      db.memberSettings.bulkAdd(data.memberSettings), db.badgeAwards.bulkAdd(data.badgeAwards), db.trainerAvailability.bulkAdd(data.trainerAvailability), db.trainerShifts.bulkAdd(data.trainerShifts), db.numberSeries.bulkAdd(data.numberSeries), db.trainerLeave.bulkAdd(data.trainerLeave),
+      db.memberSettings.bulkAdd(data.memberSettings), db.badgeAwards.bulkAdd(data.badgeAwards), db.trainerAvailability.bulkAdd(data.trainerAvailability), db.trainerShifts.bulkAdd(data.trainerShifts), db.numberSeries.bulkAdd(data.numberSeries), db.refunds.bulkAdd(data.refunds), db.refundRequests.bulkAdd(data.refundRequests), db.trainerLeave.bulkAdd(data.trainerLeave),
       db.gymPolicies.bulkAdd(data.gymPolicies), db.assessments.bulkAdd(data.assessments), db.programTemplates.bulkAdd(data.programTemplates),
     ]);
     await db.meta.bulkPut([{ key: SEED_KEY, value: SEED_VERSION }, { key: "seededAt", value: new Date().toISOString() }]);

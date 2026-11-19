@@ -517,15 +517,16 @@ export async function memberLifecycleJourney(page: Page) {
   const canceled = dialog("Membership canceled");
   await expect(canceled).toContainText("Access continues until 24 Nov 2026");
   await expect(canceled).toContainText("Nothing is refunded automatically");
-  expect(await readStore(page, "refunds")).toHaveLength(0);
+  const refundsBefore = (await readStore(page, "refunds")).length;
   await canceled.getByRole("button", { name: "Request refund" }).click();
   const ask = dialog("Request refund");
   await expect(ask.getByLabel("Reason")).toHaveValue("Cancellation: Moving to another city");
   await ask.getByRole("button", { name: "Send to finance" }).click();
   await expect(page.getByText("Refund requested")).toBeVisible();
-  const reqs = await readStore(page, "refundRequests");
+  const reqs = (await readStore(page, "refundRequests")).filter((r) => r.memberId === "mem_arjun");
   expect(reqs).toHaveLength(1);
   expect(reqs[0]).toMatchObject({ memberId: "mem_arjun", status: "pending", source: "cancellation", requestedBy: "u_desk_andheri" });
+  expect(await readStore(page, "refunds")).toHaveLength(refundsBefore);
   await canceled.getByRole("button", { name: "Done" }).click();
   await expect(page.getByRole("list", { name: "Refund requests" })).toContainText("waiting for finance");
   await expect(page.getByRole("region", { name: "Membership" })).toContainText("Being canceled from 24 Nov 2026: Moving to another city");
@@ -544,4 +545,126 @@ export async function memberLifecycleJourney(page: Page) {
   await expect(page.getByRole("list", { name: "Trainer history" })).toContainText("Meera Joshi");
   await expect(page.getByRole("list", { name: "Trainer history" })).toContainText("Meera is moving to Bandra");
   expect((await readStore(page, "trainerAssignments")).filter((a) => a.memberId === "mem_arjun" && !a.effectiveTo)).toHaveLength(1);
+}
+
+/**
+ * M03, O04: dues, a reminder, a part payment (the gym allows them), the rest by UPI from the Collect payment screen, and the printable tax receipt.
+ */
+export async function moneyJourney(page: Page) {
+  await changeStore(page, "gymPolicies", `(v) => ({ ...v, partialPaymentsEnabled: true })`);
+  await page.goto("/desk/dues");
+  await expect(page.getByRole("heading", { name: "Dues", level: 1 })).toBeVisible();
+  const row = page.locator("tr:visible, li:visible").filter({ hasText: "Priya Sharma" }).filter({ hasText: "PFAND" }).first();
+  await expect(row).toBeVisible();
+  await expect(row).toContainText(/\d+ days?/);
+  await noSideways(page, "Dues");
+
+  await page.getByRole("button", { name: "Send Priya Sharma a reminder" }).click();
+  await expect(page.getByText("Reminder sent to Priya")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send Priya Sharma a reminder" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Send Priya Sharma a reminder" })).toContainText("Sent, again 20 Nov 2026");
+  expect((await readStore(page, "emailLog")).filter((e) => e.memberId === "mem_priya" && e.template === "payment_reminder")).toHaveLength(1);
+  await expect(page.getByRole("link", { name: "Collect from Priya Sharma" })).toHaveAttribute("href", /\/desk\/members\/mem_priya\?collect=/);
+
+  // A part payment, in cash: the invoice is part paid and the membership waits.
+  await page.getByRole("link", { name: "Collect from Priya Sharma" }).click();
+  const pay = page.getByRole("dialog", { name: "Collect payment" });
+  await expect(pay).toBeVisible();
+  await expect(pay).toContainText("Less than the amount due is a part payment.");
+  await pay.getByLabel("Amount received (₹)").fill("1000");
+  await pay.getByRole("button", { name: "Record payment" }).click();
+  const part = page.getByRole("dialog", { name: "Payment recorded" });
+  await expect(part).toContainText("₹1,000 received for invoice PFAND");
+  await expect(part).toContainText(/Receipt RCP-2026-\d{4}/);
+  await expect(part).toContainText(/₹[\d,.]+ still due/);
+  await expect(part.getByText("Membership started")).toHaveCount(0);
+  await part.getByRole("button", { name: "Done" }).click();
+  await page.getByRole("tab", { name: "Invoices and payments" }).click();
+  await expect(page.getByRole("list", { name: "Invoices" })).toContainText("Part paid");
+  await expect(page.getByRole("list", { name: "Payments" })).toContainText("Cash");
+  await noSideways(page, "Part paid");
+
+  // The rest from the Collect payment screen, by UPI. Paying in full starts the renewal.
+  await page.goto("/desk/payments/new");
+  await expect(page.getByRole("heading", { name: "Collect payment", level: 1 })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search members" }).fill("priya");
+  await page.getByRole("list", { name: "Matching members" }).getByRole("button", { name: /Priya Sharma/ }).click();
+  const owed = page.getByRole("list", { name: "Open invoices" });
+  await expect(owed).toContainText("part paid (₹1,000)");
+  await noSideways(page, "Collect payment");
+  await owed.getByRole("button", { name: /^Collect/ }).click();
+  const rest = page.getByRole("dialog", { name: "Collect payment" });
+  await rest.getByRole("radio", { name: "UPI" }).click();
+  await rest.getByLabel("UPI reference").fill("priya@okbank");
+  await rest.getByRole("button", { name: "Record payment" }).click();
+  const full = page.getByRole("dialog", { name: "Payment recorded" });
+  await expect(full).toContainText("Paid in full");
+  await expect(full).toContainText(/Renewal booked: .*, starts \d+ \w+ 2026|Renewal booked: .*, active/);
+  await full.getByRole("link", { name: "View or print the receipt" }).click();
+  await expect(page.getByRole("heading", { name: "Tax invoice and receipt", level: 1 })).toBeVisible();
+  await expect(page.getByText(/GSTIN/)).toBeVisible();
+  await expect(page.getByText(/Priya Sharma/).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save as PDF" })).toBeVisible();
+  await noSideways(page, "Receipt");
+  const pays = (await readStore(page, "payments")).filter((p) => p.memberId === "mem_priya" && p.receivedBy === "u_desk_andheri" && String(p.receivedAt).startsWith("2026-11-17"));
+  expect(pays.map((p) => p.amountPaise).sort((a, b) => Number(a) - Number(b))).toEqual([100000, 195000]);
+  expect(new Set(pays.map((p) => p.receiptNumber)).size).toBe(2);
+  const inv = (await readStore(page, "invoices")).find((i) => i.memberId === "mem_priya" && (i.purpose as { kind?: string } | undefined)?.kind === "renewal" && i.status === "paid");
+  expect(inv).toBeTruthy();
+  await page.goto("/desk/dues");
+  await expect(page.locator("tr:visible, li:visible").filter({ hasText: "Priya Sharma" }).filter({ hasText: "PFAND" })).toHaveCount(0);
+}
+
+/**
+ * M04: the front desk asks for a refund; finance approves it from the queue (the money goes back against a payment, both steps audited) and rejects another
+ * with a reason the desk can read.
+ */
+export async function refundJourney(page: Page, signIn: (userId: string, path: string) => Promise<void>) {
+  await page.goto("/desk/members/mem_arjun?tab=billing");
+  await page.getByRole("button", { name: "Request refund" }).first().click();
+  const ask = page.getByRole("dialog", { name: "Request refund" });
+  await ask.getByLabel("Amount (₹)").fill("500");
+  await ask.getByLabel("Reason").fill("Charged twice at the desk");
+  await ask.getByRole("button", { name: "Send to finance" }).click();
+  await expect(page.getByText("Refund requested")).toBeVisible();
+  const requests = (await readStore(page, "refundRequests")).filter((r) => r.memberId === "mem_arjun");
+  expect(requests).toHaveLength(1);
+  expect(requests[0]).toMatchObject({ status: "pending", amountPaise: 50000, requestedBy: "u_desk_andheri" });
+  // The desk can’t see the queue.
+  await page.goto("/desk/finance/refunds");
+  await expect(page.getByRole("heading", { name: "You don’t have access to this page" })).toBeVisible();
+
+  await signIn("u_finance", "/desk/finance/refunds");
+  await expect(page.getByRole("heading", { name: "Refunds", level: 1 })).toBeVisible();
+  await expect(page.getByText("You can approve refunds up to ₹25,000.")).toBeVisible();
+  const queue = page.getByRole("list", { name: "Refund requests" });
+  const card = queue.getByRole("listitem").filter({ hasText: "Arjun Kumar" });
+  await expect(card).toContainText("₹500");
+  await expect(card).toContainText("Charged twice at the desk");
+  await expect(card).toContainText(/Goes back against the \w+ payment/);
+  await noSideways(page, "Refund queue");
+  await card.getByRole("button", { name: "Approve the refund for Arjun Kumar" }).click();
+  const ok = page.getByRole("dialog", { name: "Approve refund" });
+  await expect(ok).toContainText("The member is emailed. This is audited and can’t be undone.");
+  await ok.getByRole("button", { name: "Approve refund" }).click();
+  await expect(page.getByText("Refunded ₹500 to Arjun")).toBeVisible();
+  await expect(queue.getByRole("listitem").filter({ hasText: "Arjun Kumar" })).toHaveCount(0);
+  await expect(page.getByRole("list", { name: "Decided refunds" })).toContainText("Approved by Deepa Menon");
+  const refunds = (await readStore(page, "refunds")).filter((r) => r.reason === "Charged twice at the desk");
+  expect(refunds).toHaveLength(1);
+  expect(refunds[0]).toMatchObject({ amountPaise: 50000, status: "completed", approvedBy: "u_finance", requestedBy: "u_desk_andheri" });
+  const actions = (await readStore(page, "auditEvents")).filter((e) => e.memberId === "mem_arjun").map((e) => e.action);
+  expect(actions).toEqual(expect.arrayContaining(["refund.request", "refund.approve"]));
+
+  // A rejection needs a reason, which the desk reads.
+  const other = queue.getByRole("listitem").first();
+  await other.getByRole("button", { name: /^Reject the refund for/ }).click();
+  const no = page.getByRole("dialog", { name: "Reject refund" });
+  await no.getByRole("button", { name: "Reject refund" }).click();
+  await expect(no.getByRole("alert")).toContainText("Say why it is rejected.");
+  await no.getByLabel("Why? The desk sees this.").fill("Outside the policy: the plan was used");
+  await no.getByRole("button", { name: "Reject refund" }).click();
+  await expect(page.getByText("Refund rejected")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Decided refunds" })).toContainText("Note: Outside the policy: the plan was used");
+  await noSideways(page, "Refunds decided");
 }

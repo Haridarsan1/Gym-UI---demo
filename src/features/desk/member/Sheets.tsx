@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { useCancelPreview, useMemberActions, usePlanChoices } from "@/api/deskHooks";
 import type { MemberProfileData } from "@/api/memberProfile";
 import type { CancelResult, ChangeResult } from "@/api/lifecycle";
@@ -288,7 +289,7 @@ export function CollectSheet({ p, invoiceId, onClose }: { p: MemberProfileData; 
           {done.effects.membership && <li className="rounded-2xl bg-status-active-bg p-3 font-semibold text-status-active-fg">{done.effects.kind === "upgrade" ? "Upgrade started" : done.effects.kind === "renewal" ? "Renewal booked" : "Membership started"}: {done.effects.membership.planName}, {done.effects.membership.status === "active" ? "active" : "starts"} {formatDate(done.effects.membership.startsOn)}</li>}
           {done.effects.sessionsAdded && <li className="rounded-2xl bg-status-active-bg p-3 font-semibold text-status-active-fg">{done.effects.sessionsAdded} training sessions added</li>}
         </ul>
-        <div className="mt-5 flex"><Button3D variant="ember" size="lg" onClick={onClose}>Done</Button3D></div>
+        <div className="mt-5 flex flex-wrap items-center gap-3"><Button3D variant="ember" size="lg" onClick={onClose}>Done</Button3D><Link to={`/desk/members/${p.member.id}/invoices/${done.invoice.id}`} className="inline-flex min-h-[3rem] items-center font-semibold underline underline-offset-4">View or print the receipt</Link></div>
       </Frame>
     );
   }
