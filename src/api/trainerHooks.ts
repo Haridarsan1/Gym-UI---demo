@@ -55,7 +55,7 @@ export function useAssessment(memberId: string | undefined) {
 function useRefreshClient() {
   const { session } = useSession();
   const queryClient = useQueryClient();
-  return () => Promise.all(["assessment", "client", "clients", "today"].map((k) => queryClient.invalidateQueries({ queryKey: ["trainer", session?.userId, k] })));
+  return () => Promise.all(["assessment", "client", "clients", "today", "review"].map((k) => queryClient.invalidateQueries({ queryKey: ["trainer", session?.userId, k] })));
 }
 
 export function useSaveAssessment() {
@@ -182,4 +182,18 @@ export function useCoachFinish(memberId: string) {
   const submit = useMutation({ mutationFn: async (input: import("@/api/coachLog").CoachSubmitInput) => (await coachApi()).submitCoachWorkout(session, input), onSuccess: refresh });
   const correct = useMutation({ mutationFn: async (input: import("@/api/coachLog").CorrectionInput) => (await coachApi()).correctWorkout(session, input), onSuccess: refresh });
   return { submit, correct };
+}
+
+const reviewApi = () => import("@/api/review");
+
+/** The review (T06, P04): adherence, trends, the latest check-in, goals and the history of what was written. */
+export function useReview(memberId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["trainer", session?.userId, "review", memberId], queryFn: async () => (await reviewApi()).getReview(session, memberId!), enabled: !!session && !!memberId, retry, staleTime: 0 });
+}
+
+export function useSaveReview(memberId: string) {
+  const { session } = useSession();
+  const refresh = useRefreshClient();
+  return useMutation({ mutationFn: async (input: import("@/api/review").ReviewInput) => (await reviewApi()).saveReview(session, input), onSuccess: () => refresh().then(() => undefined), meta: { memberId } });
 }

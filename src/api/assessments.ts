@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "@/demo/db";
+import { buildAuditEvent } from "@/domain/audit";
 import { writeAudit } from "@/demo";
 import { assertCan } from "@/api/context";
 import { now } from "@/api/clock";
@@ -206,7 +207,7 @@ export async function closeGoal(session: Session | null, input: { memberId: stri
  */
 export async function confirmGoalAchieved(session: Session | null, input: { memberId: string; goalId: string; note?: string }): Promise<void> {
   const { c } = await clientFor(session, input.memberId);
-  await db.transaction("rw", [db.goals, db.badgeAwards], async () => {
+  await db.transaction("rw", [db.goals, db.badgeAwards, db.auditEvents], async () => {
     const g = await db.goals.get(input.goalId);
     if (!g || g.memberId !== input.memberId) throw new ApiError("not_found", "We couldn’t find that goal.");
     if (g.status === "achieved") return;
@@ -214,5 +215,6 @@ export async function confirmGoalAchieved(session: Session | null, input: { memb
     await db.goals.update(g.id, { status: "achieved", history: [...g.history, { at: c.nowIso, by: c.trainerId, note: input.note?.trim() ? `Achieved: ${input.note.trim()}` : "Achieved. Confirmed by the trainer." }] });
     const has = (await db.badgeAwards.where("memberId").equals(input.memberId).toArray()).some((b) => b.badge === "goal_achieved");
     if (!has) await db.badgeAwards.add({ id: `bd_${input.memberId}_goal_achieved`, tenantId: c.tenantId, memberId: input.memberId, badge: "goal_achieved", awardedAt: c.nowIso });
+    await db.auditEvents.add(buildAuditEvent(c.principal, { action: "goal.confirm", entityType: "goal", entityId: g.id, memberId: input.memberId, details: { title: g.title, badgeAwarded: !has } }, `ae_${crypto.randomUUID()}`, new Date(c.nowIso)));
   });
 }

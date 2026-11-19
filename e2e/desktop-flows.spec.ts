@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
-import { coachLogJourney } from "./trainer-journeys";
+import { coachLogJourney, reviewJourney } from "./trainer-journeys";
 
 /**
  * Member flows on wide screens. The M1 journeys again, but driven the way a person on a tablet or a desktop drives them: through
@@ -529,6 +529,29 @@ for (const width of WIDTHS) {
       const problems = await open(page, width, "u_trainer_meera", "/t");
       await coachLogJourney(page);
       expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`trainer review at ${width} px`, () => {
+    test("Review: read the check-in, adherence and trends, share feedback with a follow-up date, keep a private note, and confirm a goal", async ({ page }) => {
+      const problems = await open(page, width, "u_trainer_meera", "/t");
+      await reviewJourney(page);
+      expect(problems).toEqual([]);
+    });
+
+    test("Review: the history sits in a third zone from 1280 px and after the form below that", async ({ page }) => {
+      await open(page, width, "u_trainer_meera", "/t/clients/mem_arjun/review");
+      await expect(page.getByRole("heading", { name: "Review", level: 1 })).toBeVisible();
+      expect(await page.locator("[data-zones]").getAttribute("data-zones")).toBe(width >= 1280 ? "3" : "2");
+      await expect(page.getByRole("heading", { name: "Arjun’s latest check-in" })).toBeVisible();
+      await expect(page.getByText("“Work travel on Thursday.”")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Body weight" }).or(page.getByText(/^Body weight:/))).toBeVisible();
+      if (width >= 1280) {
+        const form = (await page.getByRole("heading", { name: "Write your review" }).boundingBox())!;
+        const hist = (await page.getByRole("heading", { name: "Reviews and notes" }).boundingBox())!;
+        expect(hist.x).toBeGreaterThan(form.x);
+      }
+      await noSideways(page, "Review layout");
     });
   });
 

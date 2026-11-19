@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ClipboardList, Dumbbell, ListChecks, Sparkles } from "lucide-react";
+import { ClipboardCheck, ClipboardList, Dumbbell, ListChecks, Sparkles } from "lucide-react";
 import { useAddPrivateNote, useClient } from "@/api/trainerHooks";
 import type { ClientProfile, ProfileGoal, ProfileLog, ProfileNote } from "@/api/clients";
 import { Avatar } from "@/design/Avatar";
@@ -55,6 +55,10 @@ function Profile({ p }: { p: ClientProfile }) {
           <Button3DLink to={`/t/library/programs?member=${p.memberId}`} size="md" variant={p.program ? "white" : "ember"}>
             <Sparkles className="h-5 w-5" aria-hidden="true" />
             {p.program ? "Revise plan" : "Build a plan"}
+          </Button3DLink>
+          <Button3DLink to={`/t/clients/${p.memberId}/review`} size="md" variant={p.review?.overdue ? "ember" : "white"}>
+            <ClipboardCheck className="h-5 w-5" aria-hidden="true" />
+            {p.review?.overdue ? "Review is due" : "Review"}
           </Button3DLink>
           <Button3DLink to={`/t/log?client=${p.memberId}`} size="md" variant="white">
             <ListChecks className="h-5 w-5" aria-hidden="true" />

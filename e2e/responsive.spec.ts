@@ -207,6 +207,7 @@ test.describe("trainer screens at every width", () => {
     { path: "/t/clients", h1: "Clients", zones: true },
     { path: "/t/clients/mem_arjun", h1: "Arjun Kumar", zones: true },
     { path: "/t/clients/mem_arjun/assessment", h1: "Assessment and goals", zones: true },
+    { path: "/t/clients/mem_arjun/review", h1: "Review", zones: true },
     { path: "/t/log", h1: "Log a session", zones: false },
     { path: "/t/log?client=mem_126&date=2026-11-16", h1: "Log a session", zones: false },
     { path: "/t/library", h1: "Exercises", zones: true },
