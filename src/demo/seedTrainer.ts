@@ -68,6 +68,33 @@ export function buildRoster(input: RosterInput): RosterSeed {
       if (attended) out.creditLedger.push(entry(`cr_roster_con_${id}`, "consumption", 1, { bookingId: `bk_roster_${id}`, refEntryId: reservation, createdAt: at(today, "08:00") }));
     });
   });
+
+  // The last four weeks: sessions already coached, for the clients who have none today, so the owner’s trainer utilisation has real hours to count. Each such client holds one pack of eight
+  // credits and every session uses one (a reservation and a consumption), so the ledger agrees with the bookings.
+  const busyToday = new Set(out.bookings.filter((b) => b.startsAt.startsWith(today)).map((b) => b.memberId));
+  trainerIds.forEach((trainerId) => {
+    const clients = onPlan.filter((o) => o.trainerId === trainerId && !busyToday.has(o.member.id) && hash(`${o.member.id}history`) % 3 !== 0).slice(0, 3);
+    const used = new Set<string>();
+    const packed = new Set<string>();
+    for (let back = 28; back >= 1; back--) {
+      const date = addDays(today, -back);
+      const branchId = availability.find((x) => x.trainerId === trainerId && x.weekday === weekdayOf(date))?.branchId;
+      if (!branchId) continue;
+      clients.forEach((client, ci) => {
+        if (hash(`${trainerId}${client.member.id}${date}`) % 100 >= 24) return;
+        const time = ["07:00", "08:00", "18:00", "19:00"][(hash(`${client.member.id}${date}t`) + ci) % 4]!;
+        const slot = slotKeyFor(trainerId, date, time);
+        if (used.has(slot)) return;
+        used.add(slot);
+        const id = `${client.member.id}_${date}_${time.slice(0, 2)}`;
+        const pack = `cr_roster_hist_${client.member.id}`;
+        const entry = (eid: string, kind: CreditLedgerEntry["kind"], credits: number, extra: Partial<CreditLedgerEntry> = {}): CreditLedgerEntry => ({ id: eid, tenantId: TENANT_ID, memberId: client.member.id, kind, credits, createdBy: kind === "purchase" ? deskFor(branchId) : trainerId, createdAt: at(addDays(date, -2), "09:00"), idempotencyKey: `seed-${eid}`, ...extra });
+        if (!packed.has(client.member.id)) { packed.add(client.member.id); out.creditLedger.push(entry(pack, "purchase", 8, { expiresOn: addDays(today, 120), createdAt: at(addDays(today, -40), "10:00") })); }
+        out.bookings.push({ id: `bk_roster_${id}`, tenantId: TENANT_ID, memberId: client.member.id, branchId, kind: "pt_session", trainerId, startsAt: at(date, time), endsAt: at(date, `${String(Number(time.slice(0, 2)) + 1).padStart(2, "0")}:00`), status: "attended", creditEntryId: `cr_roster_res_${id}`, slotKey: slot, createdBy: client.member.id, createdAt: at(addDays(date, -2), "09:00"), idempotencyKey: `seed-booking-${id}` });
+        out.creditLedger.push(entry(`cr_roster_res_${id}`, "reservation", 1, { bookingId: `bk_roster_${id}` }), entry(`cr_roster_con_${id}`, "consumption", 1, { bookingId: `bk_roster_${id}`, refEntryId: `cr_roster_res_${id}`, createdAt: at(date, "09:00") }));
+      });
+    }
+  });
   return out;
 }
 

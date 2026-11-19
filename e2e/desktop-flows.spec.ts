@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
 import { a01Journey } from "./a01";
 import { a03Journey } from "./a03";
-import { bookingsJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
+import { bookingsJourney, dashboardJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
  * Member flows on wide screens. The M1 journeys again, but driven the way a person on a tablet or a desktop drives them: through
@@ -659,6 +659,14 @@ for (const width of WIDTHS) {
       const second = await context.newPage();
       await second.setViewportSize({ width, height: HEIGHT(width) });
       await a03Journey(page, second);
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`owner dashboard at ${width} px`, () => {
+    test("Dashboard: figures, charts, alerts, a branch and a range, and a branch manager’s own branch only", async ({ page }) => {
+      const problems = await open(page, width, "u_owner", "/owner");
+      await dashboardJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
       expect(problems).toEqual([]);
     });
   });

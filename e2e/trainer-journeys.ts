@@ -777,3 +777,48 @@ export async function financeJourney(page: Page, signIn: (userId: string, path: 
   await expect(page.getByText("Export ready")).toBeVisible();
   expect((await readStore(page, "auditEvents")).filter((e) => e.action === "export.create")).toHaveLength(1);
 }
+
+/**
+ * O06, O07: the owner’s dashboard. Billed and collected apart, renewals against the cohort, the check-in heat map, trainer utilisation and alerts; a branch and a range change the
+ * numbers; and a branch manager sees only their own branch, here and in the switcher.
+ */
+export async function dashboardJourney(page: Page, signIn: (userId: string, path: string) => Promise<void>) {
+  await page.goto("/owner");
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+  const kpis = page.getByRole("group", { name: "Key figures" }).or(page.locator("dl[aria-label='Key figures']"));
+  for (const label of ["Billed", "Collected", "Dues", "Active memberships", "Ending soon", "Renewals"]) await expect(kpis).toContainText(label);
+  await expect(page.getByText("Invoiced in this range")).toBeVisible();
+  await expect(page.getByRole("img", { name: /^Billed and collected by week/ })).toBeVisible();
+  await expect(page.getByRole("img", { name: /^Check-ins by weekday and hour/ })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Trainers" })).toContainText("Meera Joshi");
+  await expect(page.getByRole("list", { name: "Alerts" })).toContainText("overdue");
+  await noSideways(page, "Dashboard");
+  const allBilled = await kpis.locator("div", { hasText: /^Billed/ }).first().textContent();
+
+  // A branch from the switcher changes the numbers.
+  await page.getByRole("combobox", { name: "Branch" }).first().selectOption("br_bandra");
+  await expect(page.getByText(/visits, Bandra/)).toBeVisible();
+  expect(await kpis.locator("div", { hasText: /^Billed/ }).first().textContent()).not.toBe(allBilled);
+  await page.getByRole("combobox", { name: "Branch" }).first().selectOption("all");
+
+  // A shorter range, and a custom one with the dates the wrong way round saying so.
+  await page.getByRole("radio", { name: "Last 7 days" }).click();
+  await expect(page).toHaveURL(/range=7/);
+  await expect(page.getByText("11 Nov 2026 to 17 Nov 2026")).toBeVisible();
+  await page.getByLabel("From").fill("2026-11-10");
+  await expect(page.getByText("10 Nov 2026 to 17 Nov 2026")).toBeVisible();
+  await noSideways(page, "Dashboard, 7 days");
+
+  // The report an alert points to is one tap away.
+  await page.goto("/owner");
+  await expect(page.getByRole("list", { name: "Alerts" }).getByRole("link", { name: "See the report" }).first()).toHaveAttribute("href", /\/owner\/reports\?report=/);
+
+  // A branch manager sees only their own branch.
+  await signIn("u_bm_bandra", "/owner");
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+  await expect(page.getByText(/visits, Bandra/)).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Branch" })).toHaveCount(0);
+  await expect(page.getByText("Andheri")).toHaveCount(0);
+  await expect(page.getByText("Powai")).toHaveCount(0);
+  await noSideways(page, "Branch manager dashboard");
+}

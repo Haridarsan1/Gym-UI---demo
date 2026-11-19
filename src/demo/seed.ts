@@ -1,5 +1,5 @@
 import { ALL_BRANCHES, BRANCH, DEMO_ACCOUNTS, TENANT_ID } from "@/app/demoAccounts";
-import { addDays, todayIST, weekStart } from "@/domain/dates";
+import { addDays, istDateTime, todayIST, weekStart } from "@/domain/dates";
 import type {
   AuditEvent, Booking, Branch, CheckIn, Consent, CreditLedgerEntry, GatewayEvent, GatewaySettlement, GymClass, GymPolicies, Invoice, Member, Membership, MembershipPlan, NumberSeries, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, RefundRequest, TrainerAvailability, TrainerLeave, TrainerShift, User,
 } from "@/domain/types";
@@ -372,11 +372,30 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
   const finance = buildFinanceSeed(memberData.payments, today);
 
+  // Everyone else’s visits over the last four weeks, so the owner’s heat map and the desk’s history have something true to show. A visit is decided by a hash of member and day (the same
+  // every time): one to four a week each, busier on weekdays, mostly 6 to 9 am and 5 to 8 pm. Never today, so the desk’s list for today stays its own.
+  const visits: CheckIn[] = [];
+  const hoursAt = [6, 6, 7, 7, 8, 12, 13, 17, 18, 18, 19, 19, 20];
+  for (const ms of memberships) {
+    const m = members.find((x) => x.id === ms.memberId);
+    if (!m || ms.status !== "active" || PERSONAS.some((p) => p.memberId === m.id)) continue;
+    const rate = 1 + (hash(m.id) % 4);
+    for (let back = 1; back <= 28; back++) {
+      const date = addDays(today, -back);
+      if (date < ms.startsOn) break;
+      const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+      const roll = hash(`${m.id}${date}`) % 1000;
+      if (roll >= (rate * 1000 * (weekday === 0 ? 0.6 : weekday === 6 ? 1 : 1.15)) / 7) continue;
+      const h = hoursAt[hash(`${m.id}${date}h`) % hoursAt.length]!;
+      visits.push({ id: `ci_g_${m.id}_${date}`, tenantId: TENANT_ID, memberId: m.id, branchId: m.homeBranchId, membershipId: ms.id, at: istDateTime(date, `${String(h).padStart(2, "0")}:${String(hash(`${m.id}${date}m`) % 60).padStart(2, "0")}`), method: "qr", result: "allowed", visitDebited: false, recordedBy: deskFor(m.homeBranchId) });
+    }
+  }
+
   return {
     gatewayEvents: finance.gatewayEvents, gatewaySettlements: finance.gatewaySettlements,
     tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,
     creditLedger: [...creditLedger, ...memberData.creditLedger, ...roster.creditLedger],
-    invoices: numbered.invoices, numberSeries: numbered.series, payments: finance.payments, refunds: refundSeed.refunds, refundRequests: refundSeed.requests, classes: [], bookings: [...memberData.bookings, ...roster.bookings].map((b) => (b.kind === "pt_session" && b.status !== "canceled" ? { ...b, roomId: roomFor(b) } : b)), checkIns: memberData.checkIns,
+    invoices: numbered.invoices, numberSeries: numbered.series, payments: finance.payments, refunds: refundSeed.refunds, refundRequests: refundSeed.requests, classes: [], bookings: [...memberData.bookings, ...roster.bookings].map((b) => (b.kind === "pt_session" && b.status !== "canceled" ? { ...b, roomId: roomFor(b) } : b)), checkIns: [...memberData.checkIns, ...visits],
     auditEvents: [],
     trainerAvailability: availability, trainerShifts: shifts, trainerLeave: leave, gymPolicies: [policies],
   };

@@ -11,7 +11,8 @@ import { formatDate, formatDayMonth } from "@/lib/when";
  * answers a tap, a pointer or the arrow keys with a readout line (never hover only), and offers its values as a table.
  */
 
-export const CHART_COLORS = { ember: "#D14000", lilac: "#8B6CF6", neutral: "#B6AFC6", track: "#E4DCEE", grid: "#ECE6F1", ink: "#231C35", muted: "#6B6383", surface: "#FFFFFF" } as const;
+import { CHART_COLORS } from "@/design/charts/colors";
+export { CHART_COLORS };
 
 const W = 320;
 const H = 176;
