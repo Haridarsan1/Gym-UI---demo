@@ -493,7 +493,9 @@ Console style: calm and fast, dense tables that become card lists on phones, ⌘
   - **Exports** (`createExport`, `/desk/finance/exports`): CSV of invoices, payments, refunds, GST credit notes or dues for the branches the person can see and a date range; names, ids and money only, no phone, email or health data; formula-like text is defused; every download writes `export.create`.
   - **Day close** (`api/dayClose.ts`, `domain/dayClose.ts`, `/desk/finance/day-close`, permission `cash.close`: desk, finance, branch manager, owner): expected cash (cash received less cash refunded, India time) against the count; a variance needs a note; closing locks the day: cash payments and cash refunds are refused on a closed day (`assertDayOpen`), card and UPI are not. `reopenDay` (`cash.reopen`, owner only, reason required, audited) is tested; its button comes with the owner console in M4, because the owner works in `/owner`, not `/desk`.
 
-- [ ] Step 7: Acceptance A01, A03 and A04
+- [x] Step 7: Acceptance A01, A03 and A04
+  - `src/api/m3Acceptance.test.ts` runs each story through the real API with the demo people and checks access, invoice status and the credit ledger against each other. **A01**: register with a plan, a cash payment and a trainer; check in; publish a workout; log the session; share a review; renew and pay. **A03**: a desk booking, a second desk booking and a member’s own booking for one trainer slot at once give one booking, one reservation, and unchanged credits for everyone who lost. **A04**: freeze (entry stops, days are given back) and unfreeze; an expired membership, turned away and let in by a branch manager’s override with a reason and no visit used; cancellation, then a refund request approved once; a duplicate gateway notification (one payment, one renewal); a no-show settled once by the gym’s rule. The screens behind these stories are driven by the Playwright journeys (`desk-wizard`, `desk-checkin`, `desk-member`, `desk-money`, `desk-refunds`, `desk-bookings`, `desk-finance`) at 390, 768 and 1440 px.
+
 - **Done when:** A01, A03 and A04 pass end to end.
 
 ### M4 · Owner and branch manager (R02)
