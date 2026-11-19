@@ -197,3 +197,33 @@ export function useSaveReview(memberId: string) {
   const refresh = useRefreshClient();
   return useMutation({ mutationFn: async (input: import("@/api/review").ReviewInput) => (await reviewApi()).saveReview(session, input), onSuccess: () => refresh().then(() => undefined), meta: { memberId } });
 }
+
+const scheduleApi = () => import("@/api/schedule");
+
+/** The trainer’s schedule (O01, O02, T04, M06): sessions, availability, shifts, leave and conflicts. */
+export function useSchedule() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["trainer", session?.userId, "schedule"], queryFn: async () => (await scheduleApi()).getSchedule(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+export function useScheduleActions() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  const refresh = () => Promise.all(["schedule", "today", "conflict-options"].map((k) => qc.invalidateQueries({ queryKey: ["trainer", session?.userId, k] })));
+  const run = <I, O>(fn: (api: typeof import("@/api/schedule"), input: I) => Promise<O>) => ({ mutationFn: async (input: I) => fn(await scheduleApi(), input), onSuccess: refresh });
+  return {
+    mark: useMutation(run((api, i: import("@/api/schedule").MarkInput) => api.markAttendance(session, i))),
+    saveAvailability: useMutation(run((api, i: import("@/api/schedule").AvailabilityInput) => api.saveAvailability(session, i))),
+    addShift: useMutation(run((api, i: import("@/api/schedule").ShiftInput) => api.addShift(session, i))),
+    removeShift: useMutation(run((api, id: string) => api.removeShift(session, id))),
+    addLeave: useMutation(run((api, i: import("@/api/schedule").LeaveInput) => api.addLeave(session, i))),
+    cancelLeave: useMutation(run((api, id: string) => api.cancelLeave(session, id))),
+    move: useMutation(run((api, i: import("@/api/schedule").MoveInput) => api.moveSession(session, i))),
+  };
+}
+
+/** Where a session that clashes with leave can go. Read fresh: free times change. */
+export function useConflictOptions(bookingId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["trainer", session?.userId, "conflict-options", bookingId], queryFn: async () => (await scheduleApi()).getConflictOptions(session, bookingId!), enabled: !!session && !!bookingId, retry, staleTime: 0, gcTime: 0 });
+}

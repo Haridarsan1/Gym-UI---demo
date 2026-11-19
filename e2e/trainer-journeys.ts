@@ -143,3 +143,109 @@ export async function reviewJourney(page: Page) {
   expect(audit.map((e) => e.action).sort()).toEqual(["goal.confirm", "review.shared"]);
   await noSideways(page, "Reviewed");
 }
+
+const mainNav = (page: Page, name: string) => page.locator('nav[aria-label="Main"]:visible').getByRole("link", { name, exact: true });
+/** A schedule section: a tab on a phone, a button in the section menu from 768 px. */
+const scheduleTab = (page: Page, name: string | RegExp) => page.getByRole("tab", { name }).or(page.getByRole("navigation", { name: "Schedule sections" }).getByRole("button", { name }));
+
+/**
+ * O01, O02, T04, M06: Coach Meera’s day. Her sessions are listed; at 7:30 pm three have started, so she marks one attended and one a
+ * no-show (the credit rule is said first and applied); she adds leave that clashes with Arjun’s booked session, moves it, edits her
+ * weekly availability, and adds a one-off shift. Everything is checked in the database.
+ */
+export async function scheduleJourney(page: Page, width: number) {
+  await mainNav(page, "Schedule").click();
+  await expect(page.getByRole("heading", { name: "Schedule", level: 1 })).toBeVisible();
+  const today = page.getByRole("list", { name: "Today’s sessions" });
+  await expect(today.getByRole("listitem")).toHaveCount(4);
+  await expect(today.getByRole("listitem").first()).toContainText("Attended");
+  await expect(page.getByRole("list", { name: "Sessions to mark" })).toHaveCount(0);
+  await noSideways(page, "Schedule at noon");
+
+  // Seven thirty in the evening: the 5, 6 and 7 pm sessions have started and are waiting to be marked.
+  await page.clock.setSystemTime(new Date("2026-11-17T14:00:00.000Z"));
+  await mainNav(page, "Today").click();
+  await mainNav(page, "Schedule").click();
+  const toMark = page.getByRole("list", { name: "Sessions to mark" });
+  await expect(toMark.getByRole("listitem")).toHaveCount(3);
+  await expect(page.getByText("Attended: uses 1 session credit. No-show: uses 1 session credit.")).toBeVisible();
+  await noSideways(page, "To mark");
+
+  await toMark.getByRole("button", { name: /^Mark .+ attended$/ }).first().click();
+  const attended = page.getByRole("dialog", { name: "Mark attended" });
+  await expect(attended).toContainText("Uses 1 session credit.");
+  await attended.getByRole("button", { name: "Mark attended" }).click();
+  await expect(page.getByText(/marked attended/)).toBeVisible();
+  await expect(toMark.getByRole("listitem")).toHaveCount(2);
+  await toMark.getByRole("button", { name: /^Mark .+ a no-show$/ }).first().click();
+  const noShow = page.getByRole("dialog", { name: "Mark no-show" });
+  await expect(noShow).toContainText("Uses 1 session credit.");
+  await noShow.getByRole("button", { name: "Mark no-show" }).click();
+  await expect(toMark.getByRole("listitem")).toHaveCount(1);
+  await expect(page.getByRole("list", { name: "Today’s sessions" })).toContainText("No-show");
+  await expect(page.getByRole("list", { name: "Today’s sessions" })).toContainText("Session credit used");
+  const bookings = (await readStore(page, "bookings")).filter((b) => b.trainerId === "u_trainer_meera" && String(b.startsAt).startsWith("2026-11-17"));
+  expect(bookings.map((b) => b.status).sort()).toEqual(["attended", "attended", "booked", "no_show"]);
+  const ledger = await readStore(page, "creditLedger");
+  const marked = bookings.filter((b) => b.status === "attended" || b.status === "no_show").map((b) => b.id);
+  expect(ledger.filter((e) => marked.includes(e.bookingId as string) && e.kind === "consumption" && String(e.idempotencyKey).startsWith("mark:"))).toHaveLength(2);
+
+  // Leave that clashes with Arjun’s booked session on Thursday 19 Nov: shown to the trainer, and moved.
+  await scheduleTab(page, /^Shifts and leave/).click();
+  await expect(page.getByRole("list", { name: "Upcoming leave" })).toContainText("Year-end break");
+  await page.getByRole("form", { name: "Add leave" }).getByLabel("First day").fill("2026-11-19");
+  await page.getByRole("form", { name: "Add leave" }).getByLabel("Reason (optional)").fill("Conference");
+  await page.getByRole("button", { name: "Add leave" }).click();
+  await expect(page.getByText(/1 booked session is on those days/)).toBeVisible();
+  await expect(page.getByRole("list", { name: "Upcoming leave" })).toContainText("1 booked session clashes");
+  await noSideways(page, "Leave");
+  await scheduleTab(page, /^Sessions/).click();
+  await expect(page.getByRole("heading", { name: "1 booked session is on your leave" })).toBeVisible();
+  if (width >= 1280) await expect(page.getByRole("complementary", { name: "Needs you now" })).toContainText("1 on your leave to move");
+  const clash = page.getByRole("list", { name: "Sessions on leave" }).getByRole("listitem");
+  await expect(clash).toContainText("Arjun Kumar");
+  await expect(clash).toContainText("On your leave");
+  const arjunBefore = (await readStore(page, "bookings")).find((b) => b.memberId === "mem_arjun" && String(b.startsAt).startsWith("2026-11-19"))!;
+  const ledgerBefore = (await readStore(page, "creditLedger")).filter((e) => e.memberId === "mem_arjun").length;
+  await clash.getByRole("button", { name: "Move Arjun’s session" }).click();
+  const move = page.getByRole("dialog", { name: "Move Arjun’s session" });
+  await expect(move).toContainText("keeps the session credit");
+  await expect(move.getByRole("heading", { name: "With another trainer at Andheri" })).toBeVisible();
+  await move.getByRole("list", { name: /^Your times on/ }).first().getByRole("button").first().click();
+  await expect(page.getByText("Arjun’s session is moved")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /on your leave$/ })).toHaveCount(0);
+  const arjunAfter = (await readStore(page, "bookings")).find((b) => b.id === arjunBefore.id)!;
+  expect(arjunAfter.startsAt).not.toBe(arjunBefore.startsAt);
+  expect(arjunAfter).toMatchObject({ status: "booked", trainerId: "u_trainer_meera" });
+  expect((await readStore(page, "creditLedger")).filter((e) => e.memberId === "mem_arjun")).toHaveLength(ledgerBefore);
+  expect((await readStore(page, "emailLog")).filter((e) => e.memberId === "mem_arjun" && e.template === "booking_rescheduled")).toHaveLength(1);
+
+  // Weekly availability: a bad window says what is wrong; a good one saves.
+  await scheduleTab(page, /^Availability/).click();
+  await expect(page.getByRole("heading", { name: "Weekly availability" })).toBeVisible();
+  await noSideways(page, "Availability");
+  await page.getByLabel("Monday window 1 end").fill("05:00");
+  await page.getByRole("button", { name: "Save availability" }).click();
+  await expect(page.getByRole("alert")).toContainText("The end must be after the start.");
+  await page.getByLabel("Monday window 1 end").fill("11:00");
+  await page.getByLabel("Monday window 1 start").fill("07:00");
+  await page.getByRole("button", { name: "Save availability" }).click();
+  await expect(page.getByText("Availability saved")).toBeVisible();
+  const monday = (await readStore(page, "trainerAvailability")).filter((a) => a.trainerId === "u_trainer_meera" && a.weekday === 1).map((a) => a.start).sort();
+  expect(monday).toEqual(["07:00", "17:00"]);
+
+  // A one-off shift is listed, and removing it takes it off.
+  await scheduleTab(page, /^Shifts and leave/).click();
+  await expect(page.getByRole("list", { name: "Upcoming shifts" })).toContainText("Sunday cover");
+  const shift = page.getByRole("form", { name: "Add a shift" });
+  await shift.getByLabel("Date").fill("2026-11-24");
+  await shift.getByLabel("From").fill("12:00");
+  await shift.getByLabel("To").fill("14:00");
+  await shift.getByLabel("Note (optional)").fill("Extra hours");
+  await page.getByRole("button", { name: "Add shift" }).click();
+  await expect(page.getByRole("list", { name: "Upcoming shifts" })).toContainText("Extra hours");
+  expect((await readStore(page, "trainerShifts")).filter((x) => x.trainerId === "u_trainer_meera")).toHaveLength(2);
+  await page.getByRole("button", { name: /^Remove the shift on Tue 24 Nov/ }).click();
+  await expect(page.getByRole("list", { name: "Upcoming shifts" })).not.toContainText("Extra hours");
+  await noSideways(page, "Shifts");
+}

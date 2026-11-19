@@ -1,4 +1,5 @@
 import { addDays, daysBetween, istDateTime } from "@/domain/dates";
+import { mergeWindows, onLeave, type LeaveRange } from "@/domain/schedule";
 
 /**
  * Which times a member can book with a trainer (T04, O01). A slot sits inside a window the trainer is available and inside
@@ -46,15 +47,21 @@ export function slotsForDay(input: {
   nowIso: string;
   today: string;
   horizonDays: number;
+  /** Days the trainer is away. No slots on them (O01: leave blocks new bookings). */
+  leave?: LeaveRange[];
+  /** One-off windows on a date, added to the weekly pattern. */
+  shifts?: Array<{ date: string; start: string; end: string }>;
 }): Slot[] {
   const { date, availability, branchHours, sessionMinutes, busy, nowIso, today, horizonDays } = input;
   const ahead = daysBetween(today, date);
   if (ahead < 0 || ahead > horizonDays) return [];
+  if (onLeave(date, input.leave ?? [])) return [];
   const weekday = weekdayOf(date);
   const open = branchHours.filter((h) => h.weekday === weekday);
   if (!open.length) return [];
   const out: Slot[] = [];
-  for (const w of availability.filter((a) => a.weekday === weekday)) {
+  const windows = mergeWindows([...availability.filter((a) => a.weekday === weekday), ...(input.shifts ?? []).filter((s) => s.date === date)]);
+  for (const w of windows) {
     const start = minutes(w.start);
     const end = minutes(w.end);
     for (let s = start; s + sessionMinutes <= end; s += sessionMinutes) {

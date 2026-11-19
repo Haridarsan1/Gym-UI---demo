@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import type {
   Assessment, AuditEvent, BadgeAward, Booking, EmailLogEntry, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
-  MembershipPlan, MemberSettings, ProgramTemplate, GatewayEvent, DataRequest, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerReview, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
+  MembershipPlan, MemberSettings, ProgramTemplate, GatewayEvent, DataRequest, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
 } from "@/domain/types";
 
 export interface MetaRow {
@@ -46,6 +46,8 @@ export class EmberDB extends Dexie {
   memberSettings!: EntityTable<MemberSettings, "id">;
   badgeAwards!: EntityTable<BadgeAward, "id">;
   trainerAvailability!: EntityTable<TrainerAvailability, "id">;
+  trainerShifts!: EntityTable<TrainerShift, "id">;
+  trainerLeave!: EntityTable<TrainerLeave, "id">;
   gymPolicies!: EntityTable<GymPolicies, "id">;
   assessments!: EntityTable<Assessment, "id">;
   programTemplates!: EntityTable<ProgramTemplate, "id">;
@@ -109,6 +111,11 @@ export class EmberDB extends Dexie {
     this.version(5).stores({
       assessments: "id, tenantId, memberId, recordedOn",
       programTemplates: "id, tenantId, ownerId",
+    });
+    // Version 6 (M2, Schedule): a trainer’s one-off shifts and leave (O01).
+    this.version(6).stores({
+      trainerShifts: "id, tenantId, trainerId, date",
+      trainerLeave: "id, tenantId, trainerId, from",
     });
   }
 }

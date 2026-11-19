@@ -103,6 +103,41 @@ export const TrainerAvailability = z.object({
 export type TrainerAvailability = z.infer<typeof TrainerAvailability>;
 
 /**
+ * Why: O01 lets a trainer work extra hours on one date, such as covering another branch. A shift adds a window on its date to the weekly
+ * pattern; it never removes one. Leave (below) is what removes days.
+ */
+export const TrainerShift = z.object({
+  id,
+  tenantId: id,
+  trainerId: id,
+  branchId: id,
+  date: isoDate,
+  start: z.string().regex(/^\d{2}:\d{2}$/),
+  end: z.string().regex(/^\d{2}:\d{2}$/),
+  note: z.string().optional(),
+  createdAt: isoDateTime,
+});
+export type TrainerShift = z.infer<typeof TrainerShift>;
+
+/**
+ * Why: T04, O01 and O02 need days a trainer is away. Leave blocks new bookings on every day from `from` to `to` (both included).
+ * Bookings already on those days become conflicts the trainer and the front desk resolve (confirmed after M1.5). Canceling leave
+ * keeps the record and frees the days.
+ */
+export const TrainerLeave = z.object({
+  id,
+  tenantId: id,
+  trainerId: id,
+  from: isoDate,
+  to: isoDate,
+  reason: z.string().optional(),
+  createdBy: id,
+  createdAt: isoDateTime,
+  canceledAt: isoDateTime.optional(),
+});
+export type TrainerLeave = z.infer<typeof TrainerLeave>;
+
+/**
  * Why: the booking, cancellation, streak and trainer-dashboard rules are the gym’s choice (M02, T04, T07, O02), not constants in code. The owner
  * edits them in M4 (Policies). One row per gym.
  */

@@ -71,7 +71,8 @@ describe("choosing a trainer, a day and a slot", () => {
   it("gives each trainer’s days in the booking window, inside their availability and the branch hours", async () => {
     const s = await getTrainerSchedule(arjun, MEERA);
     expect(s).toMatchObject({ trainerName: "Meera Joshi", branchName: "Andheri" });
-    expect(s.days.map((d) => d.date).slice(0, 3)).toEqual(["2026-11-18", "2026-11-20", "2026-11-23"]);
+    // Wednesday, Friday, and Sunday 22 Nov, which Meera covers with a shift (08:00 to 12:00 at Andheri); then Monday.
+    expect(s.days.map((d) => d.date).slice(0, 4)).toEqual(["2026-11-18", "2026-11-20", "2026-11-22", "2026-11-23"]);
     expect(s.days.at(-1)!.date <= "2026-12-01").toBe(true);
     expect(s.days[0]!.slots.map((x) => x.time)).toEqual(["06:00", "07:00", "08:00", "09:00", "10:00", "17:00", "18:00", "19:00", "20:00"]);
   });

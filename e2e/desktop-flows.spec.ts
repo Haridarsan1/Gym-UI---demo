@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
-import { coachLogJourney, reviewJourney } from "./trainer-journeys";
+import { coachLogJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
  * Member flows on wide screens. The M1 journeys again, but driven the way a person on a tablet or a desktop drives them: through
@@ -552,6 +552,25 @@ for (const width of WIDTHS) {
         expect(hist.x).toBeGreaterThan(form.x);
       }
       await noSideways(page, "Review layout");
+    });
+  });
+
+  test.describe(`trainer schedule at ${width} px`, () => {
+    test("Schedule: mark sessions attended and no-show, add leave that clashes, move the session, edit availability, and add a shift", async ({ page }) => {
+      const problems = await open(page, width, "u_trainer_meera", "/t");
+      await scheduleJourney(page, width);
+      expect(problems).toEqual([]);
+    });
+
+    test("Schedule: the sections sit beside the chosen one, and a third zone says what needs you from 1280 px", async ({ page }) => {
+      await open(page, width, "u_trainer_meera", "/t/schedule");
+      await expect(page.getByRole("heading", { name: "Schedule", level: 1 })).toBeVisible();
+      expect(await page.locator("[data-zones]").getAttribute("data-zones")).toBe(width >= 1280 ? "3" : "2");
+      await expect(page.getByRole("navigation", { name: "Schedule sections" }).getByRole("button", { name: /Sessions/ })).toHaveAttribute("aria-current", "page");
+      if (width >= 1280) await expect(page.getByRole("complementary", { name: "Needs you now" })).toContainText("Nothing to mark and no sessions on your leave.");
+      await page.getByRole("navigation", { name: "Schedule sections" }).getByRole("button", { name: /Availability/ }).click();
+      await expect(page).toHaveURL(/tab=availability/);
+      await noSideways(page, "Schedule layout");
     });
   });
 

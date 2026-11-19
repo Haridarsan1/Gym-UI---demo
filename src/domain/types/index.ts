@@ -1,7 +1,7 @@
 import { AuditEvent, Branch, Consent, Member, SaasPlan, StaffRole, Tenant, TrainerAssignment, User } from "./core";
 import { CreditLedgerEntry, Invoice, Membership, MembershipPlan, Payment, Refund } from "./billing";
 import { Booking, CheckIn, GymClass } from "./ops";
-import { BadgeAward, DataRequest, EmailLogEntry, GatewayEvent, GymPolicies, MemberSettings, TrainerAvailability, TrainerReview } from "./supporting";
+import { BadgeAward, DataRequest, EmailLogEntry, GatewayEvent, GymPolicies, MemberSettings, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift } from "./supporting";
 import { Assessment, Exercise, Goal, Measurement, ProgramTemplate, WorkoutLog, WorkoutPlanVersion } from "./training";
 
 export * from "./common";
@@ -44,6 +44,8 @@ export const SUPPORTING_RECORDS = {
   memberSettings: MemberSettings,
   badgeAward: BadgeAward,
   trainerAvailability: TrainerAvailability,
+  trainerShift: TrainerShift,
+  trainerLeave: TrainerLeave,
   gymPolicies: GymPolicies,
   emailLogEntry: EmailLogEntry,
   gatewayEvent: GatewayEvent,

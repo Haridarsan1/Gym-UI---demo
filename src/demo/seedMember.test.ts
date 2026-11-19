@@ -5,7 +5,7 @@ import { creditBalance } from "@/domain/credits";
 import { addDays, weekStart } from "@/domain/dates";
 import { earnedBadges } from "@/domain/badges";
 import { adherence, detectPRs, planFor, streakWeeks, weekStats } from "@/domain/metrics";
-import { BadgeAward, Booking, CheckIn, Exercise, Goal, GymPolicies, Invoice, Measurement, MemberSettings, Payment, TrainerAvailability, TrainerReview, WorkoutLog, WorkoutPlanVersion } from "@/domain/types";
+import { BadgeAward, Booking, CheckIn, Exercise, Goal, GymPolicies, Invoice, Measurement, MemberSettings, Payment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, WorkoutLog, WorkoutPlanVersion } from "@/domain/types";
 
 const NOW = new Date("2026-11-17T06:30:00.000Z"); // 12:00 in India
 const TODAY = "2026-11-17";
@@ -36,6 +36,8 @@ describe("sample members: data is valid and consistent", () => {
     parseAll(MemberSettings, seed.memberSettings, "settings");
     parseAll(BadgeAward, seed.badgeAwards, "badge award");
     parseAll(TrainerAvailability, seed.trainerAvailability, "availability");
+    parseAll(TrainerShift, seed.trainerShifts, "shift");
+    parseAll(TrainerLeave, seed.trainerLeave, "leave");
     parseAll(GymPolicies, seed.gymPolicies, "policies");
   });
 
@@ -228,6 +230,8 @@ describe("gym defaults", () => {
   it("gives every trainer weekly availability at a branch they work at", () => {
     const roles = new Map(seed.staffRoles.map((s) => [s.userId, s]));
     for (const a of seed.trainerAvailability) expect(roles.get(a.trainerId)!.branchIds).toContain(a.branchId);
+    for (const x of seed.trainerShifts) expect(roles.get(x.trainerId)!.branchIds).toContain(x.branchId);
+    for (const l of seed.trainerLeave) expect(roles.has(l.trainerId)).toBe(true);
     expect(new Set(seed.trainerAvailability.map((a) => a.trainerId)).size).toBe(6);
   });
   it("prints the registered name, address and GSTIN on the gym record, for tax receipts", () => {

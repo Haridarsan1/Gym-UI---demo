@@ -133,15 +133,18 @@ export interface TrainerOption {
 
 async function scheduleFor(env: Env, trainerId: string, excludeBookingId?: string) {
   const { c, member, policy } = env;
-  const [availability, branch, busyRows] = await Promise.all([
+  const [availability, branch, busyRows, shifts, leave] = await Promise.all([
     db.trainerAvailability.where("trainerId").equals(trainerId).toArray(),
     db.branches.get(member.homeBranchId),
     db.bookings.where("trainerId").equals(trainerId).toArray(),
+    db.trainerShifts.where("trainerId").equals(trainerId).toArray(),
+    db.trainerLeave.where("trainerId").equals(trainerId).toArray(),
   ]);
   const here = availability.filter((a) => a.branchId === member.homeBranchId);
   const busy = busyRows.filter((b) => b.status === "booked" && b.id !== excludeBookingId);
-  const days = slotsForHorizon({ availability: here, branchHours: branch?.hours ?? [], sessionMinutes: policy.sessionMinutes, busy, nowIso: c.nowIso, today: c.today, horizonDays: policy.bookingHorizonDays });
-  return { days, branch, hasAvailability: here.length > 0 };
+  // Leave blocks new bookings on its days, and a shift adds hours on its date (O01).
+  const days = slotsForHorizon({ availability: here, branchHours: branch?.hours ?? [], sessionMinutes: policy.sessionMinutes, busy, nowIso: c.nowIso, today: c.today, horizonDays: policy.bookingHorizonDays, leave, shifts: shifts.filter((x) => x.branchId === member.homeBranchId) });
+  return { days, branch, hasAvailability: here.length > 0 || shifts.some((x) => x.branchId === member.homeBranchId) };
 }
 
 /** Trainers the member can book at their home branch: their own trainer, then the others when the gym allows choosing. */

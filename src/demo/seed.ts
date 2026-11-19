@@ -1,8 +1,8 @@
 import { ALL_BRANCHES, BRANCH, DEMO_ACCOUNTS, TENANT_ID } from "@/app/demoAccounts";
-import { addDays, todayIST } from "@/domain/dates";
+import { addDays, todayIST, weekStart } from "@/domain/dates";
 import type {
   AuditEvent, BadgeAward, Booking, Assessment, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, GymClass, GymPolicies, Goal, Invoice, Measurement, Member, MemberSettings,
-  Membership, MembershipPlan, Payment, ProgramTemplate, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerReview, User, WorkoutLog, WorkoutPlanVersion,
+  Membership, MembershipPlan, Payment, ProgramTemplate, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion,
 } from "@/domain/types";
 import { rng } from "@/demo/rng";
 import { PERSONAS } from "@/demo/personas";
@@ -42,6 +42,8 @@ export interface SeedData {
   memberSettings: MemberSettings[];
   badgeAwards: BadgeAward[];
   trainerAvailability: TrainerAvailability[];
+  trainerShifts: TrainerShift[];
+  trainerLeave: TrainerLeave[];
   gymPolicies: GymPolicies[];
   assessments: Assessment[];
   programTemplates: ProgramTemplate[];
@@ -101,6 +103,15 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
       }
     }
   }
+
+  // Meera covers a Sunday at Andheri; Farah is away for three days in December; Meera has a year-end break (beyond the booking window).
+  const shifts: TrainerShift[] = [
+    { id: "sh_meera_sunday", tenantId: TENANT_ID, trainerId: "u_trainer_meera", branchId: BRANCH.andheri, date: addDays(weekStart(today), 6), start: "08:00", end: "12:00", note: "Sunday cover", createdAt: createdAt(addDays(today, -10)) },
+  ];
+  const leave: TrainerLeave[] = [
+    { id: "lv_farah_dec", tenantId: TENANT_ID, trainerId: "u_trainer_farah", from: addDays(today, 20), to: addDays(today, 22), reason: "Family event", createdBy: "u_trainer_farah", createdAt: createdAt(addDays(today, -12)) },
+    { id: "lv_meera_yearend", tenantId: TENANT_ID, trainerId: "u_trainer_meera", from: addDays(today, 40), to: addDays(today, 44), reason: "Year-end break", createdBy: "u_trainer_meera", createdAt: createdAt(addDays(today, -5)) },
+  ];
 
   const users: User[] = DEMO_ACCOUNTS.map((a) => ({
     id: a.userId, tenantId: a.tenantId, name: a.name, email: a.email, phone: a.phone, role: a.role, status: "active", mfaEnabled: a.role === "owner" || a.role === "platform_admin", memberId: a.memberId, createdAt: createdAt(addDays(today, -60)),
@@ -295,6 +306,6 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     invoices: memberData.invoices, payments: memberData.payments, refunds: [], classes: [], bookings: [...memberData.bookings, ...roster.bookings], checkIns: memberData.checkIns,
     exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: [...memberData.goals, ...roster.goals], assessments: [...memberData.assessments, ...roster.assessments], programTemplates: buildTemplates(today, createdAt),
     measurements: memberData.measurements, auditEvents: [], trainerReviews: [...memberData.trainerReviews, ...roster.trainerReviews], memberSettings: memberData.memberSettings,
-    badgeAwards: memberData.badgeAwards, trainerAvailability: availability, gymPolicies: [policies],
+    badgeAwards: memberData.badgeAwards, trainerAvailability: availability, trainerShifts: shifts, trainerLeave: leave, gymPolicies: [policies],
   };
 }
