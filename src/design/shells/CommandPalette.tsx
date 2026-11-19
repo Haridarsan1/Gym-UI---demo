@@ -19,7 +19,7 @@ interface Command {
 }
 
 /** ⌘K (Ctrl+K on Windows): jump to any screen you may open, or run an action. Only lists what the person is allowed to do. */
-export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export default function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { session } = useSession();
   const can = useCan();
   const navigate = useNavigate();
@@ -29,17 +29,6 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const listId = useId();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        onOpenChange(!open);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onOpenChange]);
 
   useEffect(() => {
     if (open) {

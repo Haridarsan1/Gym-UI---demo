@@ -10,7 +10,7 @@ import { chromium } from "@playwright/test";
 
 const PORT = 4173;
 const BASE = `http://localhost:${PORT}`;
-const BUDGET_KB = { "/m": 170, "/desk": 170 };
+const BUDGET_KB = { "/m": 170, "/t": 170, "/desk": 170, "/owner": 170, "/admin": 170 };
 
 /**
  * Code the member app must never download up front. A module in any chunk that /m loads on a return visit (the seed

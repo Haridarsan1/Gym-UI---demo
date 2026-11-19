@@ -1,7 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getMe } from "@/api/me";
-import { listMembers, type MemberListParams } from "@/api/members";
-import { getToday } from "@/api/member";
+import type { MemberListParams } from "@/api/members";
 import { isRetryable } from "@/api/errors";
 import { useSession } from "@/app/SessionContext";
 
@@ -14,14 +12,14 @@ export const retry = (count: number, error: unknown) => count < 2 && isRetryable
 
 export function useMe() {
   const { session } = useSession();
-  return useQuery({ queryKey: ["me", session?.userId], queryFn: () => getMe(session), enabled: !!session, retry, staleTime: 5 * 60_000 });
+  return useQuery({ queryKey: ["me", session?.userId], queryFn: async () => (await import("@/api/me")).getMe(session), enabled: !!session, retry, staleTime: 5 * 60_000 });
 }
 
 export function useMembers(params: MemberListParams = {}) {
   const { session } = useSession();
   return useQuery({
     queryKey: ["members", session?.userId, params],
-    queryFn: () => listMembers(session, params),
+    queryFn: async () => (await import("@/api/members")).listMembers(session, params),
     enabled: !!session,
     retry,
     placeholderData: keepPreviousData,
@@ -31,5 +29,5 @@ export function useMembers(params: MemberListParams = {}) {
 /** The member’s Today screen: workout or rest day, week, streak, sessions, and anything needing attention. */
 export function useToday() {
   const { session } = useSession();
-  return useQuery({ queryKey: ["member", session?.userId, "today"], queryFn: () => getToday(session), enabled: !!session, retry, staleTime: 15_000 });
+  return useQuery({ queryKey: ["member", session?.userId, "today"], queryFn: async () => (await import("@/api/member")).getToday(session), enabled: !!session, retry, staleTime: 15_000 });
 }

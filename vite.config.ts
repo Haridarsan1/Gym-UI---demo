@@ -49,11 +49,16 @@ function chunkModules(): Plugin {
       for (const [file, chunk] of Object.entries(bundle)) if (chunk.type === "chunk") out[file] = Object.keys(chunk.modules).map((id) => id.replace(/^.*?\/(src\/|node_modules\/)/, "$1"));
       mkdirSync("node_modules/.cache/ember", { recursive: true });
       writeFileSync("node_modules/.cache/ember/chunk-modules.json", JSON.stringify(out));
+      // The same, with each file’s size after minifying (bytes, before gzip), for finding what a chunk is made of.
+      const sizes: Record<string, Record<string, number>> = {};
+      for (const [file, chunk] of Object.entries(bundle)) if (chunk.type === "chunk") sizes[file] = Object.fromEntries(Object.entries(chunk.modules).map(([id, m]) => [id.replace(/^.*?\/(src\/|node_modules\/)/, "$1"), m.renderedLength]));
+      writeFileSync("node_modules/.cache/ember/chunk-sizes.json", JSON.stringify(sizes));
     },
   };
 }
 
 export default defineConfig({
+  build: { target: ["chrome92", "safari15", "firefox92", "edge92"] },
   plugins: [
     react(),
     chunkModules(),
@@ -103,6 +108,10 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: [
+      { find: "@", replacement: fileURLToPath(new URL("./src", import.meta.url)) },
+      // Dexie’s modern build (no legacy syntax) instead of the one its package wrapper picks.
+      { find: /^dexie$/, replacement: fileURLToPath(new URL("./node_modules/dexie/dist/modern/dexie.mjs", import.meta.url)) },
+    ],
   },
 });

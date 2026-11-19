@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Ellipsis, LogOut, Search } from "lucide-react";
 import { LogoMark } from "@/components/ui/Logo";
@@ -12,9 +12,11 @@ import { AvatarMenu } from "@/design/shells/AvatarMenu";
 import { NAV_PAD, NavRail, NavSidebar, type NavGroup } from "@/design/shells/AppNav";
 import { BranchProvider } from "@/design/shells/BranchContext";
 import { BranchSwitcher } from "@/design/shells/BranchSwitcher";
-import { CommandPalette } from "@/design/shells/CommandPalette";
 import { AREA_PATH, ROLE_LABEL, type Area } from "@/domain/roles";
 import { cn } from "@/lib/format";
+
+/** The palette is fetched the first time it is asked for (⌘K or the search button), so it is not in the first download of any console. */
+const CommandPalette = lazy(() => import("@/design/shells/CommandPalette"));
 
 type StaffArea = Extract<Area, "desk" | "owner" | "admin">;
 
@@ -28,6 +30,18 @@ export function StaffShell({ area }: { area: StaffArea }) {
   const me = useMe();
   const signOut = useSignOut();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteSeen, setPaletteSeen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteSeen(true);
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const [moreOpen, setMoreOpen] = useState(false);
   if (!session) return null;
 
@@ -76,7 +90,7 @@ export function StaffShell({ area }: { area: StaffArea }) {
               </Link>
               {area !== "admin" && <BranchSwitcher branches={branches} />}
               <div className="flex-1" />
-              <button type="button" onClick={() => setPaletteOpen(true)} className="flex h-11 min-w-[2.75rem] items-center justify-center gap-2 rounded-full bg-white px-3 text-sm text-clay-muted shadow-sm hover:text-clay-ink sm:px-4" aria-label="Open command palette">
+              <button type="button" onClick={() => { setPaletteSeen(true); setPaletteOpen(true); }} className="flex h-11 min-w-[2.75rem] items-center justify-center gap-2 rounded-full bg-white px-3 text-sm text-clay-muted shadow-sm hover:text-clay-ink sm:px-4" aria-label="Open command palette">
                 <Search className="h-4 w-4" aria-hidden="true" />
                 <span className="hidden sm:inline">Search</span>
                 <kbd className="ml-1 hidden rounded-md bg-clay-canvas px-1.5 py-0.5 text-xs font-sans text-clay-subtle sm:inline">⌘K</kbd>
@@ -126,7 +140,7 @@ export function StaffShell({ area }: { area: StaffArea }) {
             </li>
           </ul>
         </Dialog>
-        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+        {paletteSeen && <Suspense fallback={null}><CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} /></Suspense>}
       </div>
     </BranchProvider>
   );
