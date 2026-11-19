@@ -294,7 +294,7 @@ One permission map in `domain/permissions.ts` (role × action × scope: own, ass
 
 | Measure | Target |
 |---|---|
-| Initial JS for `/m` (gzipped) | ≤ 170 KB (154.4 KB after M2 step 6; the report fails if trainer, desk, owner or admin code reaches it) |
+| Initial JS for `/m` (gzipped) | ≤ 170 KB (155.6 KB at the end of M2 (164.9 KB before the split; 141.6 KB on a return visit); the report fails if trainer, desk, owner or admin code reaches it) |
 | Largest Contentful Paint, mid-range Android, 4G | ≤ 2.0 s |
 | Interaction to Next Paint | ≤ 200 ms |
 | Common views load (S06) | ≤ 2 s at p95 in demo |
