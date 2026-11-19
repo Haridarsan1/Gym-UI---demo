@@ -10,7 +10,7 @@ import { daysBetween, eachDay, weekStart, addDays } from "@/domain/dates";
 import { currentMembership } from "@/domain/membership";
 import { estimateMinutes, planFor, scheduledBetween } from "@/domain/metrics";
 import { LoggedExercise as LoggedExerciseSchema, type LoggedExercise, type Exercise, type Prescription, type WorkoutLog, type WorkoutPlanVersion } from "@/domain/types";
-import { hasActivity, inOrder, lastTimeFor, loggingBlockedReason, normalizeEntries, progress, statusFor, type LastTime, type Progress } from "@/domain/workout";
+import { coachLoggingBlockedReason, hasActivity, inOrder, lastTimeFor, loggingBlockedReason, normalizeEntries, progress, statusFor, type LastTime, type Progress } from "@/domain/workout";
 import type { Session } from "@/app/session";
 
 /**
@@ -64,8 +64,10 @@ const info = (e: Exercise): ExerciseInfo => ({ id: e.id, name: e.name, category:
 
 const newKey = () => `wk-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 
-interface DayContext {
+export interface DayContext {
   c: MemberContext;
+  /** Who is logging: the member, or their trainer for them (T05). */
+  actor: "member" | "trainer";
   version: WorkoutPlanVersion;
   day: WorkoutPlanVersion["days"][number];
   log?: WorkoutLog;
@@ -78,6 +80,11 @@ async function loadDay(session: Session | null, date: string, access: "read" | "
   const c = await openMember(session);
   assertCan(c.principal, "workoutplan.read", c.resource);
   assertCan(c.principal, access === "write" ? "workoutlog.write" : "workoutlog.read", c.resource);
+  return dayFor(c, date, "member");
+}
+
+/** Finds the plan, the log and the membership for one day. The caller has already checked who may see it. */
+export async function dayFor(c: MemberContext, date: string, actor: DayContext["actor"]): Promise<DayContext> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new ApiError("invalid", "That isn’t a valid workout date.");
   const [versions, logs, memberships] = await Promise.all([
     db.workoutPlanVersions.where("memberId").equals(c.memberId).filter((v) => v.status === "published").toArray(),
@@ -86,7 +93,7 @@ async function loadDay(session: Session | null, date: string, access: "read" | "
   ]);
   const p = planFor(versions.filter((v) => v.status === "published"), date);
   if (p.state !== "workout") throw new ApiError("not_found", "There is no workout planned for this day. Rest days are part of the plan.");
-  return { c, version: p.version, day: p.day, log: logs.find((l) => l.scheduledOn === date), logs, membershipStatus: currentMembership(memberships)?.status };
+  return { c, actor, version: p.version, day: p.day, log: logs.find((l) => l.scheduledOn === date), logs, membershipStatus: currentMembership(memberships)?.status };
 }
 
 async function exercisesFor(ids: string[]): Promise<Map<string, Exercise>> {
@@ -96,7 +103,17 @@ async function exercisesFor(ids: string[]): Promise<Map<string, Exercise>> {
 
 /** The workout for one day, as the trainer prescribed it, with whatever the member has logged. Used to preview and to log. */
 export async function getWorkout(session: Session | null, date: string): Promise<WorkoutView> {
-  const { c, version, day, log, logs, membershipStatus } = await loadDay(session, date, "read");
+  return viewDay(await loadDay(session, date, "read"), date);
+}
+
+/** Why this day can’t be logged now, for whoever is logging it. */
+export const blockedFor = (d: DayContext, date: string, hasDraft: boolean, logStatus = d.log?.status): string | undefined => {
+  const args = { date, today: d.c.today, membershipStatus: d.membershipStatus, logStatus, hasDraft };
+  return d.actor === "trainer" ? coachLoggingBlockedReason(args) : loggingBlockedReason(args);
+};
+
+export async function viewDay(d: DayContext, date: string): Promise<WorkoutView> {
+  const { c, version, day, log, logs } = d;
   const prescriptions = inOrder(day);
   const first = await exercisesFor(prescriptions.map((p) => p.exerciseId));
   const swaps = await exercisesFor([...prescriptions.flatMap((p) => first.get(p.exerciseId)?.substitutionIds ?? []), ...(log?.entries.map((e) => e.exerciseId) ?? [])]);
@@ -119,20 +136,20 @@ export async function getWorkout(session: Session | null, date: string): Promise
     entries: normalizeEntries(day, log?.entries ?? []),
     idempotencyKey: log?.idempotencyKey ?? newKey(),
     effort: log?.effort, notes: log?.notes, recovery: log?.feedback?.recovery,
-    blockedReason: loggingBlockedReason({ date, today: c.today, membershipStatus, logStatus: log?.status, hasDraft: log?.status === "draft" }),
+    blockedReason: blockedFor(d, date, log?.status === "draft"),
   };
 }
 
-const DraftInput = z.object({ date: z.string(), entries: z.array(LoggedExerciseSchema).max(60), idempotencyKey: z.string().min(8) });
-const SubmitInput = DraftInput.extend({
+export const DraftInputSchema = z.object({ date: z.string(), entries: z.array(LoggedExerciseSchema).max(60), idempotencyKey: z.string().min(8) });
+export const SubmitInputSchema = DraftInputSchema.extend({
   effort: z.number().int().min(1).max(10).optional(),
   recovery: z.number().int().min(1).max(5).optional(),
   notes: z.string().max(1000).optional(),
 });
-export type DraftInput = z.input<typeof DraftInput>;
-export type SubmitInput = z.input<typeof SubmitInput>;
+export type DraftInput = z.input<typeof DraftInputSchema>;
+export type SubmitInput = z.input<typeof SubmitInputSchema>;
 
-const parse = <T extends z.ZodTypeAny>(schema: T, input: unknown): z.infer<T> => {
+export const parse = <T extends z.ZodTypeAny>(schema: T, input: unknown): z.infer<T> => {
   const r = schema.safeParse(input);
   if (!r.success) throw new ApiError("invalid", "We couldn’t read that workout. Reload the page and try again.");
   return r.data;
@@ -142,7 +159,7 @@ function newLog(d: DayContext, date: string, input: { entries: WorkoutLog["entri
   const at = d.c.nowIso;
   return {
     id: `wl_${d.c.memberId}_${date}`, tenantId: d.c.tenantId, memberId: d.c.memberId, planVersionId: d.version.id, weekIndex: d.day.weekIndex, dayIndex: d.day.dayIndex, scheduledOn: date,
-    status, startedAt: at, entries: input.entries, enteredBy: d.c.principal.userId, enteredByRole: "member", corrections: [], idempotencyKey: input.idempotencyKey,
+    status, startedAt: at, entries: input.entries, enteredBy: d.c.principal.userId, enteredByRole: d.actor, corrections: [], idempotencyKey: input.idempotencyKey,
   };
 }
 
@@ -151,12 +168,15 @@ function newLog(d: DayContext, date: string, input: { entries: WorkoutLog["entri
  * and a save that arrives after the workout was submitted is ignored.
  */
 export async function saveWorkoutDraft(session: Session | null, raw: DraftInput): Promise<{ status: WorkoutLog["status"] | "none" }> {
-  const input = parse(DraftInput, raw);
-  const d = await loadDay(session, input.date, "write");
+  const input = parse(DraftInputSchema, raw);
+  return saveDraftFor(await loadDay(session, input.date, "write"), input);
+}
+
+export async function saveDraftFor(d: DayContext, input: z.output<typeof DraftInputSchema>): Promise<{ status: WorkoutLog["status"] | "none" }> {
   return db.transaction("rw", db.workoutLogs, async () => {
     const existing = await db.workoutLogs.where("memberId").equals(d.c.memberId).and((l) => l.scheduledOn === input.date).first();
     if (existing && existing.status !== "draft") return { status: existing.status };
-    const blocked = loggingBlockedReason({ date: input.date, today: d.c.today, membershipStatus: d.membershipStatus, logStatus: existing?.status, hasDraft: !!existing });
+    const blocked = blockedFor(d, input.date, !!existing, existing?.status);
     if (blocked) throw new ApiError("forbidden", blocked);
     const entries = normalizeEntries(d.day, input.entries);
     if (!existing && !hasActivity(entries)) return { status: "none" as const };
@@ -183,15 +203,18 @@ export interface SubmitResult {
  * the log that already exists, so a retry after a dropped connection never makes a second one.
  */
 export async function submitWorkout(session: Session | null, raw: SubmitInput): Promise<SubmitResult> {
-  const input = parse(SubmitInput, raw);
-  const d = await loadDay(session, input.date, "write");
+  const input = parse(SubmitInputSchema, raw);
+  return submitFor(await loadDay(session, input.date, "write"), input);
+}
+
+export async function submitFor(d: DayContext, input: z.output<typeof SubmitInputSchema>): Promise<SubmitResult> {
   return db.transaction("rw", [db.workoutLogs, db.badgeAwards, db.workoutPlanVersions, db.memberships, db.goals, db.checkIns, db.gymPolicies, db.measurements], async () => {
     const byKey = await db.workoutLogs.where("idempotencyKey").equals(input.idempotencyKey).first();
     if (byKey && byKey.memberId !== d.c.memberId) throw new ApiError("conflict", "That workout could not be saved. Reload the page and try again.");
     if (byKey && byKey.status !== "draft") return { logId: byKey.id, date: byKey.scheduledOn, status: byKey.status, progress: progress(d.day, byKey.entries), repeated: true };
 
     const existing = await db.workoutLogs.where("memberId").equals(d.c.memberId).and((l) => l.scheduledOn === input.date).first();
-    const blocked = loggingBlockedReason({ date: input.date, today: d.c.today, membershipStatus: d.membershipStatus, logStatus: existing?.status, hasDraft: !!existing });
+    const blocked = blockedFor(d, input.date, !!existing, existing?.status);
     if (blocked) throw new ApiError(existing && existing.status !== "draft" ? "conflict" : "forbidden", blocked);
 
     const entries = normalizeEntries(d.day, input.entries);
@@ -200,6 +223,8 @@ export async function submitWorkout(session: Session | null, raw: SubmitInput): 
     const done = {
       status, entries, completedAt: d.c.nowIso, effort: input.effort, notes: input.notes?.trim() || undefined,
       feedback: input.recovery ? { recovery: input.recovery } : undefined, idempotencyKey: input.idempotencyKey,
+      // Whoever finishes a log is its author: a coach who finishes a draft the member started takes it over, and says so.
+      enteredBy: d.c.principal.userId, enteredByRole: d.actor,
     };
     let logId: string;
     if (existing) {

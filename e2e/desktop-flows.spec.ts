@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
+import { coachLogJourney } from "./trainer-journeys";
 
 /**
  * Member flows on wide screens. The M1 journeys again, but driven the way a person on a tablet or a desktop drives them: through
@@ -279,7 +280,7 @@ for (const width of WIDTHS) {
       await noSideways(page, "Client profile");
 
       await page.getByRole("tab", { name: "Workouts" }).click();
-      await expect(page.getByRole("list", { name: "Recent workouts" }).getByRole("listitem").first()).toContainText(/Logged by/);
+      await expect(page.getByRole("list", { name: "Recent workouts" }).getByRole("listitem").first()).toContainText(/Entered by/);
       await page.getByRole("tab", { name: "Notes and reviews" }).click();
       await page.getByRole("textbox", { name: "Private note" }).fill("Moved to the heavier block, watch the left shoulder.");
       await page.getByRole("button", { name: "Save note" }).click();
@@ -520,6 +521,14 @@ for (const width of WIDTHS) {
       await expect(page.getByRole("dialog", { name: "Version published" })).toContainText("Version 2, “Strength and size block”, stays as it was");
       await page.getByRole("dialog", { name: "Version published" }).getByRole("link", { name: "Back to Arjun" }).click();
       await expect(page.getByRole("list", { name: "Program versions" }).getByRole("listitem")).toHaveCount(3);
+    });
+  });
+
+  test.describe(`trainer coach-led logging at ${width} px`, () => {
+    test("Log a session: pick a day beside the client’s list, log it as the coach, and correct it with a reason", async ({ page }) => {
+      const problems = await open(page, width, "u_trainer_meera", "/t");
+      await coachLogJourney(page);
+      expect(problems).toEqual([]);
     });
   });
 

@@ -155,3 +155,31 @@ export function useTemplateLoader() {
   const { session } = useSession();
   return async (id: string) => (await templatesApi()).getTemplate(session, id);
 }
+
+const coachApi = () => import("@/api/coachLog");
+
+/** Coach-led logging (T05): the client’s recent days, one day to log, and the three writes. */
+export function useCoachDays(memberId: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["trainer", session?.userId, "coach-days", memberId], queryFn: async () => (await coachApi()).getCoachDays(session, memberId!), enabled: !!session && !!memberId, retry, staleTime: 0 });
+}
+
+/** Read fresh every time, like the member’s workout: the logging screen copies it into its own state and saves from there. */
+export function useCoachWorkout(memberId: string | undefined, date: string | undefined) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["trainer", session?.userId, "coach-workout", memberId, date], queryFn: async () => (await coachApi()).getCoachWorkout(session, memberId!, date!), enabled: !!session && !!memberId && !!date, retry, staleTime: 0, gcTime: 0 });
+}
+
+export function useSaveCoachDraft() {
+  const { session } = useSession();
+  return useMutation({ mutationFn: async (input: import("@/api/coachLog").CoachDraftInput) => (await coachApi()).saveCoachDraft(session, input) });
+}
+
+export function useCoachFinish(memberId: string) {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ["trainer", session?.userId, "coach-days", memberId] }), qc.invalidateQueries({ queryKey: ["trainer", session?.userId, "coach-workout", memberId] }), qc.invalidateQueries({ queryKey: ["trainer", session?.userId, "client", memberId] }), qc.invalidateQueries({ queryKey: ["trainer", session?.userId, "today"] })]);
+  const submit = useMutation({ mutationFn: async (input: import("@/api/coachLog").CoachSubmitInput) => (await coachApi()).submitCoachWorkout(session, input), onSuccess: refresh });
+  const correct = useMutation({ mutationFn: async (input: import("@/api/coachLog").CorrectionInput) => (await coachApi()).correctWorkout(session, input), onSuccess: refresh });
+  return { submit, correct };
+}

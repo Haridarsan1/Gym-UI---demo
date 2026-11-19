@@ -34,7 +34,8 @@ test.describe("Clients on a phone", () => {
     await page.getByRole("radio", { name: "Needs a plan" }).click();
     await expect(page).toHaveURL(/f=plan/);
     await expect(rows(page).filter({ hasText: "Sneha Patil" })).toHaveCount(1);
-    for (const r of await rows(page).all()) await expect(r).toContainText("Needs a plan");
+    // Retries until the list has narrowed, instead of reading it once while it may still be the whole list.
+    await expect(rows(page).filter({ hasNotText: "Needs a plan" })).toHaveCount(0);
     await page.reload();
     await expect(page.getByRole("radio", { name: "Needs a plan" })).toHaveAttribute("aria-checked", "true");
   });
@@ -73,7 +74,7 @@ test.describe("Client profile on a phone", () => {
     await page.getByRole("tab", { name: "Workouts" }).click();
     await expect(page).toHaveURL(/tab=logs/);
     const logs = page.getByRole("list", { name: "Recent workouts" }).getByRole("listitem");
-    await expect(logs.first()).toContainText(/Logged by (the member|Meera Joshi \(coach\))/);
+    await expect(logs.first()).toContainText(/Entered by (the member|Coach Meera)/);
     expect(await logs.count()).toBeGreaterThan(5);
   });
 

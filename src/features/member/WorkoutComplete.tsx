@@ -91,6 +91,7 @@ function Celebration({ s, celebrate }: { s: WorkoutSummary; celebrate: boolean }
           <BadgePart key={b.key} b={b} pop={pop} />
         ))}
       </div>
+      {s.enteredBy && <p className="text-sm text-clay-muted">{s.enteredBy}{s.corrected ? ", and corrected afterwards" : ""}.</p>}
       <div ref={tail} className="scroll-mb-32" />
 
       {!done && (

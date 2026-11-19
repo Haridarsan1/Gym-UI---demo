@@ -150,6 +150,21 @@ export function loggingBlockedReason(args: { date: string; today: string; member
   return undefined;
 }
 
+/**
+ * Why a trainer can’t log this day for a client, or nothing when they can (T05). A coach may log any past day with a plan
+ * (the member could not, or was coached in person), but not a day that hasn’t come. A finished log is changed only by a
+ * correction, which keeps the original.
+ */
+export function coachLoggingBlockedReason(args: { date: string; today: string; membershipStatus?: string; logStatus?: WorkoutLog["status"]; hasDraft: boolean }): string | undefined {
+  const { date, today, membershipStatus, logStatus } = args;
+  if (logStatus && logStatus !== "draft") return "This workout is already logged. Use Correct this log to change it; the original is kept.";
+  if (!membershipStatus) return "This client has no membership, so a workout can’t be logged.";
+  if (membershipStatus === "frozen") return "This client’s membership is frozen, so workouts are paused.";
+  if (membershipStatus !== "active") return "This client’s membership is not active.";
+  if (date > today) return "This workout opens on its day.";
+  return undefined;
+}
+
 /** “10 × 20 kg”, “45 s”, or “skipped”. One logged set in words. */
 export function describeSet(s: LoggedSet): string {
   if (s.skipped) return "skipped";

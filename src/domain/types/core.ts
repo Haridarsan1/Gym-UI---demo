@@ -168,6 +168,12 @@ export const AuditAction = z.enum([
   "assessment.view",
   "photo.view",
   "record.edit",
+  "workout.correct",
+  "booking.attendance",
+  "booking.move",
+  "schedule.change",
+  "review.shared",
+  "goal.confirm",
   "export.create",
   "import.run",
 ]);

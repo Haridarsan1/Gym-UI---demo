@@ -20,7 +20,7 @@ export interface StepActions {
  * One exercise: what to do, the target, and a row per set. The first set still to do is open with its target filled in.
  * Logged sets stay visible and can be changed; a skipped set can be logged after all.
  */
-export function ExerciseStep({ x, entry, actions }: { x: WorkoutExercise; entry: LoggedExercise; actions: StepActions }) {
+export function ExerciseStep({ x, entry, actions, headingId = "exercise-name" }: { x: WorkoutExercise; entry: LoggedExercise; actions: StepActions; headingId?: string }) {
   const p = x.prescription;
   const [chosen, setChosen] = useState<number | null>(null);
   const [swapping, setSwapping] = useState(false);
@@ -36,10 +36,10 @@ export function ExerciseStep({ x, entry, actions }: { x: WorkoutExercise; entry:
   const done = sets.filter((n) => logged(n)).length;
 
   return (
-    <section aria-labelledby="exercise-name" className="space-y-4">
+    <section aria-labelledby={headingId} className="space-y-4">
       <div>
         <p className="text-sm font-semibold text-clay-muted">{SECTION[p.section]}</p>
-        <h2 id="exercise-name" tabIndex={-1} className="mt-1 text-[1.7rem] font-bold leading-tight tracking-tight focus:outline-none">
+        <h2 id={headingId} tabIndex={-1} className="mt-1 text-[1.7rem] font-bold leading-tight tracking-tight focus:outline-none">
           {shown.name}
         </h2>
         {swapped && <p className="text-sm font-semibold text-lilac-700">Instead of {x.exercise.name}</p>}

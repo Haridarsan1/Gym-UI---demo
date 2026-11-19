@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ClipboardList, Dumbbell, Sparkles } from "lucide-react";
+import { ClipboardList, Dumbbell, ListChecks, Sparkles } from "lucide-react";
 import { useAddPrivateNote, useClient } from "@/api/trainerHooks";
 import type { ClientProfile, ProfileGoal, ProfileLog, ProfileNote } from "@/api/clients";
 import { Avatar } from "@/design/Avatar";
@@ -56,6 +56,10 @@ function Profile({ p }: { p: ClientProfile }) {
             <Sparkles className="h-5 w-5" aria-hidden="true" />
             {p.program ? "Revise plan" : "Build a plan"}
           </Button3DLink>
+          <Button3DLink to={`/t/log?client=${p.memberId}`} size="md" variant="white">
+            <ListChecks className="h-5 w-5" aria-hidden="true" />
+            Log a session
+          </Button3DLink>
           <Button3DLink to={`/t/clients/${p.memberId}/assessment`} size="md" variant="white">
             <ClipboardList className="h-5 w-5" aria-hidden="true" />
             Assessment and goals
@@ -80,7 +84,7 @@ function Profile({ p }: { p: ClientProfile }) {
             <Goals goals={p.goals} memberId={p.memberId} />
           </>
         )}
-        {tab === "logs" && <Logs logs={p.logs} />}
+        {tab === "logs" && <Logs logs={p.logs} memberId={p.memberId} />}
         {tab === "notes" && <Notes p={p} />}
       </div>
     </article>
@@ -171,7 +175,7 @@ function Goals({ goals, memberId }: { goals: ProfileGoal[]; memberId: string }) 
   );
 }
 
-function Logs({ logs }: { logs: ProfileLog[] }) {
+function Logs({ logs, memberId }: { logs: ProfileLog[]; memberId: string }) {
   if (logs.length === 0) return <section className="clay p-4"><h2 className="text-lg font-bold">Workouts</h2><p className="mt-2 text-[0.95rem] text-clay-muted">No workouts logged yet.</p></section>;
   return (
     <section aria-labelledby="lg-title" className="clay p-4">
@@ -185,7 +189,8 @@ function Logs({ logs }: { logs: ProfileLog[] }) {
             </div>
             <p className="text-sm text-clay-muted">{formatWeekdayDate(l.date)}{l.effort ? `, effort ${l.effort} of 10` : ""}{l.volumeKg ? `, ${Math.round(l.volumeKg)} kg lifted` : ""}</p>
             <p className="text-sm text-clay-muted">
-              Logged by {l.enteredByRole === "trainer" ? `${l.enteredByName} (coach)` : l.enteredByName.toLowerCase()}{l.corrected ? ", corrected later" : ""}
+              {l.enteredByRole === "trainer" ? `Entered by Coach ${l.enteredByName.split(" ")[0]}` : "Entered by the member"}{l.corrected ? ", corrected later" : ""}
+              {" "}<Link to={`/t/log?client=${memberId}&date=${l.date}`} className="font-semibold text-ember-700 underline underline-offset-4">Open log</Link>
             </p>
             {l.notes && <p className="mt-1 text-[0.95rem]">“{l.notes}”</p>}
           </li>

@@ -11,6 +11,12 @@ export type SaveState = "idle" | "saving" | "saved" | "error";
  */
 export function useAutosave(date: string, idempotencyKey: string) {
   const { mutateAsync } = useSaveWorkoutDraft();
+  const save = useCallback((entries: LoggedExercise[]) => mutateAsync({ date, entries, idempotencyKey }), [date, idempotencyKey, mutateAsync]);
+  return useDraftSaver(save);
+}
+
+/** The same saving for any draft: the coach’s logging gives it its own `save`, which must keep the same identity between renders. */
+export function useDraftSaver(save: (entries: LoggedExercise[]) => Promise<unknown>) {
   const [state, setState] = useState<SaveState>("idle");
   const pending = useRef<LoggedExercise[] | null>(null);
   const failed = useRef<LoggedExercise[] | null>(null);
@@ -25,14 +31,14 @@ export function useAutosave(date: string, idempotencyKey: string) {
     failed.current = null;
     setState("saving");
     chain.current = chain.current
-      .then(() => mutateAsync({ date, entries, idempotencyKey }))
+      .then(() => save(entries))
       .then(() => setState((s) => (pending.current ? s : "saved")))
       .catch(() => {
         failed.current ??= entries;
         setState("error");
       });
     return chain.current;
-  }, [date, idempotencyKey, mutateAsync]);
+  }, [save]);
 
   const schedule = useCallback(
     (entries: LoggedExercise[]) => {

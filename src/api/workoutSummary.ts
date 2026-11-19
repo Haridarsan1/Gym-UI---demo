@@ -71,6 +71,10 @@ export interface WorkoutSummary {
   targetsReached: Array<{ id: string; title: string }>;
   effort?: number;
   recovery?: number;
+  /** “Entered by Coach Meera”, when the trainer logged this session for the member (T05). */
+  enteredBy?: string;
+  /** A coach corrected it afterwards. The member sees the corrected log. */
+  corrected?: boolean;
 }
 
 /** What the complete screen celebrates: the result, the volume, new records, the week and streak, and badges earned by this workout. */
@@ -102,6 +106,8 @@ export async function getWorkoutSummary(session: Session | null, date: string): 
     badges: awards.map((a) => ({ key: a.badge, label: BADGES[a.badge].label, description: BADGES[a.badge].description })),
     targetsReached: goals.map((g) => ({ id: g.id, title: g.title })),
     effort: log.effort, recovery: log.feedback?.recovery,
+    enteredBy: log.enteredByRole === "trainer" ? `Entered by Coach ${((await db.users.get(log.enteredBy))?.name ?? "your trainer").split(" ")[0]}` : undefined,
+    corrected: log.corrections.length > 0 || undefined,
   };
 }
 

@@ -117,7 +117,17 @@ export const WorkoutLog = z.object({
   /** Who typed it in. A trainer logging for a client is shown as the author (T05). */
   enteredBy: id,
   enteredByRole: z.enum(["member", "trainer"]),
-  corrections: z.array(z.object({ at: isoDateTime, by: id, note: z.string() })),
+  /**
+   * Changes made after the log was finished (T05). A correction never overwrites the original: `previous` holds exactly what the log
+   * said before this correction, so the first one holds the original. The log itself shows the latest version.
+   */
+  corrections: z.array(z.object({
+    at: isoDateTime,
+    by: id,
+    note: z.string(),
+    key: z.string().optional(),
+    previous: z.object({ status: z.enum(["completed", "partial", "skipped"]), entries: z.array(LoggedExercise), effort: z.number().optional(), notes: z.string().optional(), enteredBy: id, enteredByRole: z.enum(["member", "trainer"]) }).optional(),
+  })),
   idempotencyKey,
 });
 export type WorkoutLog = z.infer<typeof WorkoutLog>;

@@ -14,6 +14,7 @@ const implemented = {
   assessment: lazy(() => import("@/features/trainer/Assessment")),
   exercises: lazy(() => import("@/features/trainer/Library")),
   builder: lazy(() => import("@/features/trainer/Builder")),
+  log: lazy(() => import("@/features/trainer/Log")),
   templates: lazy(() => import("@/features/trainer/Templates")),
 };
 
