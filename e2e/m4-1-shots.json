@@ -1,0 +1,17 @@
+[
+  { "key": "dashboard", "caption": "Dashboard: the owner, all branches, last 30 days" },
+  { "key": "dashboard-money", "caption": "Billed and collected, side by side by week" },
+  { "key": "dashboard-heat", "caption": "Check-in heat map, with its busiest hours said in words" },
+  { "key": "dashboard-alerts", "caption": "Needs attention, each with its report" },
+  { "key": "dashboard-utilisation", "caption": "Trainer utilisation: coached hours over available hours" },
+  { "key": "dashboard-bandra", "caption": "The owner looking at one branch" },
+  { "key": "dashboard-bm", "caption": "A branch manager: Bandra only, no branch switcher" },
+  { "key": "reports-memberships", "caption": "Report: memberships, active and ending soon" },
+  { "key": "reports-renewals", "caption": "Report: renewals against memberships that ended" },
+  { "key": "reports-trainers", "caption": "Report: trainer utilisation" },
+  { "key": "reports-invoices", "caption": "Report: invoices, billed and still due" },
+  { "key": "reports-collections", "caption": "Report: collections, with matching to payouts" },
+  { "key": "reports-cash", "caption": "Report: cash day closes, with a variance and a reopen" },
+  { "key": "reopen-sheet", "caption": "Reopen a closed day: owner only, with a reason" },
+  { "key": "reports-bm", "caption": "A branch manager’s invoices report: Bandra only" }
+]
