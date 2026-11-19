@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import type {
   Assessment, AuditEvent, BadgeAward, Booking, EmailLogEntry, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
-  MembershipPlan, MemberSettings, NumberSeries, CreditNote, RefundRequest, ProgramTemplate, GatewayEvent, DataRequest, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
+  MembershipPlan, MemberSettings, NumberSeries, CreditNote, RefundRequest, ProgramTemplate, GatewayEvent, GatewaySettlement, DayClose, DataRequest, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
 } from "@/domain/types";
 
 export interface MetaRow {
@@ -56,6 +56,8 @@ export class EmberDB extends Dexie {
   programTemplates!: EntityTable<ProgramTemplate, "id">;
   emailLog!: EntityTable<EmailLogEntry, "id">;
   gatewayEvents!: EntityTable<GatewayEvent, "id">;
+  gatewaySettlements!: EntityTable<GatewaySettlement, "id">;
+  dayCloses!: EntityTable<DayClose, "id">;
   dataRequests!: EntityTable<DataRequest, "id">;
   meta!: EntityTable<MetaRow, "key">;
   idempotency!: EntityTable<IdempotencyRow, "key">;
@@ -128,6 +130,11 @@ export class EmberDB extends Dexie {
     this.version(8).stores({
       creditNotes: "id, tenantId, memberId, invoiceId",
       refundRequests: "id, tenantId, memberId, invoiceId, status",
+    });
+    // Version 9 (M3, finance): gateway settlements to reconcile against, and the cash day close.
+    this.version(9).stores({
+      gatewaySettlements: "id, tenantId, settledOn",
+      dayCloses: "id, tenantId, branchId, date",
     });
   }
 }

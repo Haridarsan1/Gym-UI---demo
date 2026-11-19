@@ -81,7 +81,7 @@ describe("staff consoles", () => {
   const side = (userId: string) => sidebarFor(areaFor(principal(userId).role), canFor(userId)).flatMap((g) => g.items.map((s) => s.title));
 
   it("gives front desk the desk screens but not finance", () => {
-    expect(side("u_desk_andheri")).toEqual(["Check-in", "New member", "Members", "Collect payment", "Bookings", "Dues"]);
+    expect(side("u_desk_andheri")).toEqual(["Check-in", "New member", "Members", "Collect payment", "Bookings", "Dues", "Day close"]);
   });
 
   it("gives finance the finance screens but not check-in or new member", () => {
@@ -117,7 +117,7 @@ describe("staff consoles", () => {
   it("puts check-in, members, bookings and dues in the front desk’s phone bar, and the rest behind More", () => {
     const { bar, more } = mobileBar(sidebarFor("desk", canFor("u_desk_andheri")).flatMap((g) => g.items));
     expect(titles(bar)).toEqual(["Check-in", "Members", "Bookings", "Dues"]);
-    expect(titles(more)).toEqual(["New member", "Collect payment"]);
+    expect(titles(more)).toEqual(["New member", "Collect payment", "Day close"]);
   });
 
   it("lists in the palette only screens the person may open, never ones that need an id", () => {

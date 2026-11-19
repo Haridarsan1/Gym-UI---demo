@@ -3,6 +3,7 @@ import { db } from "@/demo/db";
 import { now } from "@/api/clock";
 import { ApiError } from "@/api/errors";
 import { assertInBranch, openDesk, type DeskContext } from "@/api/desk";
+import { assertDayOpen } from "@/api/dayClose";
 import { buildAuditEvent } from "@/domain/audit";
 import { paidPaise } from "@/domain/billing";
 import { creditBalance } from "@/domain/credits";
@@ -139,6 +140,7 @@ export async function decideRefund(session: Session | null, raw: DecideInput): P
     if (!p.target) throw new ApiError("conflict", "There is no payment on this invoice to refund against.");
     if (req.amountPaise > p.refundable) throw new ApiError("conflict", `Only ${formatRupees(p.refundable)} of that payment is left to refund. Reject this request, or ask the desk for a smaller amount.`);
     const refund: Refund = { id: rid("rf"), tenantId: c.tenantId, paymentId: p.target.id, invoiceId: req.invoiceId, amountPaise: req.amountPaise, reason: req.reason, status: "completed", requestedBy: req.requestedBy, approvedBy: c.principal.userId, creditsReversed: p.reverse, createdAt: c.nowIso, idempotencyKey: `rq:${req.id}` };
+    if (p.target.method === "cash") await assertDayOpen(p.target.branchId, c.today);
     await db.refunds.add(refund);
     if (p.reverse > 0 && p.bought[0]) {
       const entry: CreditLedgerEntry = { id: `cr_${req.memberId}_rev_${refund.id}`, tenantId: c.tenantId, memberId: req.memberId, kind: "reversal", credits: p.reverse, refEntryId: p.bought[0].id, reason: `Refund of ${formatRupees(req.amountPaise)} on invoice ${p.invoice?.number ?? ""}`, createdBy: c.principal.userId, createdAt: c.nowIso, idempotencyKey: `refund:${refund.id}` };

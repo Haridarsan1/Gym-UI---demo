@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCalendarActions, useDeskConflictOptions } from "@/api/deskHooks";
+import { useCalendarActions, useDeskConflictOptions } from "@/api/deskMoreHooks";
 import type { CalendarBooking } from "@/api/deskBookings";
 import { isApiError } from "@/api/errors";
 import { QueryBoundary } from "@/design/QueryBoundary";

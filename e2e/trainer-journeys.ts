@@ -715,3 +715,65 @@ export async function bookingsJourney(page: Page, wide: boolean) {
   expect(moved.startsAt).not.toBe(arjun.startsAt);
   expect(moved.status).toBe("booked");
 }
+
+/**
+ * M03, M04, O06: the cash day close at the desk (a variance needs a note, and the closed day says it is locked), then finance: invoices and payments with billed
+ * and collected apart, reconciliation with a flagged duplicate event that is accepted with a note, and a CSV export.
+ */
+export async function financeJourney(page: Page, signIn: (userId: string, path: string) => Promise<void>) {
+  await page.goto("/desk/finance/day-close");
+  await expect(page.getByRole("heading", { name: "Day close", level: 1 })).toBeVisible();
+  await noSideways(page, "Day close");
+  await page.getByLabel("Cash counted (₹)").fill("200");
+  await expect(page.getByRole("status").filter({ hasText: "Over by ₹200" })).toBeVisible();
+  await page.getByRole("button", { name: "Close the day" }).click();
+  await expect(page.getByRole("alert")).toContainText("Add a note that says why.");
+  await page.getByLabel(/^Note/).fill("A member left a tip in the drawer");
+  await page.getByRole("button", { name: "Close the day" }).click();
+  await expect(page.getByText("Day closed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cash for this day is locked.", { exact: false })).toBeVisible();
+  const close = (await readStore(page, "dayCloses"))[0]!;
+  expect(close).toMatchObject({ branchId: "br_andheri", status: "closed", variancePaise: 20000, closedBy: "u_desk_andheri" });
+  await noSideways(page, "Closed day");
+
+  await signIn("u_finance", "/desk/finance/invoices");
+  await expect(page.getByRole("heading", { name: "Invoices and payments", level: 1 })).toBeVisible();
+  const totals = page.getByRole("group", { name: "Totals" }).or(page.locator("dl[aria-label=Totals]"));
+  await expect(totals).toContainText("Billed");
+  await expect(totals).toContainText("Collected");
+  await noSideways(page, "Invoices");
+  await page.getByLabel("Status").selectOption("overdue");
+  await expect(page.getByRole("table", { name: "Invoices" }).or(page.getByRole("list", { name: "Invoices" })).first()).toBeVisible();
+  await page.getByRole("radio", { name: "Payments" }).click();
+  await expect(page.getByRole("table", { name: "Payments" }).or(page.getByRole("list", { name: "Payments" })).first()).toBeVisible();
+  await noSideways(page, "Payments");
+
+  await page.goto("/desk/finance/reconciliation");
+  await expect(page.getByRole("heading", { name: "Reconciliation", level: 1 })).toBeVisible();
+  const flagged = page.getByRole("list", { name: "Flagged items" });
+  await expect(flagged.getByRole("listitem")).toHaveCount(4);
+  await expect(flagged).toContainText("Gateway event delivered 3 times");
+  await expect(flagged).toContainText("The payout is a different amount");
+  await expect(flagged).toContainText("A payout line Ember doesn’t know");
+  await noSideways(page, "Reconciliation");
+  await flagged.getByRole("button", { name: /^Accept: Gateway event delivered 3 times/ }).click();
+  const dlg = page.getByRole("dialog", { name: "Accept this item" });
+  await dlg.getByRole("button", { name: "Accept" }).click();
+  await expect(dlg.getByRole("alert")).toContainText("Say what you checked");
+  await dlg.getByLabel("Note").fill("Gateway retried after a timeout; one payment exists");
+  await dlg.getByRole("button", { name: "Accept" }).click();
+  await expect(page.getByText("Accepted", { exact: true })).toBeVisible();
+  await expect(flagged.getByRole("listitem")).toHaveCount(3);
+  const events = (await readStore(page, "gatewayEvents")).filter((e) => e.deliveries === 3);
+  expect(events[0]).toMatchObject({ reviewedBy: "u_finance" });
+  await expect(page.getByRole("list", { name: "Day closes" })).toContainText("Over ₹200");
+
+  await page.goto("/desk/finance/exports");
+  await expect(page.getByRole("heading", { name: "Exports", level: 1 })).toBeVisible();
+  await noSideways(page, "Exports");
+  await page.getByRole("radio", { name: /Payments/ }).click();
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download CSV" }).click()]);
+  expect(download.suggestedFilename()).toMatch(/^ember-payments-all-branches-\d{4}-\d{2}-\d{2}\.csv$/);
+  await expect(page.getByText("Export ready")).toBeVisible();
+  expect((await readStore(page, "auditEvents")).filter((e) => e.action === "export.create")).toHaveLength(1);
+}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
-import { useBookingFacts, useCalendarActions } from "@/api/deskHooks";
+import { useBookingFacts, useCalendarActions } from "@/api/deskMoreHooks";
 import { useMembers } from "@/api/hooks";
 import type { CalendarData, CalendarLane } from "@/api/deskBookings";
 import { isApiError } from "@/api/errors";

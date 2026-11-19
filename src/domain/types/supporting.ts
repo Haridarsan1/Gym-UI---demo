@@ -199,6 +199,9 @@ export const GatewayEvent = z.object({
   receivedAt: isoDateTime,
   deliveries: z.number().int().positive(),
   lastDeliveredAt: isoDateTime,
+  /** Finance looked at a repeated delivery and accepted it (M04). */
+  reviewedBy: id.optional(),
+  reviewNote: z.string().optional(),
 });
 export type GatewayEvent = z.infer<typeof GatewayEvent>;
 
@@ -218,3 +221,39 @@ export const DataRequest = z.object({
   idempotencyKey: z.string().min(8),
 });
 export type DataRequest = z.infer<typeof DataRequest>;
+
+/**
+ * Why: finance matches what Ember collected online with what the payment gateway paid into the bank (M03, M04). A settlement is one
+ * payout the gateway reports: the charges in it, by gateway reference, and its fee.
+ */
+export const GatewaySettlement = z.object({
+  id,
+  tenantId: id,
+  reference: z.string().min(1),
+  settledOn: isoDate,
+  lines: z.array(z.object({ reference: z.string().min(1), amountPaise: z.number().int().nonnegative() })),
+  feePaise: z.number().int().nonnegative(),
+});
+export type GatewaySettlement = z.infer<typeof GatewaySettlement>;
+
+/**
+ * Why: a simple cash day close (M3). The cash Ember expects in the drawer for one branch and day, what was counted, and the difference.
+ * One record per branch and day. A closed day’s cash records are locked; only the owner reopens it, with a reason, and both are audited.
+ */
+export const DayClose = z.object({
+  id,
+  tenantId: id,
+  branchId: id,
+  date: isoDate,
+  status: z.enum(["closed", "reopened"]),
+  expectedPaise: z.number().int(),
+  countedPaise: z.number().int().nonnegative(),
+  variancePaise: z.number().int(),
+  note: z.string().optional(),
+  closedBy: id,
+  closedAt: isoDateTime,
+  reopenedBy: id.optional(),
+  reopenedAt: isoDateTime.optional(),
+  reopenReason: z.string().optional(),
+});
+export type DayClose = z.infer<typeof DayClose>;

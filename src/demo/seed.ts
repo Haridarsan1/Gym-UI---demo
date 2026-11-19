@@ -1,7 +1,7 @@
 import { ALL_BRANCHES, BRANCH, DEMO_ACCOUNTS, TENANT_ID } from "@/app/demoAccounts";
 import { addDays, todayIST, weekStart } from "@/domain/dates";
 import type {
-  AuditEvent, BadgeAward, Booking, Assessment, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, GymClass, GymPolicies, Goal, Invoice, Measurement, Member, MemberSettings,
+  AuditEvent, BadgeAward, Booking, Assessment, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, GatewayEvent, GatewaySettlement, GymClass, GymPolicies, Goal, Invoice, Measurement, Member, MemberSettings,
   Membership, MembershipPlan, NumberSeries, Payment, ProgramTemplate, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, RefundRequest, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion,
 } from "@/domain/types";
 import { rng } from "@/demo/rng";
@@ -10,6 +10,7 @@ import { invoiceTotals, placeOfSupplyFor } from "@/domain/billing";
 import { hash } from "@/demo/seedMember";
 import { PERSONAS } from "@/demo/personas";
 import { TRAINER_POLICY_DEFAULTS } from "@/domain/trainerToday";
+import { buildFinanceSeed } from "@/demo/seedFinance";
 import { buildRoster } from "@/demo/seedTrainer";
 import { buildTemplates } from "@/demo/seedTemplates";
 import { buildMemberData } from "@/demo/seedMember";
@@ -47,6 +48,8 @@ export interface SeedData {
   trainerAvailability: TrainerAvailability[];
   trainerShifts: TrainerShift[];
   refundRequests: RefundRequest[];
+  gatewayEvents: GatewayEvent[];
+  gatewaySettlements: GatewaySettlement[];
   numberSeries: NumberSeries[];
   trainerLeave: TrainerLeave[];
   gymPolicies: GymPolicies[];
@@ -381,10 +384,13 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   const assessmentConsent = new Set(consents.filter((c) => c.scope === "assessments" && !c.withdrawnAt).map((c) => c.memberId));
   const roster = buildRoster({ today, members, memberships, trainerAssignments, availability, deskFor, assessmentConsent });
 
+  const finance = buildFinanceSeed(memberData.payments, today);
+
   return {
+    gatewayEvents: finance.gatewayEvents, gatewaySettlements: finance.gatewaySettlements,
     tenants, saasPlans, branches, users, staffRoles, members, trainerAssignments, membershipPlans, memberships, consents,
     creditLedger: [...creditLedger, ...memberData.creditLedger, ...roster.creditLedger],
-    invoices: numbered.invoices, numberSeries: numbered.series, payments: memberData.payments, refunds: refundSeed.refunds, refundRequests: refundSeed.requests, classes: [], bookings: [...memberData.bookings, ...roster.bookings].map((b) => (b.kind === "pt_session" && b.status !== "canceled" ? { ...b, roomId: roomFor(b) } : b)), checkIns: memberData.checkIns,
+    invoices: numbered.invoices, numberSeries: numbered.series, payments: finance.payments, refunds: refundSeed.refunds, refundRequests: refundSeed.requests, classes: [], bookings: [...memberData.bookings, ...roster.bookings].map((b) => (b.kind === "pt_session" && b.status !== "canceled" ? { ...b, roomId: roomFor(b) } : b)), checkIns: memberData.checkIns,
     exercises: EXERCISES, workoutPlanVersions: [...memberData.workoutPlanVersions, ...roster.workoutPlanVersions], workoutLogs: [...memberData.workoutLogs, ...roster.workoutLogs], goals: [...memberData.goals, ...roster.goals], assessments: [...memberData.assessments, ...roster.assessments], programTemplates: buildTemplates(today, createdAt),
     measurements: memberData.measurements, auditEvents: [], trainerReviews: [...memberData.trainerReviews, ...roster.trainerReviews], memberSettings: memberData.memberSettings,
     badgeAwards: memberData.badgeAwards, trainerAvailability: availability, trainerShifts: shifts, trainerLeave: leave, gymPolicies: [policies],

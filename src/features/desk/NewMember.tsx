@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Printer } from "lucide-react";
 import { useMe } from "@/api/hooks";
-import { useDuplicates, useRegisterMember, useWizardOptions } from "@/api/deskHooks";
+import { useDuplicates, useRegisterMember, useWizardOptions } from "@/api/deskMoreHooks";
 import type { RegisterResult } from "@/api/newMember";
 import { isApiError } from "@/api/errors";
 import { useSession } from "@/app/SessionContext";

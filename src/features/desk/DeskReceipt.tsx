@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
-import { useDeskReceipt } from "@/api/deskHooks";
+import { useDeskReceipt } from "@/api/deskMoreHooks";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonCard } from "@/design/Skeleton";
 import { ReceiptSheet } from "@/features/shared/ReceiptSheet";

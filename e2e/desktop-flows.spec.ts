@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
-import { bookingsJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
+import { bookingsJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
  * Member flows on wide screens. The M1 journeys again, but driven the way a person on a tablet or a desktop drives them: through
@@ -637,6 +637,14 @@ for (const width of WIDTHS) {
     test("Bookings: book a session, then move one that clashes with a trainer’s leave", async ({ page }) => {
       const problems = await open(page, width, "u_desk_andheri", "/desk");
       await bookingsJourney(page, width >= 768);
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`finance at ${width} px`, () => {
+    test("Finance: day close with a variance, invoices, reconciliation with a repeated event, and an export", async ({ page }) => {
+      const problems = await open(page, width, "u_desk_andheri", "/desk");
+      await financeJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
       expect(problems).toEqual([]);
     });
   });

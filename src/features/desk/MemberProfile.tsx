@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CalendarClock, Hand, Snowflake, Sun, XCircle } from "lucide-react";
-import { useMemberProfile, useWizardOptions } from "@/api/deskHooks";
+import { useMemberProfile, useWizardOptions } from "@/api/deskMoreHooks";
 import type { MemberProfileData } from "@/api/memberProfile";
 import { useCan } from "@/app/SessionContext";
 import { Avatar } from "@/design/Avatar";

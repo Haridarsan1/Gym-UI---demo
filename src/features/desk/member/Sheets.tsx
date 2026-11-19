@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { useCancelPreview, useMemberActions, usePlanChoices } from "@/api/deskHooks";
+import { useCancelPreview, useMemberActions, usePlanChoices } from "@/api/deskMoreHooks";
 import type { MemberProfileData } from "@/api/memberProfile";
 import type { CancelResult, ChangeResult } from "@/api/lifecycle";
 import type { CollectResult } from "@/api/payments";

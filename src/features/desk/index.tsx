@@ -15,6 +15,10 @@ const implemented = {
   dues: lazy(() => import("@/features/desk/Dues")),
   "desk-receipt": lazy(() => import("@/features/desk/DeskReceipt")),
   refunds: lazy(() => import("@/features/desk/Refunds")),
+  invoices: lazy(() => import("@/features/desk/FinanceInvoices")),
+  reconciliation: lazy(() => import("@/features/desk/Reconciliation")),
+  exports: lazy(() => import("@/features/desk/Exports")),
+  "day-close": lazy(() => import("@/features/desk/DayClose")),
   "desk-bookings": lazy(() => import("@/features/desk/Bookings")),
   "new-member": lazy(() => import("@/features/desk/NewMember")),
 };

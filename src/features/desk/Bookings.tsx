@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMe } from "@/api/hooks";
-import { useCalendar } from "@/api/deskHooks";
+import { useCalendar } from "@/api/deskMoreHooks";
 import type { CalendarBooking, CalendarData, CalendarLane } from "@/api/deskBookings";
 import { useCan } from "@/app/SessionContext";
 import { Button3D } from "@/design/Button3D";

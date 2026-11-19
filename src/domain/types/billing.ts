@@ -139,7 +139,7 @@ export const Payment = z.object({
   /** Why a failed payment failed, in words for the member. */
   failureReason: z.string().optional(),
   idempotencyKey,
-  reconciliation: z.object({ status: z.enum(["unmatched", "matched", "flagged"]), note: z.string().optional(), settlementId: z.string().optional() }),
+  reconciliation: z.object({ status: z.enum(["unmatched", "matched", "flagged"]), note: z.string().optional(), settlementId: z.string().optional(), reviewedBy: id.optional() }),
 });
 export type Payment = z.infer<typeof Payment>;
 

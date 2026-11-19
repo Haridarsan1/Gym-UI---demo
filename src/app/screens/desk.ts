@@ -1,5 +1,5 @@
 /** The desk area’s screens (docs/PLAN.md section 4). Loaded with the desk area only. */
-import { CalendarPlus, FileSpreadsheet, FileText, HandCoins, QrCode, ReceiptText, RefreshCcw, Scale, UserPlus, Users } from "lucide-react";
+import { CalendarPlus, FileSpreadsheet, FileText, HandCoins, Landmark, QrCode, ReceiptText, RefreshCcw, Scale, UserPlus, Users } from "lucide-react";
 import type { ScreenDef } from "@/app/screens";
 
 export const deskScreens: ScreenDef[] = [
@@ -14,5 +14,6 @@ export const deskScreens: ScreenDef[] = [
   { id: "invoices", title: "Invoices and payments", path: "finance/invoices", req: ["M03", "O07"], summary: "Search invoices and payments by status and branch, with billed and collected shown separately.", action: "report.view", icon: FileText, place: "side", group: "Finance" },
   { id: "refunds", title: "Refunds", path: "finance/refunds", req: ["M04", "M06"], summary: "Refund part or all of a payment, see what happens to unused credits, and review the history.", action: "refund.create", icon: RefreshCcw, place: "side", group: "Finance" },
   { id: "reconciliation", title: "Reconciliation", path: "finance/reconciliation", req: ["M03", "M04"], summary: "Match collections to gateway settlements and cash records, and review anything flagged, such as repeated gateway events.", action: "reconciliation.manage", icon: Scale, place: "side", group: "Finance" },
+  { id: "day-close", title: "Day close", path: "finance/day-close", req: ["M03"], summary: "Count the cash drawer for a day, see the variance and lock the day’s cash records.", action: "cash.close", icon: Landmark, place: "side", group: "Finance" },
   { id: "exports", title: "Exports", path: "finance/exports", req: ["O06", "S03"], summary: "Download CSV reports for the branches you can see.", action: "report.export", icon: FileSpreadsheet, place: "side", group: "Finance" },
 ];

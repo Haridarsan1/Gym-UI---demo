@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { Bell } from "lucide-react";
-import { useDues, useSendReminder } from "@/api/deskHooks";
+import { useDues, useSendReminder } from "@/api/deskMoreHooks";
 import type { DueRow } from "@/api/dues";
 import { isApiError } from "@/api/errors";
 import { useCan } from "@/app/SessionContext";

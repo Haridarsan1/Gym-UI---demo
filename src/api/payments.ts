@@ -3,6 +3,7 @@ import { db } from "@/demo/db";
 import { now } from "@/api/clock";
 import { ApiError } from "@/api/errors";
 import { assertInBranch, openDesk, type DeskContext } from "@/api/desk";
+import { assertDayOpen } from "@/api/dayClose";
 import { nextReceiptNumber } from "@/api/receipts";
 import { buildAuditEvent } from "@/domain/audit";
 import { amountDuePaise } from "@/domain/billing";
@@ -122,6 +123,7 @@ export async function collectPayment(session: Session | null, raw: CollectInput)
       return { paymentId: p.id, receiptNumber: p.receiptNumber!, amountPaise: p.amountPaise, invoice: { id: inv.id, number: inv.number, status: inv.status, totalPaise: inv.totalPaise, duePaise: amountDuePaise(inv, all) }, effects, emailedTo: member?.email, repeated };
     };
     if (earlier) return result(earlier, { kind: "invoice" }, true);
+    if (input.method === "cash") await assertDayOpen(invoice.branchId, c.today);
     if (invoice.status === "paid") throw new ApiError("conflict", "This invoice is already paid.");
     if (invoice.status === "void") throw new ApiError("conflict", "This invoice was voided, so it can’t be paid.");
     const paid = await db.payments.where("invoiceId").equals(invoice.id).toArray();

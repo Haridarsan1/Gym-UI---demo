@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import { useMembers } from "@/api/hooks";
-import { useMemberProfile } from "@/api/deskHooks";
+import { useMemberProfile } from "@/api/deskMoreHooks";
 import { Avatar } from "@/design/Avatar";
 import { Button3D } from "@/design/Button3D";
 import { QueryBoundary } from "@/design/QueryBoundary";
