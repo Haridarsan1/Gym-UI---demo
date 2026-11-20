@@ -95,6 +95,8 @@ const GRANTS = {
   "report.export": { owner: O, branch_manager: B, finance: B },
   "message.send": { owner: O, branch_manager: B, front_desk: B, finance: B },
   "communication.manage": { owner: O, branch_manager: B },
+  /** The gym’s wording for the emails it writes. Gym-wide, so the owner’s alone. */
+  "communication.template": { owner: O },
   "import.run": { owner: O },
   "staff.manage": { owner: O },
   /** Seeing who works at the gym. A branch manager sees the people at their own branches. */

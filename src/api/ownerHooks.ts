@@ -76,3 +76,22 @@ export function useBranchActions() {
   const qc = useQueryClient();
   return { save: useMutation({ mutationFn: async (i: import("@/api/branches").SaveBranchInput) => (await import("@/api/branches")).saveBranch(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner", session?.userId, "branches"] }) }) };
 }
+
+export function useCommunications(q: import("@/api/communications").CommsQuery) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["owner", session?.userId, "comms", q], queryFn: async () => (await import("@/api/communications")).getCommunications(session, q), enabled: !!session, retry, staleTime: 0, placeholderData: keepPreviousData });
+}
+
+export function useCommsActions() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  const done = () => qc.invalidateQueries({ queryKey: ["owner", session?.userId, "comms"] });
+  const api = () => import("@/api/communications");
+  return {
+    send: useMutation({ mutationFn: async (i: import("@/api/communications").SendInput) => (await api()).sendToGroup(session, i), onSuccess: done }),
+    retry: useMutation({ mutationFn: async (i: { id: string }) => (await api()).retryEmail(session, i), onSuccess: done }),
+    retryAll: useMutation({ mutationFn: async (i: { branchId?: string }) => (await api()).retryAllFailed(session, i), onSuccess: done }),
+    template: useMutation({ mutationFn: async (i: import("@/api/communications").SaveTemplateInput) => (await api()).saveTemplate(session, i), onSuccess: done }),
+    failure: useMutation({ mutationFn: async (on: boolean) => (await api()).setEmailFailure(session, on), onSuccess: done }),
+  };
+}

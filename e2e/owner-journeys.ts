@@ -380,3 +380,59 @@ export async function branchesJourney(page: Page, signIn: SignIn) {
   await expect(dialog(page, "Branch: Bandra").getByLabel("Address")).toHaveValue("Hill Road, Bandra West, Mumbai 400050");
   await noSideways(page, "Branches, branch manager");
 }
+
+/**
+ * Communications (O04): the groups and who can be reached, the gym’s own wording with a preview, an offer that respects consent, the demo’s mail failure with a failed email and its retry, and a
+ * branch manager reading the log for their own branch and previewing, not editing, the wording.
+ */
+export async function communicationsJourney(page: Page, signIn: SignIn) {
+  await signIn("u_owner", "/owner/communications");
+  await expect(page.getByRole("heading", { name: "Communications", level: 1 })).toBeVisible();
+  const offers = page.getByRole("list", { name: "Groups" }).getByRole("listitem").filter({ hasText: "Offers and news" });
+  await expect(offers).toContainText("haven’t agreed to offers");
+  await noSideways(page, "Communications");
+
+  // The wording, with a preview that follows what is typed.
+  await page.getByRole("button", { name: "Edit the Payment reminder email" }).click();
+  const tpl = dialog(page, "Email: Payment reminder");
+  await tpl.getByLabel("Subject").fill("Quick note: {{plan}} is open");
+  await tpl.getByRole("button", { name: "Save wording" }).click();
+  await expect(tpl.getByText("{{plan}} isn’t available in this email.")).toBeVisible();
+  await tpl.getByLabel("Subject").fill("Quick note: {{amount_due}} is open on {{invoice}}");
+  await expect(tpl.getByRole("region", { name: "Preview" })).toContainText("Quick note: ₹2,950 is open on PFAND/26-27/0042");
+  await tpl.getByRole("button", { name: "Save wording" }).click();
+  await expect(page.getByText("Wording saved")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Email wording" })).toContainText("Edited");
+
+  // The mail server refuses mail: an offer fails, and the retry works once it is back.
+  await page.getByRole("switch", { name: "Demo: make the mail server refuse mail" }).click();
+  await offers.getByRole("button", { name: /^Send to/ }).click();
+  const confirm = dialog(page, "Send to a group");
+  await expect(confirm).toContainText("are listed in the log as not sent, each with the reason");
+  await confirm.getByRole("button", { name: /^Send to/ }).click();
+  await expect(page.getByText("Emails sent")).toBeVisible();
+  await page.getByRole("button", { name: /^Failed ?\d+$/ }).click();
+  const log = page.getByRole("region", { name: "Delivery log" });
+  const failed = log.locator("tr:visible, li:visible").filter({ hasText: "Offers and news" }).first();
+  await expect(failed).toContainText("Failed");
+  await expect(failed).toContainText("The mail server didn’t accept it");
+  await failed.getByRole("button", { name: /^Retry the email to/ }).click();
+  await expect(page.getByText("Failed again")).toBeVisible();
+  await expect(log.locator("tr:visible, li:visible").filter({ hasText: "2 tries" }).first()).toBeVisible();
+  await page.getByRole("switch", { name: "Demo: make the mail server refuse mail" }).click();
+  await page.getByRole("button", { name: /^Retry all failed/ }).click();
+  await expect(page.getByText("Retried")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing matches" })).toBeVisible();
+  await page.getByRole("button", { name: /^Not sent ?\d+$/ }).click();
+  await expect(log.locator("tr:visible, li:visible").filter({ hasText: "hasn’t agreed to offers and news" }).first()).toBeVisible();
+  await noSideways(page, "Communications, log");
+
+  // A branch manager reads their branch’s log, and previews the wording.
+  await signIn("u_bm_bandra", "/owner/communications");
+  await expect(page.getByRole("button", { name: "Preview the Payment reminder email" })).toBeVisible();
+  await page.getByRole("button", { name: "Preview the Payment reminder email" }).click();
+  await expect(dialog(page, "Email: Payment reminder")).toContainText("Only the owner can change the wording.");
+  await expect(dialog(page, "Email: Payment reminder").getByRole("button", { name: "Save wording" })).toHaveCount(0);
+  await dialog(page, "Email: Payment reminder").getByRole("button", { name: "Close" }).first().click();
+  await noSideways(page, "Communications, branch manager");
+}

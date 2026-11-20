@@ -1,5 +1,6 @@
 import { policiesFor } from "@/api/policies";
 import { db } from "@/demo/db";
+import { render, whyNotSent, wordingFor } from "@/api/mail";
 import { now } from "@/api/clock";
 import { ApiError } from "@/api/errors";
 import { assertInBranch, openDesk } from "@/api/desk";
@@ -110,12 +111,14 @@ export async function sendReminder(session: Session | null, input: { invoiceId: 
     if (last && istDateOf(last.sentAt) > addDays(c.today, -GAP)) throw new ApiError("conflict", `A reminder went on ${formatDate(istDateOf(last.sentAt))}. Another can go from ${formatDate(addDays(istDateOf(last.sentAt), GAP))}.`);
     const first = member?.name.split(" ")[0] ?? "there";
     const overdue = isOverdue(invoice, payments, c.today);
+    const [consents, settings] = await Promise.all([db.consents.where("memberId").equals(invoice.memberId).toArray(), db.memberSettings.where("memberId").equals(invoice.memberId).first()]);
+    const blocked = whyNotSent("payment_reminder", { email: member?.email }, consents, invoice.memberId, settings);
+    const text = render(wordingFor(tenant, "payment_reminder"), { first_name: first, gym: tenant?.name ?? "Your gym", amount_due: formatRupees(due), invoice: invoice.number, due_on: formatDate(invoice.dueOn) });
     await db.emailLog.add({
-      id: `em_${crypto.randomUUID()}`, tenantId: c.tenantId, memberId: invoice.memberId, invoiceId: invoice.id, template: "payment_reminder", to: member?.email, subject: `${overdue ? "Overdue: " : ""}${formatRupees(due)} is due on invoice ${invoice.number}`,
-      body: [`Hi ${first},`, "", `${formatRupees(due)} is ${overdue ? "overdue" : "due"} on invoice ${invoice.number} (due ${formatDate(invoice.dueOn)}).`, "You can pay in the app, or at the front desk.", "", tenant?.name ?? "Your gym"].join("\n"),
-      status: member?.email ? "sent" : "skipped", detail: member?.email ? undefined : "No email address on file for this member.", sentAt: c.nowIso,
+      id: `em_${crypto.randomUUID()}`, tenantId: c.tenantId, memberId: invoice.memberId, invoiceId: invoice.id, template: "payment_reminder", to: member?.email, subject: `${overdue ? "Overdue: " : ""}${text.subject}`,
+      body: text.body, status: blocked ? "skipped" : "sent", detail: blocked?.reason, sentAt: c.nowIso,
     });
     await db.auditEvents.add(buildAuditEvent(c.principal, { action: "payment.record", reason: "Payment reminder sent", entityType: "invoice", entityId: invoice.id, memberId: invoice.memberId, details: { reminder: true, invoice: invoice.number, duePaise: due } }, `ae_${crypto.randomUUID()}`, now()));
-    return { sentTo: member?.email, skipped: !member?.email };
+    return { sentTo: blocked ? undefined : member?.email, skipped: !!blocked };
   });
 }

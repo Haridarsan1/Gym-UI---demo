@@ -46,7 +46,7 @@ export const MemberSettings = z.object({
 });
 export type MemberSettings = z.infer<typeof MemberSettings>;
 
-export const EmailTemplate = z.enum(["booking_confirmed", "booking_canceled", "booking_rescheduled", "payment_receipt", "membership_renewed", "sessions_purchased", "data_request", "member_welcome", "payment_reminder", "refund_issued", "staff_invite"]);
+export const EmailTemplate = z.enum(["booking_confirmed", "booking_canceled", "booking_rescheduled", "payment_receipt", "membership_renewed", "sessions_purchased", "data_request", "member_welcome", "payment_reminder", "refund_issued", "staff_invite", "renewal_reminder", "inactivity_prompt", "marketing_update"]);
 
 /**
  * Why: O04 says every message the gym sends is logged with its outcome, and messages are email only (confirmed decision). The
@@ -68,8 +68,14 @@ export const EmailLogEntry = z.object({
   to: z.string().optional(),
   subject: z.string(),
   body: z.string(),
-  status: z.enum(["sent", "skipped"]),
+  /** “failed”: the mail server didn’t accept it and it can be tried again (O04). “skipped”: it was never going to be sent, and `detail` says why. */
+  status: z.enum(["sent", "skipped", "failed"]),
   detail: z.string().optional(),
+  /** How many times it has been tried. Absent on messages written before retries. */
+  attempts: z.number().int().min(1).optional(),
+  lastAttemptAt: isoDateTime.optional(),
+  /** The group send this belongs to. */
+  campaign: z.string().optional(),
   sentAt: isoDateTime,
 });
 export type EmailLogEntry = z.infer<typeof EmailLogEntry>;

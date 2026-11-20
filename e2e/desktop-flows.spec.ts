@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
 import { a01Journey } from "./a01";
 import { a03Journey } from "./a03";
-import { branchesJourney, plansJourney, policiesJourney, staffJourney } from "./owner-journeys";
+import { branchesJourney, communicationsJourney, plansJourney, policiesJourney, staffJourney } from "./owner-journeys";
 import { bookingsJourney, dashboardJourney, reportsJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
@@ -710,6 +710,15 @@ for (const width of WIDTHS) {
       test.setTimeout(90_000);
       const problems = await open(page, width, "u_owner", "/owner/branches");
       await branchesJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`owner communications at ${width} px`, () => {
+    test("Communications: wording, an offer that respects consent, a failed email and its retry", async ({ page }) => {
+      test.setTimeout(90_000);
+      const problems = await open(page, width, "u_owner", "/owner/communications");
+      await communicationsJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
       expect(problems).toEqual([]);
     });
   });

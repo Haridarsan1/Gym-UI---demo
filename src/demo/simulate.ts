@@ -8,10 +8,12 @@ export interface Simulation {
   failureRate: number;
   /** Demo control: the simulated payment gateway declines every payment, so failed payments can be shown. */
   paymentFails: boolean;
+  /** Demo control: the simulated mail server refuses every email, so failed emails and retries can be shown (O04). */
+  emailFails: boolean;
 }
 
 const KEY = "ember.demo.simulation";
-const DEFAULTS: Simulation = { minMs: 60, maxMs: 180, failureRate: 0, paymentFails: false };
+const DEFAULTS: Simulation = { minMs: 60, maxMs: 180, failureRate: 0, paymentFails: false, emailFails: false };
 let current: Simulation | null = null;
 
 /** Read each time, so changing the setting (from the demo controls or a test) takes effect on the next call. */

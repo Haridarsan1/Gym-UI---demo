@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
+import { getSimulation } from "@/demo/simulate";
 import type {
   Assessment, AuditEvent, BadgeAward, Booking, EmailLogEntry, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
   MembershipPlan, MemberSettings, NumberSeries, CreditNote, RefundRequest, ProgramTemplate, GatewayEvent, GatewaySettlement, DayClose, DataRequest, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
@@ -135,6 +136,15 @@ export class EmberDB extends Dexie {
     this.version(9).stores({
       gatewaySettlements: "id, tenantId, settledOn",
       dayCloses: "id, tenantId, branchId, date",
+    });
+    // With the demo’s mail server switched to refuse mail, every message written as sent is written as failed instead, whoever sends it.
+    this.emailLog.hook("creating", (_key, row) => {
+      if (row.status === "sent" && getSimulation().emailFails) {
+        row.status = "failed";
+        row.detail = "The mail server didn’t accept it. This is the demo’s mail failure.";
+        row.attempts = 1;
+        row.lastAttemptAt = row.sentAt;
+      }
     });
   }
 }
