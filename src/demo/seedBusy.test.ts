@@ -21,8 +21,8 @@ describe("the demo gym is busy, and its figures are the definitions’ figures",
     const d = await getDashboard(as("u_owner"));
     const pct = d.utilisation.trainers.map((t) => t.percent ?? 0).sort((a, b) => a - b);
     expect(pct).toHaveLength(6);
-    expect(pct[0]!).toBeGreaterThanOrEqual(15);
-    expect(pct[0]!).toBeLessThanOrEqual(35);
+    expect(pct[0]!).toBeGreaterThanOrEqual(35);
+    expect(pct[0]!).toBeLessThanOrEqual(45);
     for (const p of pct.slice(1)) { expect(p).toBeGreaterThanOrEqual(55); expect(p).toBeLessThanOrEqual(75); }
     expect(d.utilisation.percent!).toBeGreaterThanOrEqual(50);
   });

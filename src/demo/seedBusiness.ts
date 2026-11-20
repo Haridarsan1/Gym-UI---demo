@@ -49,11 +49,11 @@ export function addRenewalHistory(input: { today: string; members: Member[]; mem
 export function addTrainingClients(input: { members: Member[]; memberships: Membership[]; trainerAssignments: TrainerAssignment[]; deskFor: (branchId: string) => string }): TrainerAssignment[] {
   const extra: Array<{ trainerId: string; branchId: string; take: number }> = [
     { trainerId: "u_trainer_vikrant", branchId: "br_andheri", take: 4 },
-    { trainerId: "u_trainer_vikrant", branchId: "br_powai", take: 4 },
-    { trainerId: "u_trainer_sanjay", branchId: "br_powai", take: 4 },
+    { trainerId: "u_trainer_kavya", branchId: "br_powai", take: 6 },
+    { trainerId: "u_trainer_vikrant", branchId: "br_powai", take: 3 },
+    { trainerId: "u_trainer_sanjay", branchId: "br_powai", take: 3 },
     { trainerId: "u_trainer_sanjay", branchId: "br_bandra", take: 5 },
     { trainerId: "u_trainer_farah", branchId: "br_bandra", take: 2 },
-    { trainerId: "u_trainer_kavya", branchId: "br_powai", take: 3 },
   ];
   const assigned = new Set(input.trainerAssignments.filter((a) => !a.effectiveTo).map((a) => a.memberId));
   const out = [...input.trainerAssignments];
