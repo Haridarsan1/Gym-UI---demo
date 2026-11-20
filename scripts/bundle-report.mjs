@@ -8,7 +8,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { chromium } from "@playwright/test";
 
-const PORT = 4173;
+const PORT = Number(process.env.REPORT_PORT ?? 4173);
 const BASE = `http://localhost:${PORT}`;
 const BUDGET_KB = { "/m": 170, "/t": 170, "/desk": 170, "/owner": 170, "/admin": 170 };
 

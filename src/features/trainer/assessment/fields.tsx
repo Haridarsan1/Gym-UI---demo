@@ -1,19 +1,7 @@
-import type { ReactNode } from "react";
 import { cn } from "@/lib/format";
 
-/** A labelled form field with an optional hint and an error that is announced. */
-export function Field({ label, hint, error, children, htmlFor }: { label: string; hint?: string; error?: string; children: ReactNode; htmlFor?: string }) {
-  return (
-    <div>
-      <label htmlFor={htmlFor} className="block text-sm font-semibold">{label}</label>
-      {hint && <p className="text-sm text-clay-muted">{hint}</p>}
-      <div className="mt-1">{children}</div>
-      {error && <p role="alert" className="mt-1 text-sm font-semibold text-status-danger-fg">{error}</p>}
-    </div>
-  );
-}
-
-export const inputClass = "clay-flat min-h-[2.75rem] w-full px-3 outline-none focus-visible:ring-2 focus-visible:ring-ember-300";
+import { inputClass } from "@/design/Field";
+export { Field, inputClass } from "@/design/Field";
 
 /** A number box that keeps what was typed and reports a number, or undefined when empty. */
 export function NumberInput({ id, value, onChange, step, min, max, placeholder, suffix }: { id: string; value: number | undefined; onChange: (v: number | undefined) => void; step?: number; min?: number; max?: number; placeholder?: string; suffix?: string }) {

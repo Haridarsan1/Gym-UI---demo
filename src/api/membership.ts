@@ -5,6 +5,7 @@ import { assertCan } from "@/api/context";
 import { allocateNumber } from "@/api/numbering";
 import { buildReceipt, type ReceiptData } from "@/api/receiptData";
 import { nextReceiptNumber } from "@/api/receipts";
+import { ptPricingFor } from "@/api/ptPricing";
 import { ApiError } from "@/api/errors";
 import { openMember, type MemberContext } from "@/api/member";
 import { amountDuePaise, invoiceTotals, isOverdue, isUnpaidCart, paidPaise, placeOfSupplyFor } from "@/domain/billing";
@@ -12,7 +13,7 @@ import { creditBalance, type CreditBalance } from "@/domain/credits";
 import { addDays, daysBetween } from "@/domain/dates";
 import { currentMembership, includedInPlan } from "@/domain/membership";
 import {
-  autoRenewTerms, PAYMENT_DECLINED, PAY_METHOD_LABEL, planOnOffer, renewalBlockedReason, renewalQuote, SESSION_EXPIRY_DAYS, SESSION_PACKS, SESSION_PRICE_PAISE, SESSION_TAX_RATE_BP, sessionPackQuote,
+  autoRenewTerms, PAYMENT_DECLINED, PAY_METHOD_LABEL, planOnOffer, renewalBlockedReason, renewalQuote, sessionPackQuote,
   type PayMethod, type RenewalQuote,
 } from "@/domain/renewal";
 import { buildAuditEvent } from "@/domain/audit";
@@ -149,6 +150,7 @@ export async function getMembership(session: Session | null): Promise<Membership
   const c = await openMember(session);
   for (const a of ["membership.read", "invoice.read", "credits.read"] as const) assertCan(c.principal, a, c.resource);
   const { member, tenant, memberships, invoices, payments, plans, ledger, branches, events } = await loadAll(c);
+  const pt = await ptPricingFor(c.tenantId);
   const branchName = new Map(branches.map((b) => [b.id, b.name]));
   const current = currentMembership(memberships);
   const next = memberships.filter((m) => m.status === "scheduled" && m.id !== current?.id).sort((a, b) => a.startsOn.localeCompare(b.startsOn))[0];
@@ -209,7 +211,7 @@ export async function getMembership(session: Session | null): Promise<Membership
     dues: firstOwed ? { invoiceId: firstOwed.i.id, number: firstOwed.i.number, duePaise: firstOwed.due, overdue: isOverdue(firstOwed.i, payments.filter((p) => p.invoiceId === firstOwed.i.id), c.today), totalDuePaise: owed.reduce((n, x) => n + x.due, 0) } : undefined,
     renewal: { blockedReason: blocked, options, currentPlanId: current?.planId },
     sessions: {
-      pricePaise: SESSION_PRICE_PAISE, packs: SESSION_PACKS.map((n) => sessionPackQuote(n)!),
+      pricePaise: pt.sessionPricePaise, packs: pt.packs.map((n) => sessionPackQuote(n, pt)!),
       blockedReason: !current ? "Ask the front desk to set up your membership, then you can buy sessions." : current.status === "pending" ? "Pay your first invoice to start your membership, then you can buy sessions." : undefined,
     },
     autoRenew: { on: !!current?.autoRenew && current.status === "active", method: current?.autoRenewMethod, available: !autoRenewReason, unavailableReason: autoRenewReason, terms: terms && currentPlan ? { planName: currentPlan.name, ...terms } : undefined },
@@ -265,14 +267,14 @@ export interface CheckoutView {
   effects: string[];
 }
 
-function effectsOf(inv: Invoice, plans: MembershipPlan[], current: Membership | undefined, today: string): string[] {
+function effectsOf(inv: Invoice, plans: MembershipPlan[], current: Membership | undefined, today: string, sessionExpiryDays: number): string[] {
   if (inv.purpose?.kind === "renewal") {
     const plan = plans.find((p) => p.id === inv.purpose?.planId);
     if (!plan) return ["Paying this invoice renews your membership."];
     const q = renewalQuote(plan, current, today);
     return [`${plan.name} runs ${formatDate(q.startsOn)} to ${formatDate(q.endsOn)}.`, q.status === "scheduled" ? "Your current membership carries on until then." : "It starts today."];
   }
-  if (inv.purpose?.kind === "sessions") return [`${inv.purpose.sessions} training sessions are added to your balance, good for ${SESSION_EXPIRY_DAYS} days.`];
+  if (inv.purpose?.kind === "sessions") return [`${inv.purpose.sessions} training sessions are added to your balance, good for ${sessionExpiryDays} days.`];
   return [];
 }
 
@@ -286,6 +288,7 @@ export async function startCheckout(session: Session | null, raw: CheckoutInput)
   assertCan(c.principal, "payment.pay", c.resource);
   return db.transaction("rw", db.tables, async () => {
     const { member, memberships, invoices, payments, plans, branches } = await loadAll(c);
+    const pt = await ptPricingFor(c.tenantId);
     const current = currentMembership(memberships);
     const owed = openInvoices(invoices, payments, true);
     let invoice: Invoice | undefined;
@@ -311,12 +314,12 @@ export async function startCheckout(session: Session | null, raw: CheckoutInput)
         });
       }
     } else {
-      const pack = sessionPackQuote(input.sessions);
+      const pack = sessionPackQuote(input.sessions, pt);
       if (!pack) throw new ApiError("invalid", "Choose one of the packs shown.");
       if (!current || current.status === "pending") throw new ApiError("forbidden", !current ? "Ask the front desk to set up your membership, then you can buy sessions." : "Pay your first invoice to start your membership, then you can buy sessions.");
       const same = owed.find((x) => x.i.purpose?.kind === "sessions" && x.i.purpose.sessions === input.sessions);
       invoice = same?.i ?? (await createInvoice(c, member, branches.find((b) => b.id === member.homeBranchId)?.stateCode ?? "27", invoices, {
-        description: `Personal training: ${input.sessions} sessions`, quantity: input.sessions, unitPaise: SESSION_PRICE_PAISE, taxRateBp: SESSION_TAX_RATE_BP, purpose: { kind: "sessions", sessions: input.sessions, selfServe: true }, membershipId: current.id,
+        description: `Personal training: ${input.sessions} sessions`, quantity: input.sessions, unitPaise: pt.sessionPricePaise, taxRateBp: pt.taxRateBp, purpose: { kind: "sessions", sessions: input.sessions, selfServe: true }, membershipId: current.id,
       }));
     }
 
@@ -325,7 +328,7 @@ export async function startCheckout(session: Session | null, raw: CheckoutInput)
     const due = amountDuePaise(inv, payments.filter((p) => p.invoiceId === inv.id));
     return {
       invoiceId: inv.id, number: inv.number, kind: inv.purpose?.kind ?? "other", description: lineText(inv), subtotalPaise: inv.subtotalPaise - inv.discountPaise, taxPaise: inv.taxPaise, totalPaise: inv.totalPaise, duePaise: due,
-      effects: effectsOf(inv, plans, current, c.today),
+      effects: effectsOf(inv, plans, current, c.today, pt.expiryDays),
     } satisfies CheckoutView;
   });
 }
@@ -444,7 +447,7 @@ async function applyGatewayEvent(c: MemberContext, ev: GatewayInput): Promise<{ 
     const key = `sessions:${invoice.id}`;
     if (!ledger.some((e) => e.idempotencyKey === key)) {
       const membershipId = currentMembership(memberships)?.id;
-      const credit: CreditLedgerEntry = { id: `cr_${c.memberId}_buy_${invoice.id}`, tenantId: c.tenantId, memberId: c.memberId, membershipId, kind: "purchase", credits: invoice.purpose.sessions, expiresOn: addDays(c.today, SESSION_EXPIRY_DAYS), createdBy: c.principal.userId, createdAt: c.nowIso, idempotencyKey: key, reason: `Bought online, invoice ${invoice.number}` };
+      const credit: CreditLedgerEntry = { id: `cr_${c.memberId}_buy_${invoice.id}`, tenantId: c.tenantId, memberId: c.memberId, membershipId, kind: "purchase", credits: invoice.purpose.sessions, expiresOn: addDays(c.today, (await ptPricingFor(c.tenantId)).expiryDays), createdBy: c.principal.userId, createdAt: c.nowIso, idempotencyKey: key, reason: `Bought online, invoice ${invoice.number}` };
       await db.creditLedger.add(credit);
       effects.kind = "sessions";
       effects.sessionsAdded = invoice.purpose.sessions;

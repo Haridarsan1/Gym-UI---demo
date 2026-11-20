@@ -35,3 +35,6 @@ export function istTime(iso: string): string {
 
 /** The India calendar date of an ISO timestamp. */
 export const istDateOf = (iso: string): string => new Date(Date.parse(iso) + 5.5 * 3600_000).toISOString().slice(0, 10);
+
+/** A real calendar date written 2026-11-17. */
+export const isIsoDate = (v: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v;

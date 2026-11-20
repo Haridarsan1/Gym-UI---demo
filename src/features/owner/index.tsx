@@ -10,6 +10,7 @@ registerScreens("owner", ownerScreens);
 const implemented = {
   dashboard: lazy(() => import("@/features/owner/Dashboard")),
   reports: lazy(() => import("@/features/owner/Reports")),
+  plans: lazy(() => import("@/features/owner/Plans")),
 };
 
 export default function OwnerArea() {

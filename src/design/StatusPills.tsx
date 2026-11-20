@@ -1,4 +1,5 @@
 import { cn } from "@/lib/format";
+import type { PlanState } from "@/domain/plans";
 import type { Booking, Invoice, Membership, WorkoutLog } from "@/domain/types";
 
 type Pill = { label: string; cls: string };
@@ -59,4 +60,16 @@ export function WorkoutStatusPill({ status, className }: { status: keyof typeof 
 export function BookingStatusPill({ status, className }: { status: Booking["status"]; className?: string }) {
   const p = booking[status];
   return <span className={cn(filled, p.cls, className)}>{p.label}</span>;
+}
+
+const planState: Record<PlanState, Pill> = {
+  on_sale: { label: "On sale", cls: "bg-status-active-bg text-status-active-fg" },
+  scheduled: { label: "Starts later", cls: "bg-lilac-100 text-lilac-700" },
+  ended: { label: "Ended", cls: "bg-status-expired-bg text-status-expired-fg" },
+  off: { label: "Not on sale", cls: "bg-status-expired-bg text-status-expired-fg" },
+};
+
+/** Whether a plan is being sold. A filled pill, like membership status; it is the plan’s state, not money. */
+export function PlanStatePill({ state, className }: { state: PlanState; className?: string }) {
+  return <span className={cn(filled, planState[state].cls, className)}>{planState[state].label}</span>;
 }

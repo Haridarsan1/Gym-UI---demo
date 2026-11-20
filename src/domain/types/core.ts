@@ -25,6 +25,8 @@ export const Tenant = z.object({
   /** The gym’s logo, shown in the header and on loading screens. Without one the gym’s initials are shown. */
   logoUrl: z.string().optional(),
   address: z.string().optional(),
+  /** Personal training sold in packs (M01, M06). Absent: Ember’s defaults (see `domain/renewal.ts`). */
+  ptPricing: z.object({ sessionPricePaise: z.number().int().positive(), taxRateBp: z.number().int().min(0).max(10000), packs: z.array(z.number().int().positive()).min(1).max(6), expiryDays: z.number().int().min(30).max(730) }).optional(),
   currency: z.literal("INR"),
   timeZone: z.string(),
   subscription: z.object({

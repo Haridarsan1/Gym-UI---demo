@@ -21,3 +21,19 @@ export function useReportActions() {
     reopen: useMutation({ mutationFn: async (i: Parameters<typeof import("@/api/dayClose").reopenDay>[1]) => (await import("@/api/dayClose")).reopenDay(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner", session?.userId] }) }),
   };
 }
+
+export function usePlans() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["owner", session?.userId, "plans"], queryFn: async () => (await import("@/api/plans")).getPlans(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+export function usePlanActions() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  const done = () => qc.invalidateQueries({ queryKey: ["owner", session?.userId, "plans"] });
+  return {
+    save: useMutation({ mutationFn: async (i: import("@/api/plans").SavePlanInput) => (await import("@/api/plans")).savePlan(session, i), onSuccess: done }),
+    onSale: useMutation({ mutationFn: async (i: { planId: string; on: boolean; key: string }) => (await import("@/api/plans")).setPlanOnSale(session, i), onSuccess: done }),
+    savePt: useMutation({ mutationFn: async (i: import("@/api/plans").SavePtPricingInput) => (await import("@/api/plans")).savePtPricing(session, i), onSuccess: done }),
+  };
+}

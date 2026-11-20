@@ -141,7 +141,7 @@ export function PaymentStep({ d, set, o, errors }: { d: Draft; set: Set; o: Wiza
   if (!plan) return null;
   const discount = rupeesToPaise(d.discount) ?? 0;
   const t = invoiceTotals([{ quantity: 1, unitPaise: plan.pricePaise, taxRateBp: plan.taxRateBp }], discount);
-  const maxDiscount = Math.floor((plan.pricePaise * o.maxDiscountBp) / 10000);
+  const maxDiscount = Math.floor((plan.pricePaise * Math.min(o.maxDiscountBp, plan.maxDiscountBp ?? o.maxDiscountBp)) / 10000);
   const free = t.totalPaise === 0;
   return (
     <div className="space-y-5">

@@ -76,7 +76,7 @@ export interface WizardOptions {
   branchName: string;
   noticeVersion: string;
   /** Plans on sale at this branch today. */
-  plans: Array<{ id: string; name: string; kind: MembershipPlan["kind"]; pricePaise: number; taxRateBp: number; durationDays?: number; visits?: number; ptCredits?: number; classEntitlements?: number } & InvoiceTotals>;
+  plans: Array<{ id: string; name: string; kind: MembershipPlan["kind"]; pricePaise: number; taxRateBp: number; durationDays?: number; visits?: number; ptCredits?: number; classEntitlements?: number; /** The most any discount on this plan can be, set by the owner. Absent: only the person’s own limit applies. */ maxDiscountBp?: number } & InvoiceTotals>;
   trainers: Array<{ id: string; name: string }>;
   partialPaymentsEnabled: boolean;
   /** The most discount this person may give, as a share of the price in basis points. */
@@ -94,7 +94,7 @@ export async function getWizardOptions(session: Session | null, branchId: string
   const onSale = plans.filter((p) => p.active && p.branchIds.includes(branchId) && p.effectiveFrom <= c.today && (p.effectiveTo === undefined || p.effectiveTo >= c.today));
   return {
     branchId, branchName: branch?.name ?? "", noticeVersion: NOTICE_VERSION, today: c.today,
-    plans: onSale.sort((a, b) => a.pricePaise - b.pricePaise).map((p) => ({ id: p.id, name: p.name, kind: p.kind, pricePaise: p.pricePaise, taxRateBp: p.taxRateBp, durationDays: p.durationDays, visits: p.visits, ptCredits: p.ptCredits, classEntitlements: p.classEntitlements, ...invoiceTotals([{ quantity: 1, unitPaise: p.pricePaise, taxRateBp: p.taxRateBp }]) })),
+    plans: onSale.sort((a, b) => a.pricePaise - b.pricePaise).map((p) => ({ id: p.id, name: p.name, kind: p.kind, pricePaise: p.pricePaise, taxRateBp: p.taxRateBp, durationDays: p.durationDays, visits: p.visits, ptCredits: p.ptCredits, classEntitlements: p.classEntitlements, maxDiscountBp: p.maxDiscountBp, ...invoiceTotals([{ quantity: 1, unitPaise: p.pricePaise, taxRateBp: p.taxRateBp }]) })),
     trainers: staff.filter((s) => s.role === "trainer" && s.branchIds.includes(branchId)).map((s) => ({ id: s.userId, name: users.find((u) => u.id === s.userId)?.name ?? "Trainer" })).sort((a, b) => a.name.localeCompare(b.name)),
     partialPaymentsEnabled: policy?.partialPaymentsEnabled ?? false,
     maxDiscountBp: c.principal.limits?.maxDiscountBp ?? 0,
@@ -174,8 +174,9 @@ export async function registerMember(session: Session | null, raw: RegisterInput
     if (startsOn > addDays(c.today, 60)) throw new ApiError("invalid", "A membership can start up to 60 days ahead.");
     const lines = [{ quantity: 1, unitPaise: plan.pricePaise, taxRateBp: plan.taxRateBp }];
     const discount = input.discountPaise ?? 0;
-    const limit = c.principal.limits?.maxDiscountBp ?? 0;
-    if (discount > Math.floor((plan.pricePaise * limit) / 10000)) throw new ApiError("forbidden", `You can give up to ${(limit / 100).toFixed(limit % 100 ? 1 : 0)}% off. Ask a manager for more.`);
+    const own = c.principal.limits?.maxDiscountBp ?? 0;
+    const limit = Math.min(own, plan.maxDiscountBp ?? own);
+    if (discount > Math.floor((plan.pricePaise * limit) / 10000)) throw new ApiError("forbidden", limit < own ? `This plan can be discounted by at most ${(limit / 100).toFixed(limit % 100 ? 1 : 0)}%.` : `You can give up to ${(limit / 100).toFixed(limit % 100 ? 1 : 0)}% off. Ask a manager for more.`);
     if (discount > plan.pricePaise) throw new ApiError("invalid", "The discount can’t be more than the price.");
     const totals = invoiceTotals(lines, discount);
     let trainerRow: TrainerAssignment | undefined;

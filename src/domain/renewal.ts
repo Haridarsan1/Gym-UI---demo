@@ -62,16 +62,18 @@ export function renewalBlockedReason(status: Membership["status"] | undefined, o
   return undefined;
 }
 
-/** Training sessions are sold in packs. The price is the gym’s; the owner sets it in Plans and pricing (M4). */
+/** Training sessions are sold in packs. The price, packs and how long they last are the gym’s: the owner sets them in Plans and pricing, and these are what a gym has until then. */
+export interface PtPricing { sessionPricePaise: number; taxRateBp: number; packs: number[]; expiryDays: number }
 export const SESSION_PRICE_PAISE = 80_000;
 export const SESSION_PACKS: readonly number[] = [4, 8, 12];
 /** Credits bought online are good for this many days. */
 export const SESSION_EXPIRY_DAYS = 150;
 export const SESSION_TAX_RATE_BP = 1800;
+export const DEFAULT_PT_PRICING: PtPricing = { sessionPricePaise: SESSION_PRICE_PAISE, taxRateBp: SESSION_TAX_RATE_BP, packs: [...SESSION_PACKS], expiryDays: SESSION_EXPIRY_DAYS };
 
-export function sessionPackQuote(count: number): (InvoiceTotals & { sessions: number }) | undefined {
-  if (!SESSION_PACKS.includes(count)) return undefined;
-  return { sessions: count, ...invoiceTotals([{ quantity: count, unitPaise: SESSION_PRICE_PAISE, taxRateBp: SESSION_TAX_RATE_BP }]) };
+export function sessionPackQuote(count: number, pricing: PtPricing = DEFAULT_PT_PRICING): (InvoiceTotals & { sessions: number }) | undefined {
+  if (!pricing.packs.includes(count)) return undefined;
+  return { sessions: count, ...invoiceTotals([{ quantity: count, unitPaise: pricing.sessionPricePaise, taxRateBp: pricing.taxRateBp }]) };
 }
 
 /**

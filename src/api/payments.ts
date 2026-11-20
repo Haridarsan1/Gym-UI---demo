@@ -9,7 +9,8 @@ import { buildAuditEvent } from "@/domain/audit";
 import { amountDuePaise } from "@/domain/billing";
 import { addDays } from "@/domain/dates";
 import { currentMembership } from "@/domain/membership";
-import { renewalQuote, SESSION_EXPIRY_DAYS } from "@/domain/renewal";
+import { ptPricingFor } from "@/api/ptPricing";
+import { renewalQuote } from "@/domain/renewal";
 import type { CreditLedgerEntry, EmailLogEntry, Invoice, Membership, Payment } from "@/domain/types";
 import { formatDate, formatRupees } from "@/lib/when";
 import type { Session } from "@/app/session";
@@ -61,7 +62,7 @@ export async function applyPaid(c: Pick<DeskContext, "tenantId" | "today" | "now
   } else if (invoice.purpose?.kind === "sessions" && invoice.purpose.sessions) {
     const key = `sessions:${invoice.id}`;
     if (!ledger.some((e) => e.idempotencyKey === key)) {
-      const entry: CreditLedgerEntry = { id: `cr_${invoice.memberId}_buy_${invoice.id}`, tenantId: c.tenantId, memberId: invoice.memberId, membershipId: currentMembership(memberships)?.id, kind: "purchase", credits: invoice.purpose.sessions, expiresOn: addDays(c.today, SESSION_EXPIRY_DAYS), createdBy: c.principal.userId, createdAt: c.nowIso, idempotencyKey: key };
+      const entry: CreditLedgerEntry = { id: `cr_${invoice.memberId}_buy_${invoice.id}`, tenantId: c.tenantId, memberId: invoice.memberId, membershipId: currentMembership(memberships)?.id, kind: "purchase", credits: invoice.purpose.sessions, expiresOn: addDays(c.today, (await ptPricingFor(c.tenantId)).expiryDays), createdBy: c.principal.userId, createdAt: c.nowIso, idempotencyKey: key };
       await db.creditLedger.add(entry);
       effects.kind = "sessions";
       effects.sessionsAdded = invoice.purpose.sessions;

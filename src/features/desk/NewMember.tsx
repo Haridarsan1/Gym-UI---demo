@@ -77,7 +77,7 @@ function Wizard({ o }: { o: NonNullable<ReturnType<typeof useWizardOptions>["dat
     if (step === 2 && !d.planId) e.plan = "Choose a plan.";
     if (step === 4 && plan) {
       const disc = rupeesToPaise(d.discount);
-      const max = Math.floor((plan.pricePaise * o.maxDiscountBp) / 10000);
+      const max = Math.floor((plan.pricePaise * Math.min(o.maxDiscountBp, plan.maxDiscountBp ?? o.maxDiscountBp)) / 10000);
       if (disc === undefined) e.discount = "Enter the discount in rupees, like 250.";
       else if (disc > max) e.discount = `You can give up to ${formatRupees(max)}. Ask a manager for more.`;
       const total = plan.totalPaise - Math.round(((disc ?? 0) * (10000 + plan.taxRateBp)) / 10000);

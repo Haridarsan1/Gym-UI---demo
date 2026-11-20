@@ -19,6 +19,10 @@ export const MembershipPlan = z.object({
   effectiveFrom: isoDate,
   effectiveTo: isoDate.optional(),
   active: z.boolean(),
+  /** The most any discount on this plan can be, whatever the person giving it may otherwise give (M03). Absent: each person’s own limit applies. */
+  maxDiscountBp: basisPoints.optional(),
+  /** Days after the plan ends that a member may still come in. Absent: the gym’s default (M02). */
+  graceDays: z.number().int().min(0).max(30).optional(),
 });
 export type MembershipPlan = z.infer<typeof MembershipPlan>;
 
