@@ -272,3 +272,21 @@ export const DayClose = z.object({
   reopenReason: z.string().optional(),
 });
 export type DayClose = z.infer<typeof DayClose>;
+
+/** One run of the member import (S01). Its id comes from the run’s key, so sending the same run twice finds this record and makes nobody twice. */
+export const ImportBatch = z.object({
+  id,
+  tenantId: id,
+  at: isoDateTime,
+  by: id,
+  fileName: z.string().optional(),
+  /** Rows in the file, the people made, rows the owner left out, and rows that had problems. */
+  rows: z.number().int(),
+  created: z.array(id),
+  leftOut: z.number().int(),
+  withProblems: z.number().int(),
+  shared: z.number().int(),
+  memberships: z.number().int(),
+  credits: z.number().int(),
+});
+export type ImportBatch = z.infer<typeof ImportBatch>;

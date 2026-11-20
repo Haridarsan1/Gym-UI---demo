@@ -95,3 +95,12 @@ export function useCommsActions() {
     failure: useMutation({ mutationFn: async (on: boolean) => (await api()).setEmailFailure(session, on), onSuccess: done }),
   };
 }
+
+export function useImportActions() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  return {
+    preview: useMutation({ mutationFn: async (csv: string) => (await import("@/api/memberImport")).previewMemberImport(session, { csv }) }),
+    run: useMutation({ mutationFn: async (i: import("@/api/memberImport").RunImportInput) => (await import("@/api/memberImport")).runMemberImport(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner", session?.userId] }) }),
+  };
+}

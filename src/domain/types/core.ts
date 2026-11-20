@@ -126,6 +126,8 @@ export const Member = z.object({
   leadSource: z.string().optional(),
   /** Other members on the same phone number or email, for example a parent and child. Set when the desk says “Different person sharing this number”. */
   sharesContactWith: z.array(id).optional(),
+  /** The import run that made this member (S01). */
+  importBatchId: z.string().optional(),
   archivedAt: isoDateTime.optional(),
 });
 export type Member = z.infer<typeof Member>;

@@ -15,6 +15,7 @@ const implemented = {
   staff: lazy(() => import("@/features/owner/Staff")),
   branches: lazy(() => import("@/features/owner/Branches")),
   communications: lazy(() => import("@/features/owner/Communications")),
+  import: lazy(() => import("@/features/owner/Import")),
 };
 
 export default function OwnerArea() {

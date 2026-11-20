@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
 import { a01Journey } from "./a01";
 import { a03Journey } from "./a03";
-import { branchesJourney, communicationsJourney, plansJourney, policiesJourney, staffJourney } from "./owner-journeys";
+import { branchesJourney, communicationsJourney, importJourney, plansJourney, policiesJourney, staffJourney } from "./owner-journeys";
 import { bookingsJourney, dashboardJourney, reportsJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
@@ -719,6 +719,15 @@ for (const width of WIDTHS) {
       test.setTimeout(90_000);
       const problems = await open(page, width, "u_owner", "/owner/communications");
       await communicationsJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`owner import at ${width} px`, () => {
+    test("Import: a checked file, a shared-number row, an unticked row, an import sent twice, and the same file refused", async ({ page }) => {
+      test.setTimeout(90_000);
+      const problems = await open(page, width, "u_owner", "/owner/import");
+      await importJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
       expect(problems).toEqual([]);
     });
   });

@@ -436,3 +436,82 @@ export async function communicationsJourney(page: Page, signIn: SignIn) {
   await dialog(page, "Email: Payment reminder").getByRole("button", { name: "Close" }).first().click();
   await noSideways(page, "Communications, branch manager");
 }
+
+const IMPORT_FILE = [
+  "name,phone,email,date_of_birth,gender,branch,plan,start_date,visits_left,pt_credits,lead_source",
+  "Asha Menon,9820011122,asha@example.in,1992-04-09,female,Bandra,Monthly,2026-11-10,,4,Walk-in",
+  "Vikram Shah,9820033344,,,male,Andheri,10-visit pass,2026-11-01,6,,Instagram",
+  "Dev Ramaswamy,9820022090,,2010-03-14,male,Andheri,,,,,",
+  "Ravi Kale,9820011100,,,,Bandra,,,,,",
+  "Sita Kale,9820011100,,,,Bandra,,,,,",
+  "No Number,12345,,,,Bandra,,,,,",
+  "Meena Ramaswamy,9820022090,,,,Andheri,,,,,",
+].join("\r\n");
+
+/**
+ * Import members (S01): the template, a file checked row by row with each problem in words, a number another member has imported as a separate flagged member, a tick to leave a row out, the import, a
+ * second press that adds nobody, and the same file again refused row by row. Only the owner has it.
+ */
+export async function importJourney(page: Page, signIn: SignIn) {
+  await signIn("u_owner", "/owner/import");
+  await expect(page.getByRole("heading", { name: "Import members", level: 1 })).toBeVisible();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download the template" }).click();
+  expect((await download).suggestedFilename()).toBe("ember-members-template.csv");
+  await noSideways(page, "Import");
+
+  await page.getByLabel("Choose a CSV file").setInputFiles({ name: "members.csv", mimeType: "text/csv", buffer: Buffer.from(IMPORT_FILE) });
+  const summary = page.locator("dl[aria-label=Summary]");
+  await expect(summary).toContainText("Ready3");
+  await expect(summary).toContainText("Shared number2");
+  await expect(summary).toContainText("Problems2");
+  const row = (name: string) => page.locator("tr:visible, li:visible").filter({ hasText: name }).first();
+  await expect(row("Dev Ramaswamy")).toContainText("Shares this number with Meena Ramaswamy (a member), Aarav Ramaswamy (a member). Added as a separate member with the shared-number flag.");
+  await expect(row("Sita Kale")).toContainText("Shares this number with Ravi Kale (row 5)");
+  await expect(row("No Number")).toContainText("phone: Enter a 10-digit mobile number.");
+  await expect(page.locator("tr:visible, li:visible").filter({ hasText: /Meena Ramaswamy\d{10}/ }).first()).toContainText("is already a member with this phone number. Nobody is added twice.");
+  await expect(page.getByRole("checkbox", { name: /^Row 7, No Number/ })).toBeDisabled();
+  await noSideways(page, "Import preview");
+
+  // A row can be left out with its tick, and put back.
+  await expect(page.getByRole("region", { name: "Import" })).toContainText("5 of 7 rows will be imported; 2 have problems and are left out.");
+  await page.getByRole("checkbox", { name: "Import row 6, Sita Kale" }).uncheck();
+  await expect(page.getByRole("region", { name: "Import" })).toContainText("4 of 7 rows will be imported");
+  await page.getByRole("checkbox", { name: "Import row 6, Sita Kale" }).check();
+  await page.getByRole("button", { name: /^Needs a look/ }).click();
+  await expect(row("Asha Menon")).toHaveCount(0);
+  await page.getByRole("button", { name: /^All rows/ }).click();
+
+  await page.getByRole("button", { name: "Import 5 members" }).click();
+  const confirm = dialog(page, "Import members");
+  await expect(confirm.getByRole("button", { name: "Import", exact: true })).toBeDisabled();
+  await confirm.getByRole("checkbox", { name: /agreed to the gym keeping their details/ }).check();
+  await confirm.getByRole("button", { name: "Import", exact: true }).click();
+  await expect(page.getByText("Members imported")).toBeVisible();
+  const done = page.getByRole("region", { name: "Imported" });
+  await expect(done).toContainText("5 members were added.");
+  await expect(done).toContainText("2 memberships started or scheduled");
+  await expect(done).toContainText("1 balance of training sessions");
+  await expect(done).toContainText("2 with a shared number, flagged");
+
+  // Sending the same import again adds nobody.
+  await page.getByRole("button", { name: "Send this import again" }).click();
+  await expect(page.getByText("Already imported").first()).toBeVisible();
+  await expect(page.getByRole("region", { name: "Already imported" })).toContainText("nobody was added twice");
+
+  // The same file under a new run: every row is now a member, so nothing is left to import.
+  await signIn("u_owner", "/owner/import");
+  await page.getByLabel("Choose a CSV file").setInputFiles({ name: "members.csv", mimeType: "text/csv", buffer: Buffer.from(IMPORT_FILE) });
+  await expect(page.locator("dl[aria-label=Summary]")).toContainText("Ready0");
+  await expect(page.locator("dl[aria-label=Summary]")).toContainText("Problems7");
+  await expect(row("Asha Menon")).toContainText("is already a member with this phone number. Nobody is added twice.");
+  await expect(page.getByRole("button", { name: "Import 0 members" })).toBeDisabled();
+
+  // A file that can’t be read says why.
+  await page.getByLabel("Choose a CSV file").setInputFiles({ name: "bad.csv", mimeType: "text/csv", buffer: Buffer.from("name,phone\r\nA B,9820011122") });
+  await expect(page.getByRole("alert").filter({ hasText: "Missing: branch" })).toBeVisible();
+
+  // Nobody else has it.
+  await signIn("u_bm_bandra", "/owner/import");
+  await expect(page.getByRole("heading", { name: "Import members", level: 1 })).toHaveCount(0);
+}
