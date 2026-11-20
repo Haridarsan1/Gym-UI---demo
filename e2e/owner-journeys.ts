@@ -186,3 +186,197 @@ export async function policiesJourney(page: Page, signIn: SignIn) {
   await expect(page.getByRole("region", { name: "Unsaved changes" })).toHaveCount(0);
   await noSideways(page, "Policies, branch manager");
 }
+
+const accountMenu = async (page: Page) => {
+  await page.getByRole("button", { name: /^Account menu/ }).first().click();
+};
+
+/**
+ * Staff and roles (R02, S03): the owner’s list and filters, the invitation with the rules saying what is wrong and what the person will be able to do, the invitation in the demo switcher,
+ * a change to someone’s limits with what it changes, switching an account off, and a branch manager first reading it all and then, once the owner allows it, inviting at their own branch only.
+ */
+export async function staffJourney(page: Page, signIn: SignIn) {
+  await signIn("u_owner", "/owner/staff");
+  await expect(page.getByRole("heading", { name: "Staff and roles", level: 1 })).toBeVisible();
+  await expect(rowOf(page, "Rohit Sethi")).toContainText("Branch manager");
+  const wide = (page.viewportSize()?.width ?? 0) >= 640;
+  if (wide) await expect(rowOf(page, "Rohit Sethi")).toContainText("Refunds to ₹50,000");
+  await expect(rowOf(page, "Pooja Nair")).toContainText("Front desk");
+  await noSideways(page, "Staff");
+  await page.getByRole("button", { name: "Trainers", exact: true }).click();
+  await expect(rowOf(page, "Meera Joshi")).toBeVisible();
+  await expect(page.locator("tr:visible, li:visible").filter({ hasText: "Pooja Nair" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Everyone", exact: true }).click();
+
+  // Inviting: the rules say what is wrong, and what the person will be able to do follows what is chosen.
+  await page.getByRole("button", { name: "Invite staff" }).first().click();
+  const sheet = dialog(page, "Invite staff");
+  await expect(sheet).toBeVisible();
+  await sheet.getByRole("button", { name: "Send invitation" }).click();
+  await expect(sheet.getByText("Enter the person’s name.")).toBeVisible();
+  await expect(sheet.getByText("Choose a role.")).toBeVisible();
+  await sheet.getByLabel("Name", { exact: true }).fill("Ritu Verma");
+  await sheet.getByLabel("Email").fill("pooja.nair@pulsefitness.in");
+  await sheet.getByRole("radio", { name: /^Front desk/ }).check();
+  await sheet.getByRole("checkbox", { name: "Bandra" }).check();
+  await sheet.getByRole("button", { name: "Send invitation" }).click();
+  await expect(sheet.getByText("Someone at this gym already has this email.")).toBeVisible();
+  await sheet.getByLabel("Email").fill("ritu.verma@pulsefitness.in");
+  await sheet.getByLabel("Mobile number").fill("98200 55001");
+  const about = sheet.getByRole("region", { name: "What this person can do" });
+  await expect(about).toContainText("Front desk at Bandra.");
+  await expect(about).toContainText("Can give discounts up to 5%.");
+  await expect(about).toContainText("Can let a member in by override, with a reason, 3 a day.");
+  await expect(sheet.getByLabel("Largest refund they can approve (₹)")).toHaveCount(0);
+  await sheet.getByLabel("Largest discount they can give (%)").fill("8");
+  await sheet.getByLabel("Overrides a day").fill("");
+  await expect(about).toContainText("Can give discounts up to 8%.");
+  await expect(about).toContainText("Can let a member in by override, with a reason.");
+  await sheet.getByRole("radio", { name: /^Finance/ }).check();
+  await expect(sheet.getByLabel("Largest refund they can approve (₹)")).toBeVisible();
+  await expect(sheet.getByLabel("Largest discount they can give (%)")).toHaveValue("5");
+  await sheet.getByRole("radio", { name: /^Front desk/ }).check();
+  await noSideways(page, "Invite staff");
+  await sheet.getByRole("button", { name: "Send invitation" }).click();
+  await expect(page.getByText("Invitation sent")).toBeVisible();
+  await expect(rowOf(page, "Ritu Verma")).toContainText("Invited");
+  await expect(rowOf(page, "Ritu Verma")).toContainText("Bandra");
+
+  // The invitation can be sent again; opening it in the demo switcher accepts it and signs them in at their own branch.
+  await page.getByRole("button", { name: "Edit Ritu Verma" }).click();
+  await dialog(page, "Staff: Ritu Verma").getByRole("button", { name: "Send the invitation again" }).click();
+  await expect(page.getByText("Invitation sent again")).toBeVisible();
+  await dialog(page, "Staff: Ritu Verma").getByRole("button", { name: "Cancel" }).click();
+  await accountMenu(page);
+  await page.getByRole("list", { name: "New staff" }).getByRole("button", { name: /Ritu Verma/ }).click();
+  await expect(page).toHaveURL(/\/desk/);
+  await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+  await signIn("u_owner", "/owner/staff");
+  await expect(rowOf(page, "Ritu Verma")).toContainText("Active");
+
+  // Changing limits shows what it changes, asks for an optional reason and is applied from their next action.
+  await page.getByRole("button", { name: "Edit Pooja Nair" }).click();
+  const edit = dialog(page, "Staff: Pooja Nair");
+  await edit.getByLabel("Largest discount they can give (%)").fill("2");
+  await expect(edit.getByRole("list", { name: "Changes" })).toContainText("Discount limit: 5% to 2%");
+  await edit.getByLabel("Reason (optional)").fill("Too many discounts last month");
+  await edit.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Access changed")).toBeVisible();
+  if (wide) await expect(rowOf(page, "Pooja Nair")).toContainText("Discounts to 2%");
+  // The health-data switch is the owner’s, and only on an owner or a branch manager.
+  await page.getByRole("button", { name: "Edit Pooja Nair" }).click();
+  await expect(dialog(page, "Staff: Pooja Nair").getByRole("switch", { name: "Can view client health and progress photos" })).toHaveCount(0);
+  await dialog(page, "Staff: Pooja Nair").getByRole("button", { name: "Cancel" }).click();
+
+  // A branch manager first reads, and can change nothing.
+  await signIn("u_bm_bandra", "/owner/staff");
+  await expect(page.getByText("only the owner can invite or change staff", { exact: false }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Invite staff" })).toHaveCount(0);
+  await expect(rowOf(page, "Imran Qureshi")).toBeVisible();
+  await expect(page.locator("tr:visible, li:visible").filter({ hasText: "Aditya Rao" })).toHaveCount(0);
+  await page.getByRole("button", { name: "View Imran Qureshi" }).click();
+  await expect(dialog(page, "Staff: Imran Qureshi")).toContainText("Only the owner can invite or change staff.");
+  await expect(dialog(page, "Staff: Imran Qureshi").getByLabel("Name", { exact: true })).toBeDisabled();
+  await expect(dialog(page, "Staff: Imran Qureshi").getByRole("button", { name: /Save changes|Switch off/ })).toHaveCount(0);
+  await dialog(page, "Staff: Imran Qureshi").getByRole("button", { name: "Close" }).first().click();
+
+  // The owner allows Rohit to manage front desk and trainers, and to see client health.
+  await signIn("u_owner", "/owner/staff");
+  await page.getByRole("button", { name: "Edit Rohit Sethi" }).click();
+  const grant = dialog(page, "Staff: Rohit Sethi");
+  await grant.getByRole("switch", { name: "Can invite and manage front desk and trainers" }).click();
+  await grant.getByRole("switch", { name: "Can view client health and progress photos" }).click();
+  await expect(grant.getByRole("list", { name: "Changes" })).toContainText("Can invite and manage front desk and trainers: No to Yes");
+  await expect(grant.getByRole("list", { name: "Changes" })).toContainText("Can view client health and progress photos: No to Yes");
+  await grant.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Access changed")).toBeVisible();
+
+  // Now Rohit can invite and change front desk and trainers at Bandra, within his own limits, and nobody else.
+  await signIn("u_bm_bandra", "/owner/staff");
+  await expect(page.getByText("The owner has allowed you to invite and manage front desk and trainers").first()).toBeVisible();
+  await page.getByRole("button", { name: "Invite staff" }).first().click();
+  const mine = dialog(page, "Invite staff");
+  await expect(mine.getByRole("radio", { name: /^Branch manager/ })).toHaveCount(0);
+  await expect(mine.getByRole("radio", { name: /^Finance/ })).toHaveCount(0);
+  await expect(mine.getByRole("radio", { name: /^Trainer/ })).toBeVisible();
+  await mine.getByLabel("Name", { exact: true }).fill("Sunil Rane");
+  await mine.getByLabel("Email").fill("sunil.rane@pulsefitness.in");
+  await mine.getByRole("radio", { name: /^Front desk/ }).check();
+  await expect(mine.getByRole("checkbox", { name: "Bandra" })).toBeVisible();
+  await expect(mine.getByRole("checkbox", { name: "Andheri" })).toHaveCount(0);
+  await mine.getByRole("checkbox", { name: "Bandra" }).check();
+  await mine.getByLabel("Largest discount they can give (%)").fill("15");
+  await mine.getByRole("button", { name: "Send invitation" }).click();
+  await expect(mine.getByText("You can give up to 10%, your own limit.").first()).toBeVisible();
+  await mine.getByLabel("Largest discount they can give (%)").fill("10");
+  await mine.getByRole("button", { name: "Send invitation" }).click();
+  await expect(page.getByText("Invitation sent")).toBeVisible();
+  await expect(rowOf(page, "Sunil Rane")).toContainText("Invited");
+  await page.getByRole("button", { name: "View Meera Joshi" }).click();
+  await expect(dialog(page, "Staff: Meera Joshi")).toContainText("They also work at a branch you don’t manage.");
+  await dialog(page, "Staff: Meera Joshi").getByRole("button", { name: "Close" }).first().click();
+  await page.getByRole("button", { name: "Edit Imran Qureshi" }).click();
+  await expect(dialog(page, "Staff: Imran Qureshi").getByRole("button", { name: "Switch off account" })).toBeVisible();
+  await dialog(page, "Staff: Imran Qureshi").getByRole("button", { name: "Cancel" }).click();
+
+  // Switching an account off asks why and says what is left behind.
+  await signIn("u_owner", "/owner/staff?person=u_trainer_aditya");
+  await dialog(page, "Staff: Aditya Rao").getByRole("button", { name: "Switch off account" }).click();
+  const off = dialog(page, "Switch off this account");
+  await expect(off).toContainText("keep this assignment until you move them to another trainer");
+  await off.getByRole("button", { name: "Switch off", exact: true }).click();
+  await expect(off.getByText("Say why the account is being switched off. The reason is kept and audited.")).toBeVisible();
+  await off.getByLabel("Reason").fill("Left the gym");
+  await off.getByRole("button", { name: "Switch off", exact: true }).click();
+  await expect(page.getByText("Account switched off")).toBeVisible();
+  await expect(rowOf(page, "Aditya Rao")).toContainText("Switched off");
+}
+
+/**
+ * Branches (O01): each branch’s hours and rooms, changed and saved with an audit entry, a room with sessions booked into it that can’t be removed, hours that leave sessions outside them
+ * said in a count rather than canceled, and a branch manager seeing and editing only their own branch.
+ */
+export async function branchesJourney(page: Page, signIn: SignIn) {
+  await signIn("u_owner", "/owner/branches");
+  await expect(page.getByRole("heading", { name: "Branches", level: 1 })).toBeVisible();
+  const branchCards = page.locator("ul[aria-label=Branches] > li");
+  const bandra = branchCards.filter({ hasText: "Bandra" });
+  await expect(bandra).toContainText("Mon to Fri 5:30 am to 10:30 pm");
+  await expect(bandra).toContainText("Studio A, holds 18");
+  await noSideways(page, "Branches");
+
+  await page.getByRole("button", { name: "Edit hours and rooms for Bandra" }).click();
+  const sheet = dialog(page, "Branch: Bandra");
+  await sheet.getByLabel("Address").fill("Hill Road, Bandra West, Mumbai 400050");
+  await sheet.getByLabel("Sunday opens").fill("08:00");
+  await sheet.getByLabel("Sunday closes").fill("12:00");
+  await expect(sheet.getByText("Sun 8 am to 12 pm.")).toBeVisible();
+  await sheet.getByLabel("Monday closes").fill("04:00");
+  await sheet.getByRole("button", { name: "Save branch" }).click();
+  await expect(sheet.getByText("It has to open before it closes.")).toBeVisible();
+  await sheet.getByLabel("Monday closes").fill("22:30");
+  await sheet.getByRole("button", { name: "Add a room" }).click();
+  await sheet.getByLabel("Name").last().fill("Cycle room");
+  await sheet.getByLabel("Holds").last().fill("12");
+  await noSideways(page, "Branch editor");
+  await sheet.getByRole("button", { name: "Save branch" }).click();
+  await expect(page.getByText("Branch saved")).toBeVisible();
+  await expect(bandra).toContainText("Sun 8 am to 12 pm");
+  await expect(bandra).toContainText("Cycle room, holds 12");
+
+  // A room with sessions booked into it can’t be removed.
+  await page.getByRole("button", { name: "Edit hours and rooms for Andheri" }).click();
+  const andheri = dialog(page, "Branch: Andheri");
+  const busy = andheri.getByRole("list", { name: "Rooms" }).getByRole("listitem").filter({ hasText: /sessions? (is|are) booked here/ }).first();
+  await expect(busy).toContainText("can’t be removed until");
+  await expect(busy.getByRole("button", { name: /^Remove / })).toBeDisabled();
+  await andheri.getByRole("button", { name: "Cancel" }).click();
+
+  // A branch manager sees and changes only their own branch.
+  await signIn("u_bm_bandra", "/owner/branches");
+  await expect(branchCards).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Edit hours and rooms for Andheri" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Edit hours and rooms for Bandra" }).click();
+  await expect(dialog(page, "Branch: Bandra").getByLabel("Address")).toHaveValue("Hill Road, Bandra West, Mumbai 400050");
+  await noSideways(page, "Branches, branch manager");
+}

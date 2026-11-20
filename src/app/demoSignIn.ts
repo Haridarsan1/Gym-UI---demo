@@ -22,8 +22,8 @@ export function signInDemo(userId: string): Session | null {
 }
 
 /** Signs in as a member the desk registered after the demo began (they are not in `DEMO_ACCOUNTS`). Demo only. */
-export function signInRegistered(m: { userId: string; name: string; tenantId: string; branchIds: string[]; memberId: string }): Session {
-  const session: Session = { userId: m.userId, name: m.name, role: "member", tenantId: m.tenantId, branchIds: m.branchIds, memberId: m.memberId };
+export function signInRegistered(m: { userId: string; name: string; tenantId: string; branchIds: string[]; memberId?: string; role?: Session["role"]; limits?: Session["limits"] }): Session {
+  const session: Session = { userId: m.userId, name: m.name, role: m.role ?? "member", tenantId: m.tenantId, branchIds: m.branchIds, ...(m.memberId ? { memberId: m.memberId } : {}), ...(m.limits ? { limits: m.limits } : {}) };
   writeSession(session);
   writeGym({ tenantId: m.tenantId, name: TENANT_NAME });
   return session;

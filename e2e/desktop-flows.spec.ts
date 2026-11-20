@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
 import { a01Journey } from "./a01";
 import { a03Journey } from "./a03";
-import { plansJourney, policiesJourney } from "./owner-journeys";
+import { branchesJourney, plansJourney, policiesJourney, staffJourney } from "./owner-journeys";
 import { bookingsJourney, dashboardJourney, reportsJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
@@ -695,6 +695,21 @@ for (const width of WIDTHS) {
       test.setTimeout(90_000);
       const problems = await open(page, width, "u_owner", "/owner/policies");
       await policiesJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`owner staff and branches at ${width} px`, () => {
+    test("Staff: the invitation and what it allows, limits, switching off, and a branch manager reading then managing at their own branch", async ({ page }) => {
+      test.setTimeout(120_000);
+      const problems = await open(page, width, "u_owner", "/owner/staff");
+      await staffJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
+      expect(problems).toEqual([]);
+    });
+    test("Branches: hours and rooms, a room with sessions that can’t be removed, and a branch manager’s own branch only", async ({ page }) => {
+      test.setTimeout(90_000);
+      const problems = await open(page, width, "u_owner", "/owner/branches");
+      await branchesJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
       expect(problems).toEqual([]);
     });
   });

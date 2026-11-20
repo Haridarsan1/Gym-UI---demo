@@ -12,6 +12,8 @@ const implemented = {
   reports: lazy(() => import("@/features/owner/Reports")),
   plans: lazy(() => import("@/features/owner/Plans")),
   policies: lazy(() => import("@/features/owner/Policies")),
+  staff: lazy(() => import("@/features/owner/Staff")),
+  branches: lazy(() => import("@/features/owner/Branches")),
 };
 
 export default function OwnerArea() {

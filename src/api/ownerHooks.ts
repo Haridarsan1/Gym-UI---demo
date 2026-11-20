@@ -48,3 +48,31 @@ export function usePolicyActions() {
   const qc = useQueryClient();
   return { save: useMutation({ mutationFn: async (i: import("@/api/policyScreen").SavePoliciesInput) => (await import("@/api/policyScreen")).savePolicies(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner", session?.userId, "policies"] }) }) };
 }
+
+export function useStaff() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["owner", session?.userId, "staff"], queryFn: async () => (await import("@/api/staff")).getStaff(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+export function useStaffActions() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  const done = () => { void qc.invalidateQueries({ queryKey: ["owner", session?.userId, "staff"] }); void qc.invalidateQueries({ queryKey: ["demo", session?.userId] }); };
+  return {
+    invite: useMutation({ mutationFn: async (i: import("@/api/staff").InviteStaffInput) => (await import("@/api/staff")).inviteStaff(session, i), onSuccess: done }),
+    update: useMutation({ mutationFn: async (i: import("@/api/staff").UpdateStaffInput) => (await import("@/api/staff")).updateStaff(session, i), onSuccess: done }),
+    status: useMutation({ mutationFn: async (i: import("@/api/staff").StaffStatusInput) => (await import("@/api/staff")).setStaffActive(session, i), onSuccess: done }),
+    resend: useMutation({ mutationFn: async (i: { userId: string; key: string }) => (await import("@/api/staff")).resendInvite(session, i), onSuccess: done }),
+  };
+}
+
+export function useBranches() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["owner", session?.userId, "branches"], queryFn: async () => (await import("@/api/branches")).getBranches(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+export function useBranchActions() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  return { save: useMutation({ mutationFn: async (i: import("@/api/branches").SaveBranchInput) => (await import("@/api/branches")).saveBranch(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner", session?.userId, "branches"] }) }) };
+}

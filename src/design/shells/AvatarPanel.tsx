@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { LogOut, RotateCcw, Shuffle } from "lucide-react";
-import { useNewMemberLogins } from "@/api/hooks";
+import { useNewMemberLogins, useNewStaffLogins } from "@/api/hooks";
 import { menuFor, screenPath } from "@/app/navigation";
 import { useCan, useSession } from "@/app/SessionContext";
 import { useResetDemo, useSignOut, useSwitchAccount } from "@/app/useSessionActions";
@@ -18,6 +18,7 @@ export default function AvatarPanel({ id, drop, name, tenantName, close }: { id:
   const resetDemo = useResetDemo();
   const switchAccount = useSwitchAccount();
   const newLogins = useNewMemberLogins(DEMO_MODE);
+  const newStaff = useNewStaffLogins(DEMO_MODE);
   if (!session) return null;
   const setOpen = (_open: boolean) => close();
   const area = areaFor(session.role);
@@ -89,6 +90,17 @@ export default function AvatarPanel({ id, drop, name, tenantName, close }: { id:
                     <li key={m.userId}>
                       <button type="button" className={row} onClick={() => { setOpen(false); switchAccount(m.userId, m); }}>
                         <span className="flex-1">{m.name}<span className="block text-xs text-clay-muted">Member, registered in this demo</span></span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {(newStaff.data?.length ?? 0) > 0 && (
+                <ul aria-label="New staff">
+                  {newStaff.data!.filter((m) => m.userId !== session.userId).map((m) => (
+                    <li key={m.userId}>
+                      <button type="button" className={row} onClick={() => { setOpen(false); void import("@/api/demoLogins").then((api) => api.acceptStaffInvite(m.userId)).then(() => switchAccount(m.userId, m)); }}>
+                        <span className="flex-1">{m.name}<span className="block text-xs text-clay-muted">{ROLE_LABEL[m.role]}, {m.status === "invited" ? "invited: opens the invitation" : "invited in this demo"}</span></span>
                       </button>
                     </li>
                   ))}

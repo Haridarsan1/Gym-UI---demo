@@ -73,3 +73,14 @@ const planState: Record<PlanState, Pill> = {
 export function PlanStatePill({ state, className }: { state: PlanState; className?: string }) {
   return <span className={cn(filled, planState[state].cls, className)}>{planState[state].label}</span>;
 }
+
+const staffStatus: Record<"active" | "invited" | "disabled", Pill> = {
+  active: { label: "Active", cls: "bg-status-active-bg text-status-active-fg" },
+  invited: { label: "Invited", cls: "bg-lilac-100 text-lilac-700" },
+  disabled: { label: "Switched off", cls: "bg-status-expired-bg text-status-expired-fg" },
+};
+
+/** Whether a staff account can sign in: active, invited and not yet accepted, or switched off. A filled pill, like membership status. */
+export function StaffStatusPill({ status, className }: { status: "active" | "invited" | "disabled"; className?: string }) {
+  return <span className={cn(filled, staffStatus[status].cls, className)}>{staffStatus[status].label}</span>;
+}

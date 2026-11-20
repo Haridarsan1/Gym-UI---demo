@@ -5,6 +5,7 @@ import { resetDemo } from "@/demo";
 import { signInDemo, signInRegistered } from "@/app/demoSignIn";
 import { homePathFor } from "@/domain/roles";
 import { useSession } from "@/app/SessionContext";
+import type { Session } from "@/app/session";
 import { useToast } from "@/design/Toast";
 
 /** Signs out, clears everything cached for the last person, and goes to the login page. */
@@ -35,7 +36,7 @@ export function useResetDemo(): () => Promise<void> {
 }
 
 /** Demo mode only: sign in as someone else without going through login, to see the app as another role. */
-export function useSwitchAccount(): (userId: string, registered?: { userId: string; name: string; tenantId: string; branchIds: string[]; memberId: string }) => void {
+export function useSwitchAccount(): (userId: string, registered?: { userId: string; name: string; tenantId: string; branchIds: string[]; memberId?: string; role?: Session["role"]; limits?: Session["limits"] }) => void {
   const { signIn } = useSession();
   const client = useQueryClient();
   const navigate = useNavigate();

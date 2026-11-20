@@ -46,7 +46,7 @@ export const MemberSettings = z.object({
 });
 export type MemberSettings = z.infer<typeof MemberSettings>;
 
-export const EmailTemplate = z.enum(["booking_confirmed", "booking_canceled", "booking_rescheduled", "payment_receipt", "membership_renewed", "sessions_purchased", "data_request", "member_welcome", "payment_reminder", "refund_issued"]);
+export const EmailTemplate = z.enum(["booking_confirmed", "booking_canceled", "booking_rescheduled", "payment_receipt", "membership_renewed", "sessions_purchased", "data_request", "member_welcome", "payment_reminder", "refund_issued", "staff_invite"]);
 
 /**
  * Why: O04 says every message the gym sends is logged with its outcome, and messages are email only (confirmed decision). The
@@ -56,7 +56,10 @@ export const EmailTemplate = z.enum(["booking_confirmed", "booking_canceled", "b
 export const EmailLogEntry = z.object({
   id,
   tenantId: id,
-  memberId: id,
+  /** The member a message is about. Absent for messages to staff, such as an invitation. */
+  memberId: id.optional(),
+  /** The staff member a message is to (an invitation). */
+  userId: id.optional(),
   bookingId: id.optional(),
   /** The invoice a payment email is about. */
   invoiceId: id.optional(),

@@ -13,6 +13,7 @@ import type { Session } from "@/app/session";
 async function resolvePrincipal(userId: string): Promise<Principal> {
   const user = await db.users.get(userId);
   if (!user) throw new ApiError("unauthenticated", "Your session has ended. Log in again.");
+  if (user.status === "invited") throw new ApiError("forbidden", "You haven’t accepted your invitation yet. Open the link in the email we sent you.");
   if (user.status !== "active") throw new ApiError("forbidden", "This account is switched off. Ask your gym owner to turn it back on.");
 
   if (user.role === "platform_admin") return { userId, role: user.role, tenantId: null, branchIds: [] };
