@@ -1,6 +1,7 @@
 import { Printer } from "lucide-react";
 import type { ReceiptData } from "@/api/receiptData";
 import { Button3D, Button3DLink } from "@/design/Button3D";
+import { GymMark } from "@/design/GymMark";
 import { InvoiceStatusPill } from "@/design/StatusPills";
 import { istDateOf } from "@/domain/dates";
 import { formatDate, formatRupees } from "@/lib/when";
@@ -14,10 +15,13 @@ export function ReceiptSheet({ r, payTo }: { r: ReceiptData; /** Where “Pay”
   return (
     <>
       <article aria-labelledby="receipt-title" className="receipt-sheet clay space-y-5 p-5">
-        <header>
-          <p className="text-lg font-bold leading-tight">{r.supplier.legalName}</p>
-          {r.supplier.address && <p className="text-[0.95rem] text-clay-muted">{r.supplier.address}</p>}
-          {r.supplier.gstin && <p className="text-[0.95rem]">GSTIN {r.supplier.gstin}, {r.supplier.stateName} ({r.supplier.stateCode})</p>}
+        <header className="flex items-start gap-3">
+          <GymMark name={r.supplier.name || r.supplier.legalName} logoUrl={r.supplier.logoUrl} className="!h-14 !w-14 !rounded-xl !text-lg" />
+          <div className="min-w-0">
+            <p className="text-lg font-bold leading-tight">{r.supplier.legalName}</p>
+            {r.supplier.address && <p className="text-[0.95rem] text-clay-muted">{r.supplier.address}</p>}
+            {r.supplier.gstin && <p className="text-[0.95rem]">GSTIN {r.supplier.gstin}, {r.supplier.stateName} ({r.supplier.stateCode})</p>}
+          </div>
         </header>
 
         <div className="flex items-start justify-between gap-3">

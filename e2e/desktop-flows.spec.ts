@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
 import { a01Journey } from "./a01";
 import { a03Journey } from "./a03";
-import { branchesJourney, communicationsJourney, importJourney, plansJourney, policiesJourney, staffJourney } from "./owner-journeys";
+import { accountJourney, branchesJourney, communicationsJourney, importJourney, plansJourney, policiesJourney, staffJourney } from "./owner-journeys";
 import { bookingsJourney, dashboardJourney, reportsJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
@@ -728,6 +728,15 @@ for (const width of WIDTHS) {
       test.setTimeout(90_000);
       const problems = await open(page, width, "u_owner", "/owner/import");
       await importJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`owner account screens at ${width} px`, () => {
+    test("Subscription, Settings with a logo on the sidebar and a receipt, and the audit log", async ({ page }) => {
+      test.setTimeout(120_000);
+      const problems = await open(page, width, "u_owner", "/owner/subscription");
+      await accountJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
       expect(problems).toEqual([]);
     });
   });

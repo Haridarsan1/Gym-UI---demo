@@ -7,7 +7,7 @@ import type { Invoice } from "@/domain/types";
 export interface ReceiptData {
   /** “Tax invoice and receipt” once paid in full, otherwise “Tax invoice”. */
   title: string;
-  supplier: { name: string; legalName: string; address?: string; gstin?: string; stateName: string; stateCode: string };
+  supplier: { name: string; legalName: string; logoUrl?: string; address?: string; gstin?: string; stateName: string; stateCode: string };
   invoice: { id: string; number: string; issuedOn: string; dueOn: string; status: Invoice["status"]; overdue: boolean; sac: string };
   billTo: { name: string; phone: string; email?: string; branchName: string };
   placeOfSupply: { code: string; name: string };
@@ -34,7 +34,7 @@ export async function buildReceipt(invoice: Invoice, today: string): Promise<Rec
   const done = payments.filter((p) => p.status === "succeeded").sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
   return {
     title: invoice.status === "paid" ? "Tax invoice and receipt" : "Tax invoice",
-    supplier: { name: tenant?.name ?? "", legalName: tenant?.legalName ?? tenant?.name ?? "", address: tenant?.address, gstin: tenant?.gstin, stateCode: supplierState, stateName: STATE_NAMES[supplierState] ?? supplierState },
+    supplier: { name: tenant?.name ?? "", logoUrl: tenant?.logoUrl, legalName: tenant?.legalName ?? tenant?.name ?? "", address: tenant?.address, gstin: tenant?.gstin, stateCode: supplierState, stateName: STATE_NAMES[supplierState] ?? supplierState },
     invoice: { id: invoice.id, number: invoice.number, issuedOn: invoice.issuedOn, dueOn: invoice.dueOn, status: invoice.status, overdue: isOverdue(invoice, payments, today), sac: SAC_FITNESS },
     billTo: { name: member?.name ?? "", phone: member?.phone ?? "", email: member?.email, branchName: branch?.name ?? "" },
     placeOfSupply: { code: invoice.placeOfSupply, name: STATE_NAMES[invoice.placeOfSupply] ?? invoice.placeOfSupply },

@@ -1,6 +1,6 @@
 import { test } from "@playwright/test";
 import { signInAs } from "./helpers";
-import { branchesJourney, communicationsJourney, importJourney, plansJourney, policiesJourney, staffJourney } from "./owner-journeys";
+import { accountJourney, branchesJourney, communicationsJourney, importJourney, plansJourney, policiesJourney, staffJourney } from "./owner-journeys";
 
 /** The owner’s set-up screens on a phone (M4 steps 3 to 5). Wider layouts run the same journeys in desktop-flows.spec.ts. */
 test.describe("Owner set-up on a phone", () => {
@@ -49,6 +49,14 @@ test.describe("Owner set-up on a phone", () => {
     const problems: string[] = [];
     page.on("pageerror", (e) => problems.push(e.message));
     await importJourney(page, (id, path) => signInAs(page, id, path));
+    test.expect(problems).toEqual([]);
+  });
+
+  test("subscription, settings with a logo that shows on the sidebar and a receipt, and the audit log", async ({ page }) => {
+    test.setTimeout(120_000);
+    const problems: string[] = [];
+    page.on("pageerror", (e) => problems.push(e.message));
+    await accountJourney(page, (id, path) => signInAs(page, id, path));
     test.expect(problems).toEqual([]);
   });
 });

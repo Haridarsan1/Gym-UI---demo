@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Ellipsis, LogOut, Search } from "lucide-react";
 import { LogoMark } from "@/components/ui/Logo";
+import { GymMark } from "@/design/GymMark";
 import { useMe } from "@/api/hooks";
 import { mobileBar, screenPath, sidebarFor } from "@/app/navigation";
 import { railLabel } from "@/app/screens";
@@ -54,7 +55,7 @@ export function StaffShell({ area }: { area: StaffArea }) {
   const navGroups: NavGroup[] = groups.map((g) => ({ heading: g.group, items: g.items.map((s) => ({ id: s.id, to: screenPath(area, s), label: s.title, short: railLabel(s), icon: s.icon, end: s.path === "" })) }));
   const brand = (compact: boolean) => (
     <Link to={AREA_PATH[area]} className={cn("flex min-h-[2.75rem] min-w-[2.75rem] items-center gap-2.5", compact && "justify-center")} aria-label="Home">
-      <LogoMark />
+      {me.data?.tenant ? <GymMark name={me.data.tenant.name} logoUrl={me.data.tenant.logoUrl} className="!h-9 !w-9" /> : <LogoMark />}
       {!compact && <span className="truncate text-lg font-bold tracking-tight">{me.data?.tenant?.name ?? "Ember"}</span>}
     </Link>
   );
@@ -86,7 +87,7 @@ export function StaffShell({ area }: { area: StaffArea }) {
           <header className="sticky top-0 z-30 border-b border-clay-line bg-clay-canvas/90 backdrop-blur">
             <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-2 px-4 pt-[env(safe-area-inset-top,0px)] sm:px-8 lg:px-10">
               <Link to={AREA_PATH[area]} className="flex min-h-[2.75rem] min-w-[2.75rem] items-center gap-2 sm:hidden" aria-label="Home">
-                <LogoMark className="h-8 w-8" />
+                {me.data?.tenant ? <GymMark name={me.data.tenant.name} logoUrl={me.data.tenant.logoUrl} className="!h-8 !w-8" /> : <LogoMark className="h-8 w-8" />}
               </Link>
               {area !== "admin" && <BranchSwitcher branches={branches} />}
               <div className="flex-1" />

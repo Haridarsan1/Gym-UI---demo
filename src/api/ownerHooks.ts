@@ -104,3 +104,33 @@ export function useImportActions() {
     run: useMutation({ mutationFn: async (i: import("@/api/memberImport").RunImportInput) => (await import("@/api/memberImport")).runMemberImport(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner", session?.userId] }) }),
   };
 }
+
+export function useSubscription() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["owner", session?.userId, "subscription"], queryFn: async () => (await import("@/api/subscription")).getSubscription(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+export function useAuditLog(q: import("@/api/audit").AuditQuery) {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["owner", session?.userId, "audit", q], queryFn: async () => (await import("@/api/audit")).getAuditLog(session, q), enabled: !!session, retry, staleTime: 0, placeholderData: keepPreviousData });
+}
+
+export function useAuditExport() {
+  const { session } = useSession();
+  return useMutation({ mutationFn: async (q: import("@/api/audit").AuditQuery) => (await import("@/api/audit")).exportAuditLog(session, q) });
+}
+
+export function useSettings() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["owner", session?.userId, "settings"], queryFn: async () => (await import("@/api/settings")).getSettings(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+export function useSaveSettings() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (i: import("@/api/settings").SaveSettingsInput) => (await import("@/api/settings")).saveSettings(session, i),
+    // The gym’s name and logo are in the header, the sidebar and every receipt.
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: ["owner", session?.userId, "settings"] }), qc.invalidateQueries({ queryKey: ["me"] }), qc.invalidateQueries({ queryKey: ["desk"] }), qc.invalidateQueries({ queryKey: ["member"] })]),
+  });
+}

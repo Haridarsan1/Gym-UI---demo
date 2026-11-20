@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { usePolicies, usePolicyActions } from "@/api/ownerHooks";
 import type { PoliciesView } from "@/api/policyScreen";
 import { isApiError } from "@/api/errors";
@@ -113,7 +114,7 @@ function Loaded({ v }: { v: PoliciesView }) {
                 ))}
               </ol>
             )}
-            <p className="mt-2 text-sm text-clay-muted">Every change is also kept in the audit log.</p>
+            <Link to="/owner/audit?kind=setup" className="mt-2 inline-flex min-h-[2.75rem] items-center text-sm font-semibold underline underline-offset-4">Open the audit log</Link>
           </section>
         </aside>
       </div>

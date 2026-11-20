@@ -515,3 +515,86 @@ export async function importJourney(page: Page, signIn: SignIn) {
   await signIn("u_bm_bandra", "/owner/import");
   await expect(page.getByRole("heading", { name: "Import members", level: 1 })).toHaveCount(0);
 }
+
+/** A 2 × 2 orange PNG, the “logo” the owner uploads. */
+const LOGO_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGP8z8Dwn4GBgYGJAQoAHxMCAkQ3nO4AAAAASUVORK5CYII=", "base64");
+const LOGO = 'img[src^="data:image/"]';
+
+/**
+ * Subscription, settings and the audit log (S02, R02, S05): the plan, what it uses against its limits and what each state means; the gym’s logo uploaded and then showing on the sidebar and at the
+ * top of a receipt; the audit log filtered by who and by kind, with the entry’s details and a download; the Policies screen’s link into it; and what a branch manager does and doesn’t get.
+ */
+export async function accountJourney(page: Page, signIn: SignIn) {
+  await signIn("u_owner", "/owner/subscription");
+  await expect(page.getByRole("heading", { name: "Subscription", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Growth", level: 2 })).toBeVisible();
+  await expect(page.getByText("Free trial").first()).toBeVisible();
+  const usage = page.getByRole("list", { name: "Usage against your limits" });
+  await expect(usage).toContainText("Branches");
+  await expect(usage).toContainText("3 of 3");
+  await expect(usage).toContainText("You are at this limit.");
+  await expect(usage).toContainText("of 250");
+  await expect(page.getByRole("table", { name: "What each Ember plan includes" }).or(page.getByRole("list", { name: "Plans" }))).toContainText("Pro");
+  await expect(page.getByRole("heading", { name: "No software invoices yet" })).toBeVisible();
+  await expect(page.getByText("separate from what your members pay you", { exact: false })).toBeVisible();
+  await noSideways(page, "Subscription");
+
+  // Settings: no logo yet, so initials; upload one and it shows in the sidebar or header, and on a receipt.
+  await page.goto("/owner/settings");
+  await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+  await expect(page.locator(`header ${LOGO}, nav ${LOGO}, aside ${LOGO}`)).toHaveCount(0);
+  await page.getByLabel("GSTIN").fill("27AABCP1234F1");
+  await page.getByRole("button", { name: "Save settings" }).click();
+  await expect(page.getByText("A GSTIN is 15 characters")).toBeVisible();
+  await page.getByLabel("GSTIN").fill("99AABCP1234F1Z5");
+  await expect(page.getByText("aren’t a state code", { exact: false })).toBeVisible();
+  await page.getByLabel("GSTIN").fill("27AABCP1234F1Z5");
+  await expect(page.getByText("Registered in Maharashtra")).toBeVisible();
+  await page.getByLabel("Logo file").setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hi") });
+  await expect(page.getByText("Use a PNG, JPG, WebP or SVG image.")).toBeVisible();
+  await page.getByLabel("Logo file").setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: LOGO_PNG });
+  await expect(page.getByText("The new logo is shown here.")).toBeVisible();
+  await page.getByLabel("Registered address").fill("Ground floor, Veera Desai Road, Andheri West, Mumbai 400053");
+  await page.getByRole("button", { name: "Save settings" }).click();
+  await expect(page.getByText("Settings saved")).toBeVisible();
+  await noSideways(page, "Settings");
+  await expect(page.locator(`header ${LOGO}:visible, nav ${LOGO}:visible, aside ${LOGO}:visible`).first()).toBeVisible();
+
+  await signIn("u_desk_andheri", "/desk/members/mem_arjun?tab=billing");
+  await page.getByRole("link", { name: /^(INV|PF)/ }).first().click();
+  await expect(page.locator(`.receipt-sheet ${LOGO}:visible`)).toBeVisible();
+  await expect(page.locator(`header ${LOGO}:visible, nav ${LOGO}:visible, aside ${LOGO}:visible`).first()).toBeVisible();
+
+  // The audit log: filtered by who, by kind, with an entry’s details and a download.
+  await signIn("u_owner", "/owner/policies");
+  await page.getByRole("link", { name: "Open the audit log" }).click();
+  await expect(page).toHaveURL(/\/owner\/audit\?kind=setup/);
+  await expect(page.getByRole("heading", { name: "Audit log", level: 1 })).toBeVisible();
+  await expect(page.locator("tr:visible, li:visible").filter({ hasText: "Gym settings changed" }).first()).toBeVisible();
+  await page.getByLabel("Kind").selectOption({ label: "Everything" });
+  await page.getByLabel("Who").selectOption({ label: "Neha Kulkarni, Owner" });
+  await expect(page.getByRole("status")).toContainText("1 entry");
+  await expect(page.locator("tr:visible, li:visible").filter({ hasText: "Pooja Nair" })).toHaveCount(0);
+  await page.getByRole("button", { name: /^Details of Gym settings changed/ }).first().click();
+  const entry = dialog(page, "Audit entry");
+  await expect(entry).toContainText("Neha Kulkarni, Owner");
+  await expect(entry.getByRole("list", { name: "Details" }).or(entry.locator("dl[aria-label=Details]"))).toContainText("Logo: added");
+  await entry.getByRole("button", { name: "Close" }).first().click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download CSV" }).click();
+  expect((await download).suggestedFilename()).toMatch(/^ember-audit-log-all-branches-2026-11-17\.csv$/);
+  await expect(page.getByText("Download ready")).toBeVisible();
+  await page.getByRole("button", { name: "Clear the filters" }).click();
+  await expect(page.getByLabel("Who")).toHaveValue("");
+  await noSideways(page, "Audit log");
+
+  // A branch manager reads what concerns their branch, and has no Settings or Subscription.
+  await signIn("u_bm_bandra", "/owner/audit");
+  await expect(page.getByText("What concerns this branch")).toBeVisible();
+  await expect(page.getByLabel("Who").locator("option", { hasText: "Pooja Nair" })).toHaveCount(0);
+  await noSideways(page, "Audit log, branch manager");
+  for (const path of ["/owner/settings", "/owner/subscription"]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { name: /^(Settings|Subscription)$/, level: 1 })).toHaveCount(0);
+  }
+}
