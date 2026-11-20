@@ -1,0 +1,22 @@
+[
+  { "key": "comms", "caption": "Communications: groups with who can be reached, wording, and the delivery log" },
+  { "key": "comms-wording", "caption": "The gym’s wording for an email, with a preview filled with a sample member" },
+  { "key": "comms-failed", "caption": "The mail server refused mail: failed emails, and a retry that fails again" },
+  { "key": "comms-retried", "caption": "After switching the failure off: retried emails are sent, with how many tries it took" },
+  { "key": "comms-notsent", "caption": "Members who haven’t agreed to offers are never sent one, and the log says why" },
+  { "key": "import", "caption": "Import members: the template, what each column means, and the file" },
+  { "key": "import-preview", "caption": "The preview: ready, shared-number and problem rows, each problem in words" },
+  { "key": "import-shared", "caption": "A shared number is a separate member with the flag, and can be unticked" },
+  { "key": "import-confirm", "caption": "Confirming the import: the members agreed to the gym keeping their details" },
+  { "key": "import-done", "caption": "Imported, and sending it again adds nobody" },
+  { "key": "subscription", "caption": "Subscription: the plan, its state and what each state means" },
+  { "key": "subscription-usage", "caption": "What the gym uses against each limit" },
+  { "key": "audit", "caption": "Audit log: who did what, when and why" },
+  { "key": "audit-actor", "caption": "The audit log filtered by actor" },
+  { "key": "audit-entry", "caption": "One entry’s details: the change, from and to" },
+  { "key": "settings", "caption": "Settings: no logo yet, so the gym’s initials" },
+  { "key": "settings-logo", "caption": "Settings with a logo uploaded, ready to save" },
+  { "key": "sidebar-logo", "caption": "The logo on the sidebar (the header on a phone)" },
+  { "key": "receipt-logo", "caption": "The logo at the top of a receipt" },
+  { "key": "bm-audit", "caption": "A branch manager’s audit log: what concerns their branch only" }
+]
