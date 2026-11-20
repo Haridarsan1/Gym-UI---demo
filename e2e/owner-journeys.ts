@@ -499,6 +499,33 @@ export async function importJourney(page: Page, signIn: SignIn) {
   await expect(page.getByText("Already imported").first()).toBeVisible();
   await expect(page.getByRole("region", { name: "Already imported" })).toContainText("nobody was added twice");
 
+  // App invitations: who has joined and who hasn’t, an invitation by email through the delivery log, and the link that sets up a login.
+  const imports = page.getByRole("list", { name: "Imports" });
+  await expect(imports).toContainText("0 joined, 0 invited, 5 not invited (4 have no email)");
+  await page.getByRole("button", { name: "Send app invites (1)" }).click();
+  await expect(page.getByText("Invitations sent")).toBeVisible();
+  await expect(imports).toContainText("0 joined, 1 invited, 4 not invited");
+  await page.goto("/owner/communications");
+  const mail = page.getByRole("region", { name: "Delivery log" }).locator("tr:visible, li:visible").filter({ hasText: "App invitation" }).first();
+  await expect(mail).toContainText("Sent");
+  await mail.getByRole("button", { name: /^Read the email to/ }).click();
+  const link = (await dialog(page, "Email").locator("p.whitespace-pre-line").textContent())!.match(/https:\/\/app\.ember\.example(\/join\/\S+)/)![1]!;
+  await page.goto(link);
+  await expect(page.getByRole("heading", { name: "Hi Asha, set up your login" })).toBeVisible();
+  await noSideways(page, "Join");
+  await page.getByRole("button", { name: "Create my login" }).click();
+  await expect(page.getByText("Enter the 6-digit code.")).toBeVisible();
+  await page.getByRole("button", { name: "Send me a code" }).click();
+  await expect(page.getByText("your code is 246810")).toBeVisible();
+  await page.getByLabel("Six-digit code").fill("246810");
+  await page.getByRole("button", { name: "Create my login" }).click();
+  await expect(page).toHaveURL(/\/m$/);
+  await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+  await page.goto(link);
+  await expect(page.getByRole("heading", { name: "This link can’t be used" })).toBeVisible();
+  await signIn("u_owner", "/owner/import");
+  await expect(page.getByRole("list", { name: "Imports" })).toContainText("1 joined, 0 invited, 4 not invited");
+
   // The same file under a new run: every row is now a member, so nothing is left to import.
   await signIn("u_owner", "/owner/import");
   await page.getByLabel("Choose a CSV file").setInputFiles({ name: "members.csv", mimeType: "text/csv", buffer: Buffer.from(IMPORT_FILE) });
@@ -539,10 +566,10 @@ export async function accountJourney(page: Page, signIn: SignIn) {
   await expect(page.getByText("separate from what your members pay you", { exact: false })).toBeVisible();
   await noSideways(page, "Subscription");
 
-  // Settings: no logo yet, so initials; upload one and it shows in the sidebar or header, and on a receipt.
+  // Settings: the demo gym starts with its own sample logo (white-labelling is visible at once); upload another and it replaces it in the sidebar or header, and on a receipt.
   await page.goto("/owner/settings");
   await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
-  await expect(page.locator(`header ${LOGO}, nav ${LOGO}, aside ${LOGO}`)).toHaveCount(0);
+  await expect(page.locator(`header img[src^="data:image/svg+xml"]:visible, nav img[src^="data:image/svg+xml"]:visible, aside img[src^="data:image/svg+xml"]:visible`).first()).toBeVisible();
   await page.getByLabel("GSTIN").fill("27AABCP1234F1");
   await page.getByRole("button", { name: "Save settings" }).click();
   await expect(page.getByText("A GSTIN is 15 characters")).toBeVisible();
@@ -558,7 +585,7 @@ export async function accountJourney(page: Page, signIn: SignIn) {
   await page.getByRole("button", { name: "Save settings" }).click();
   await expect(page.getByText("Settings saved")).toBeVisible();
   await noSideways(page, "Settings");
-  await expect(page.locator(`header ${LOGO}:visible, nav ${LOGO}:visible, aside ${LOGO}:visible`).first()).toBeVisible();
+  await expect(page.locator(`header img[src^="data:image/png"]:visible, nav img[src^="data:image/png"]:visible, aside img[src^="data:image/png"]:visible`).first()).toBeVisible();
 
   await signIn("u_desk_andheri", "/desk/members/mem_arjun?tab=billing");
   await page.getByRole("link", { name: /^(INV|PF)/ }).first().click();
@@ -578,7 +605,7 @@ export async function accountJourney(page: Page, signIn: SignIn) {
   await page.getByRole("button", { name: /^Details of Gym settings changed/ }).first().click();
   const entry = dialog(page, "Audit entry");
   await expect(entry).toContainText("Neha Kulkarni, Owner");
-  await expect(entry.getByRole("list", { name: "Details" }).or(entry.locator("dl[aria-label=Details]"))).toContainText("Logo: added");
+  await expect(entry.getByRole("list", { name: "Details" }).or(entry.locator("dl[aria-label=Details]"))).toContainText("Logo: replaced");
   await entry.getByRole("button", { name: "Close" }).first().click();
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download CSV" }).click();

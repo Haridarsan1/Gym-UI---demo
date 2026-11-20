@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CalendarClock, Hand, Hourglass, Snowflake, Sun, XCircle } from "lucide-react";
-import { useMemberProfile, useWizardOptions } from "@/api/deskMoreHooks";
+import { useMemberActions, useMemberProfile, useWizardOptions } from "@/api/deskMoreHooks";
+import { isApiError } from "@/api/errors";
+import { useToast } from "@/design/Toast";
 import type { MemberProfileData } from "@/api/memberProfile";
 import { useCan } from "@/app/SessionContext";
 import { Avatar } from "@/design/Avatar";
@@ -48,7 +50,16 @@ function Profile({ p }: { p: MemberProfileData }) {
   const fromLink = params.get("collect");
   const [sheet, setSheet] = useState<Sheet>(fromLink ? "collect" : null);
   const [invoiceId, setInvoiceId] = useState<string | undefined>(fromLink ?? undefined);
-  const canManage = useCan()("membership.manage");
+  const canManage = useCan()("message.send");
+  const canManageMembership = useCan()("membership.manage");
+  const { invite } = useMemberActions(p.member.id);
+  const toast = useToast();
+  const sendInvite = async () => {
+    try {
+      const r = await invite.mutateAsync({ memberIds: [p.member.id], key: `invite-${crypto.randomUUID()}` });
+      toast(r.skipped[0] ? { title: "Not sent", description: r.skipped[0].reason, tone: "error" } : r.failed ? { title: "The email failed", description: "It is in Communications, where it can be retried.", tone: "error" } : { title: "Invitation sent", description: `An email with a link to set up their login went to ${p.app.email}.`, tone: "success" });
+    } catch (e) { toast({ title: "Not sent", description: isApiError(e) ? e.message : "Try again.", tone: "error" }); }
+  };
   const canPay = useCan()("payment.record");
   const canRefund = useCan()("refund.request");
   const canAssign = useCan()("trainer.assign");
@@ -69,9 +80,11 @@ function Profile({ p }: { p: MemberProfileData }) {
               <span>{m ? m.planName : "No membership"}</span>
               <span>{p.member.branchName}</span>
               <span>{p.member.phone}{p.member.email ? `, ${p.member.email}` : ""}</span>
+              <span data-testid="app-status">{p.app.status === "joined" ? `App: joined${p.app.joinedOn ? ` on ${formatDate(p.app.joinedOn)}` : ""}` : p.app.status === "invited" ? `App: invited on ${formatDate(p.app.invitedOn!)}, not joined yet` : p.app.email ? "App: not invited" : "App: can’t be invited, no email address"}</span>
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {canManage && p.app.status !== "joined" && <Button3D variant="white" size="md" disabled={invite.isPending || !p.app.email} onClick={() => void sendInvite()}>{p.app.status === "invited" ? "Send app invite again" : "Send app invite"}</Button3D>}
             {canPay && p.dues.totalPaise > 0 && <Button3D variant="ember" size="md" onClick={() => collect()}>Collect {formatRupees(p.dues.totalPaise)}</Button3D>}
             <Button3DLink to="/desk" variant="white" size="md">Check-in</Button3DLink>
           </div>
@@ -86,7 +99,7 @@ function Profile({ p }: { p: MemberProfileData }) {
       </div>
 
       <div role="tabpanel" id="member-panel" aria-labelledby={`tab-${tab}`} className="space-y-4">
-        {tab === "membership" && <MembershipTab p={p} canManage={canManage} canPay={canPay} canRefund={canRefund} open={setSheet} collect={collect} />}
+        {tab === "membership" && <MembershipTab p={p} canManage={canManageMembership} canPay={canPay} canRefund={canRefund} open={setSheet} collect={collect} />}
         {tab === "billing" && <Billing p={p} canPay={canPay} canRefund={canRefund} collect={collect} refund={() => setSheet("refund")} />}
         {tab === "credits" && <Credits p={p} />}
         {tab === "activity" && <Activity p={p} />}

@@ -9,6 +9,7 @@ import { getSettings, saveSettings } from "@/api/settings";
 import { getSubscription } from "@/api/subscription";
 import { resetDemo } from "@/demo";
 import { db } from "@/demo/db";
+import { PULSE_LOGO_URL } from "@/demo/pulseLogo";
 import { gstinState, validateProfile } from "@/domain/settings";
 import { usageLevel } from "@/domain/subscription";
 
@@ -46,12 +47,12 @@ describe("settings", () => {
       expect((await err(getSettings(as(id)))).code, id).toBe("forbidden");
       expect((await err(saveSettings(as(id), { key: key(), ...(await base()), logo: PNG }))).code, id).toBe("forbidden");
     }
-    expect((await db.tenants.toArray())[0]!.logoUrl).toBeUndefined();
+    expect((await db.tenants.toArray())[0]!.logoUrl).toBe(PULSE_LOGO_URL);
   });
 
-  it("a saved logo and name are what the header, the sidebar and every receipt read, for staff and members alike; the audit entry says logo added, not the image", async () => {
+  it("a saved logo and name are what the header, the sidebar and every receipt read, for staff and members alike; the audit entry says logo replaced, not the image", async () => {
     const r = await saveSettings(owner, { key: key(), ...(await base()), name: "Pulse Fitness Mumbai", logo: PNG });
-    expect(r.changes).toEqual(["Name: Pulse Fitness to Pulse Fitness Mumbai", "Logo: added"]);
+    expect(r.changes).toEqual(["Name: Pulse Fitness to Pulse Fitness Mumbai", "Logo: replaced"]);
     for (const id of ["u_owner", "u_desk_andheri", "u_member_arjun", "u_trainer_meera"]) expect((await getMe(as(id))).tenant, id).toMatchObject({ name: "Pulse Fitness Mumbai", logoUrl: PNG });
     const inv = (await db.invoices.where("memberId").equals("mem_arjun").first())!;
     expect((await getReceipt(as("u_member_arjun"), inv.id)).supplier).toMatchObject({ name: "Pulse Fitness Mumbai", logoUrl: PNG });

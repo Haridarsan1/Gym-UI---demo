@@ -75,6 +75,8 @@ export const User = z.object({
   mfaEnabled: z.boolean(),
   /** Set for members: the member record this login belongs to. */
   memberId: id.optional(),
+  /** How a member signs in, chosen when they set up their login from an invitation (demo: nothing secret is kept). */
+  login: z.object({ method: z.enum(["phone_otp", "email_password"]), setAt: isoDateTime }).optional(),
   createdAt: isoDateTime,
 });
 export type User = z.infer<typeof User>;
@@ -128,6 +130,8 @@ export const Member = z.object({
   sharesContactWith: z.array(id).optional(),
   /** The import run that made this member (S01). */
   importBatchId: z.string().optional(),
+  /** The invitation to set up a login for the app (S01). The token is in the link; `joinedAt` is when they used it. */
+  appInvite: z.object({ token: z.string(), sentAt: isoDateTime, joinedAt: isoDateTime.optional(), to: z.string().optional() }).optional(),
   archivedAt: isoDateTime.optional(),
 });
 export type Member = z.infer<typeof Member>;
@@ -205,6 +209,8 @@ export const AuditAction = z.enum([
   "communication.retry",
   "communication.send",
   "communication.template",
+  "member.invite",
+  "member.join",
   "export.create",
   "import.run",
 ]);

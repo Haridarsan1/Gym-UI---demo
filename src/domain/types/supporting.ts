@@ -46,7 +46,7 @@ export const MemberSettings = z.object({
 });
 export type MemberSettings = z.infer<typeof MemberSettings>;
 
-export const EmailTemplate = z.enum(["booking_confirmed", "booking_canceled", "booking_rescheduled", "payment_receipt", "membership_renewed", "sessions_purchased", "data_request", "member_welcome", "payment_reminder", "refund_issued", "staff_invite", "renewal_reminder", "inactivity_prompt", "marketing_update"]);
+export const EmailTemplate = z.enum(["booking_confirmed", "booking_canceled", "booking_rescheduled", "payment_receipt", "membership_renewed", "sessions_purchased", "data_request", "member_welcome", "payment_reminder", "refund_issued", "staff_invite", "renewal_reminder", "inactivity_prompt", "marketing_update", "member_invite"]);
 
 /**
  * Why: O04 says every message the gym sends is logged with its outcome, and messages are email only (confirmed decision). The

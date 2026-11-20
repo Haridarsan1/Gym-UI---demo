@@ -22,6 +22,7 @@ export const MESSAGE_PREFS: Record<"payment_reminder" | "renewal_reminder" | "in
 export function whyNotSent(template: GymTemplateId, m: { email?: string }, consents: Parameters<typeof hasConsent>[0], memberId: string, settings: Pick<MemberSettings, "email"> | undefined): { reason: string; kind: "no_email" | "opted_out" | "no_consent" } | undefined {
   if (!m.email) return { reason: "No email address on file for this member.", kind: "no_email" };
   if (template === "marketing_update") return hasConsent(consents, memberId, "marketing") ? undefined : { reason: "This member hasn’t agreed to offers and news, or withdrew that.", kind: "no_consent" };
+  if (template === "member_invite") return undefined;
   const pref = MESSAGE_PREFS[template];
   if (settings && settings.email[pref] === false) return { reason: pref === "inactivityPrompts" ? "This member turned off “we’ve missed you” messages." : "This member turned off renewal and payment reminders.", kind: "opted_out" };
   return undefined;

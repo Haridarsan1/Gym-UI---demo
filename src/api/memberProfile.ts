@@ -3,6 +3,8 @@ import { memberInScope, openDesk } from "@/api/desk";
 import { amountDuePaise, isOverdue, isUnpaidCart, paidPaise } from "@/domain/billing";
 import { creditBalance, type CreditBalance } from "@/domain/credits";
 import { graceDetail, type GraceSource } from "@/domain/checkin";
+import { istDateOf } from "@/domain/dates";
+import { appStatus, type AppStatus } from "@/domain/memberInvite";
 import { assignmentOn, currentMembership } from "@/domain/membership";
 import { effectiveStatus, freezeProblem, LIFECYCLE_DEFAULTS, type LifecycleRules } from "@/domain/lifecycle";
 import { passCodeFor } from "@/api/newMember";
@@ -69,6 +71,8 @@ export interface MemberProfileData {
     /** The grace period this membership has after its end date, where it comes from, and the numbers behind it (M02). */
     grace: { days: number; source: GraceSource; endsOn?: string; planDays?: number; gymDays: number; override?: number };
   };
+  /** Whether the member has a login for the app, and when they were invited or joined (S01). */
+  app: { status: AppStatus; invitedOn?: string; joinedOn?: string; email?: string };
   waiting: Array<{ id: string; planName: string; status: Membership["status"]; startsOn: string; endsOn?: string }>;
   actions: { freeze: Action; unfreeze: Action; changePlan: Action; cancel: Action; keep: Action; grace: Action };
   rules: LifecycleRules;
@@ -128,6 +132,7 @@ export async function getMemberProfile(session: Session | null, memberId: string
       sharing: allMembers.filter((m) => m.id !== member.id && !m.archivedAt && (m.phone === member.phone || (!!member.email && m.email?.toLowerCase() === member.email.toLowerCase()))).map((m) => ({ id: m.id, name: m.name })),
     },
     membership: cur && status && { id: cur.id, planName: cur.terms.name, kind: cur.terms.kind, status, startsOn: cur.startsOn, endsOn: cur.endsOn, visitsRemaining: cur.visitsRemaining, freezes: cur.freezes, canceledEffectiveOn: cur.canceledEffectiveOn, cancelReason: cur.cancelReason, autoRenew: cur.autoRenew, invoiceNumber: cur.invoiceId ? inv.get(cur.invoiceId)?.number : undefined, grace: { ...graceDetail(cur, policy?.graceDays ?? 0), planDays: cur.terms.graceDays, gymDays: policy?.graceDays ?? 0, override: cur.graceDays } },
+    app: { status: appStatus(member), invitedOn: member.appInvite ? istDateOf(member.appInvite.sentAt) : undefined, joinedOn: member.appInvite?.joinedAt ? istDateOf(member.appInvite.joinedAt) : undefined, email: member.email },
     waiting: memberships.filter((m) => m.id !== cur?.id && (m.status === "scheduled" || m.status === "pending")).map((m) => ({ id: m.id, planName: m.terms.name, status: m.status, startsOn: m.startsOn, endsOn: m.endsOn })),
     actions: {
       freeze: freezeBlocked ? { allowed: false, reason: freezeBlocked } : { allowed: !!live, reason: live ? undefined : "Only an active membership can be frozen." },

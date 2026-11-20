@@ -2,8 +2,8 @@
  * The emails the gym writes itself (O04): their default wording, the placeholders each may use, and how a template is filled in. The gym can change the wording; the placeholders are filled from the
  * member’s own record when it is sent, and with a sample in the preview. Transactional messages (receipts, booking confirmations) are records and are not edited here.
  */
-export type GymTemplateId = "payment_reminder" | "renewal_reminder" | "inactivity_prompt" | "marketing_update";
-export type Placeholder = "first_name" | "gym" | "plan" | "ends_on" | "days" | "amount_due" | "invoice" | "due_on" | "last_visit";
+export type GymTemplateId = "payment_reminder" | "renewal_reminder" | "inactivity_prompt" | "marketing_update" | "member_invite";
+export type Placeholder = "first_name" | "gym" | "plan" | "ends_on" | "days" | "amount_due" | "invoice" | "due_on" | "last_visit" | "invite_link";
 
 export interface TemplateDef {
   id: GymTemplateId;
@@ -19,7 +19,7 @@ export interface TemplateDef {
 
 export const PLACEHOLDER_ABOUT: Record<Placeholder, string> = {
   first_name: "The member’s first name", gym: "The gym’s name", plan: "Their plan", ends_on: "The date it ends", days: "Days left (or days since their last visit)", amount_due: "The amount due, with GST",
-  invoice: "The invoice number", due_on: "The date it was due", last_visit: "The date of their last visit",
+  invoice: "The invoice number", due_on: "The date it was due", last_visit: "The date of their last visit", invite_link: "The link that opens their login set-up",
 };
 
 export const TEMPLATES: TemplateDef[] = [
@@ -39,6 +39,11 @@ export const TEMPLATES: TemplateDef[] = [
     body: "Hi {{first_name}},\n\nIt has been {{days}} days since your last visit on {{last_visit}}. Even a short session counts. Your trainer can help you pick up where you left off.\n\n{{gym}}",
   },
   {
+    id: "member_invite", title: "App invitation", about: "Sent when the gym invites a member to the app, from their profile or after an import.", rule: "Only to a member with an email address whose consent for the gym to hold their details isn’t withdrawn. Not repeated before the gap in Policies.",
+    placeholders: ["first_name", "gym", "invite_link"], subject: "{{first_name}}, set up your {{gym}} app",
+    body: "Hi {{first_name}},\n\n{{gym}} has set you up in its app: your plan, your bookings and your workouts in one place. Open the link to choose how you sign in, with your phone number and a code, or with your email and a password.\n\n{{invite_link}}\n\nIf you weren’t expecting this, ignore this email and nothing happens.\n\n{{gym}}",
+  },
+  {
     id: "marketing_update", title: "Offers and news", about: "Sent to members you choose to tell about offers, events and news.", rule: "Only to members who agreed to offers and news. Someone who withdrew that consent is never sent it.",
     placeholders: ["first_name", "gym"], subject: "News from {{gym}}",
     body: "Hi {{first_name}},\n\nThere is news at {{gym}}. Write your update here.\n\nYou are getting this because you agreed to offers and news. You can turn it off in the app under Me.\n\n{{gym}}",
@@ -49,7 +54,7 @@ export const templateDef = (id: string): TemplateDef | undefined => TEMPLATES.fi
 
 /** A sample member for previews, so the owner reads a real-looking email. */
 export const SAMPLE: Record<Placeholder, string> = {
-  first_name: "Priya", gym: "Pulse Fitness", plan: "Monthly", ends_on: "17 Dec 2026", days: "12", amount_due: "₹2,950", invoice: "PFAND/26-27/0042", due_on: "14 Nov 2026", last_visit: "3 Nov 2026",
+  first_name: "Priya", gym: "Pulse Fitness", plan: "Monthly", ends_on: "17 Dec 2026", days: "12", amount_due: "₹2,950", invoice: "PFAND/26-27/0042", due_on: "14 Nov 2026", last_visit: "3 Nov 2026", invite_link: "https://app.ember.example/join/inv_sample",
 };
 
 export function fill(text: string, vars: Partial<Record<Placeholder, string>>): string {

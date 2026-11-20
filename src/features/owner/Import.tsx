@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Check, Download, FileSpreadsheet, Upload } from "lucide-react";
-import { useImportActions } from "@/api/ownerHooks";
+import { useImportActions, useImports } from "@/api/ownerHooks";
+import type { ImportListRow } from "@/api/memberImport";
 import type { ImportPreview, ImportResult } from "@/api/memberImport";
 import { isApiError } from "@/api/errors";
 import { Button3D } from "@/design/Button3D";
@@ -8,7 +9,9 @@ import { Sheet } from "@/design/Sheet";
 import { useToast } from "@/design/Toast";
 import { ResponsiveTable, type Column } from "@/design/layout/ResponsiveTable";
 import { COLUMNS, COLUMN_HELP, REQUIRED, TEMPLATE_CSV, type PreviewRow } from "@/domain/memberImport";
+import { istDateOf } from "@/domain/dates";
 import { cn } from "@/lib/format";
+import { formatDate } from "@/lib/when";
 
 const newKey = () => `import-${crypto.randomUUID()}`;
 
@@ -20,6 +23,34 @@ function Tick({ checked, onChange, label, disabled }: { checked: boolean; onChan
       <span aria-hidden="true" className={cn("grid h-6 w-6 place-items-center rounded-md border-2", checked ? "border-ember-600 bg-ember-600 text-white" : "border-clay-subtle bg-white")}>{checked && <Check className="h-4 w-4" strokeWidth={3} />}</span>
       <span aria-hidden="true" className="text-sm font-semibold sm:hidden">{disabled ? "Can’t be imported" : "Import this row"}</span>
     </label>
+  );
+}
+
+/** Who has joined the app, who has been invited and who hasn’t, for each import, with a button that invites the rest. Invitations go through the delivery log, so a failed one can be retried there. */
+function RecentImports() {
+  const list = useImports();
+  const { invite } = useImportActions();
+  const toast = useToast();
+  if (!list.data || list.data.length === 0) return null;
+  const send = async (r: ImportListRow) => {
+    try {
+      const res = await invite.mutateAsync({ memberIds: r.memberIds, key: `invite-${crypto.randomUUID()}` });
+      toast({ title: "Invitations sent", description: `${res.sent} sent${res.failed ? `, ${res.failed} failed (retry them in Communications)` : ""}${res.skipped.length ? `, ${res.skipped.length} not sent: ${[...new Set(res.skipped.map((s) => s.reason.split(".")[0]))].slice(0, 2).join("; ")}` : ""}.`, tone: res.failed ? "error" : "success" });
+    } catch (e) { toast({ title: "Not sent", description: isApiError(e) ? e.message : "Try again.", tone: "error" }); }
+  };
+  return (
+    <section aria-labelledby="imp-recent" className="clay space-y-3 p-4 sm:p-5">
+      <h2 id="imp-recent" className="text-lg font-bold">Imports and the app</h2>
+      <p className="text-[0.95rem] text-clay-muted">An imported member has no login yet. Send them an invitation by email: they follow the link and choose phone and a code, or email and a password. A member without an email address can’t be invited.</p>
+      <ul aria-label="Imports" className="divide-y divide-clay-line">
+        {list.data.map((r) => (
+          <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <div className="min-w-0"><p className="font-semibold">{r.fileName ?? "Import"} <span className="font-normal text-clay-muted">{formatDate(istDateOf(r.at))}, {r.created} {r.created === 1 ? "member" : "members"}</span></p><p className="text-sm text-clay-muted"><strong className="text-clay-ink">{r.joined}</strong> joined, <strong className="text-clay-ink">{r.invited}</strong> invited, <strong className="text-clay-ink">{r.notInvited}</strong> not invited{r.notInvited > r.canInvite ? ` (${r.notInvited - r.canInvite} have no email)` : ""}</p></div>
+            <Button3D variant="white" size="md" disabled={r.canInvite === 0 || invite.isPending} onClick={() => void send(r)}>Send app invites ({r.canInvite})</Button3D>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -148,6 +179,8 @@ export default function Import() {
           <p className="text-sm text-clay-muted">“Send this import again” is safe: it finds the import already done and adds nobody.</p>
         </section>
       )}
+
+      <RecentImports />
 
       <Sheet open={confirming} onClose={() => setConfirming(false)} label="Import members" kind="confirm">
         <div className="space-y-3 p-5">

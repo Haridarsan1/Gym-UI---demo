@@ -44,7 +44,7 @@ export interface CommsQuery { branchId?: string; status?: EmailLogEntry["status"
 
 const TEMPLATE_LABEL: Record<string, string> = {
   booking_confirmed: "Booking confirmed", booking_canceled: "Booking canceled", booking_rescheduled: "Booking moved", payment_receipt: "Payment receipt", membership_renewed: "Membership renewed", sessions_purchased: "Sessions bought",
-  data_request: "Data request", member_welcome: "Welcome", payment_reminder: "Payment reminder", refund_issued: "Refund issued", staff_invite: "Staff invitation", renewal_reminder: "Renewal reminder", inactivity_prompt: "We’ve missed you", marketing_update: "Offers and news",
+  data_request: "Data request", member_welcome: "Welcome", payment_reminder: "Payment reminder", refund_issued: "Refund issued", staff_invite: "Staff invitation", member_invite: "App invitation", renewal_reminder: "Renewal reminder", inactivity_prompt: "We’ve missed you", marketing_update: "Offers and news",
 };
 
 async function scoped(c: OwnerContext, scope: string[]) {
@@ -115,7 +115,7 @@ export async function getCommunications(session: Session | null, q: CommsQuery =
     today: c.today, canEditTemplates: can(c.principal, "communication.template"), emailFails: getSimulation().emailFails,
     templates: TEMPLATES.map((t): TemplateView => {
       const w = wordingFor(d.tenant, t.id);
-      return { id: t.id, title: t.title, about: t.about, rule: t.rule, placeholders: t.placeholders.map((key) => ({ key, about: ({ first_name: "The member’s first name", gym: "The gym’s name", plan: "Their plan", ends_on: "The date it ends", days: "Days left, or days since their last visit", amount_due: "The amount due, with GST", invoice: "The invoice number", due_on: "The date it was due", last_visit: "The date of their last visit" } as Record<Placeholder, string>)[key] })), subject: w.subject, body: w.body, custom: w.custom, defaultSubject: t.subject, defaultBody: t.body, preview: render(w, SAMPLE) };
+      return { id: t.id, title: t.title, about: t.about, rule: t.rule, placeholders: t.placeholders.map((key) => ({ key, about: ({ first_name: "The member’s first name", gym: "The gym’s name", plan: "Their plan", ends_on: "The date it ends", days: "Days left, or days since their last visit", invite_link: "The link that opens their login set-up", amount_due: "The amount due, with GST", invoice: "The invoice number", due_on: "The date it was due", last_visit: "The date of their last visit" } as Record<Placeholder, string>)[key] })), subject: w.subject, body: w.body, custom: w.custom, defaultSubject: t.subject, defaultBody: t.body, preview: render(w, SAMPLE) };
     }),
     audiences: AUDIENCES.map((a) => audienceView(a, c.today, d)),
     counts, matching: filtered.length, failedRetryable: mine.filter((e) => e.status === "failed" && (e.attempts ?? 1) < MAX_ATTEMPTS).length,
@@ -128,7 +128,7 @@ export async function getCommunications(session: Session | null, q: CommsQuery =
 
 // ── Wording ─────────────────────────────────────────────────────────────────────────────────────
 
-const TemplateInput = z.object({ id: z.enum(["payment_reminder", "renewal_reminder", "inactivity_prompt", "marketing_update"]), subject: z.string(), body: z.string(), key: z.string().min(8) });
+const TemplateInput = z.object({ id: z.enum(["payment_reminder", "renewal_reminder", "inactivity_prompt", "marketing_update", "member_invite"]), subject: z.string(), body: z.string(), key: z.string().min(8) });
 export type SaveTemplateInput = z.input<typeof TemplateInput>;
 
 /** Changes the gym’s wording for one email. `subject` and `body` equal to Ember’s wording puts it back. */

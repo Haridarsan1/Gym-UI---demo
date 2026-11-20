@@ -14,7 +14,7 @@
   { "key": "audit", "caption": "Audit log: who did what, when and why" },
   { "key": "audit-actor", "caption": "The audit log filtered by actor" },
   { "key": "audit-entry", "caption": "One entry’s details: the change, from and to" },
-  { "key": "settings", "caption": "Settings: no logo yet, so the gym’s initials" },
+  { "key": "settings", "caption": "Settings: the demo gym’s own sample logo, ready to replace" },
   { "key": "settings-logo", "caption": "Settings with a logo uploaded, ready to save" },
   { "key": "sidebar-logo", "caption": "The logo on the sidebar (the header on a phone)" },
   { "key": "receipt-logo", "caption": "The logo at the top of a receipt" },

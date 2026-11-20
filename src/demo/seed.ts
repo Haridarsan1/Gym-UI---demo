@@ -12,6 +12,7 @@ import { TRAINER_POLICY_DEFAULTS } from "@/domain/trainerToday";
 import { buildFinanceSeed } from "@/demo/seedFinance";
 import { buildRoster } from "@/demo/seedTrainer";
 import { buildMemberData } from "@/demo/seedMember";
+import { PULSE_LOGO_URL } from "@/demo/pulseLogo";
 import { addRenewalHistory, addTrainingClients, buildSales } from "@/demo/seedBusiness";
 
 export { SEED_VERSION } from "@/demo/version";
@@ -70,7 +71,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
 
   const tenants: Tenant[] = [
     {
-      id: TENANT_ID, name: "Pulse Fitness", slug: "pulse-fitness", gstin: "27AABCP1234F1Z5", legalName: "Pulse Fitness Private Limited", address: "Ground floor, Veera Desai Road, Andheri West, Mumbai 400053, Maharashtra", currency: "INR", timeZone: "Asia/Kolkata",
+      id: TENANT_ID, name: "Pulse Fitness", slug: "pulse-fitness", gstin: "27AABCP1234F1Z5", legalName: "Pulse Fitness Private Limited", logoUrl: PULSE_LOGO_URL, address: "Ground floor, Veera Desai Road, Andheri West, Mumbai 400053, Maharashtra", currency: "INR", timeZone: "Asia/Kolkata",
       subscription: { state: "trial", saasPlanId: "sp_growth", trialEndsAt: createdAt(addDays(today, 12)), renewsOn: addDays(today, 12) },
       createdAt: createdAt(addDays(today, -2)),
     },

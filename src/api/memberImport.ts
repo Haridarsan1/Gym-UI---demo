@@ -120,3 +120,17 @@ export async function runMemberImport(session: Session | null, raw: RunImportInp
 }
 
 export type { PreviewRow };
+
+export interface ImportListRow { id: string; at: string; fileName?: string; created: number; memberIds: string[]; joined: number; invited: number; notInvited: number; canInvite: number }
+
+/** Every import run, newest first, with how many of the members it made have joined the app, have been invited, or haven’t been, and how many could be invited now (they have an email). */
+export async function listImports(session: Session | null): Promise<ImportListRow[]> {
+  const c = await openOwner(session, "import.run");
+  const [batches, members] = await Promise.all([db.importBatches.where("tenantId").equals(c.tenantId).toArray(), db.members.where("tenantId").equals(c.tenantId).toArray()]);
+  const { appStatus } = await import("@/domain/memberInvite");
+  return batches.sort((a, b) => b.at.localeCompare(a.at)).map((b) => {
+    const mine = members.filter((m) => m.importBatchId === b.id);
+    const st = mine.map((m) => appStatus(m));
+    return { id: b.id, at: b.at, fileName: b.fileName, created: b.created.length, memberIds: mine.map((m) => m.id), joined: st.filter((x) => x === "joined").length, invited: st.filter((x) => x === "invited").length, notInvited: st.filter((x) => x === "not_invited").length, canInvite: mine.filter((m) => appStatus(m) === "not_invited" && !!m.email).length };
+  });
+}
