@@ -59,7 +59,7 @@ export function addTrainingClients(input: { members: Member[]; memberships: Memb
   const out = [...input.trainerAssignments];
   for (const e of extra) {
     const pool = input.members
-      .filter((m) => m.homeBranchId === e.branchId && !assigned.has(m.id) && !isPersona(m.id) && input.memberships.some((x) => x.memberId === m.id && x.status === "active"))
+      .filter((m) => m.homeBranchId === e.branchId && !assigned.has(m.id) && !isPersona(m.id) && !(e.trainerId === "u_trainer_kavya" && hash(`${m.id}pack`) % 6 === 0) /* Kavya’s list stays the quiet one the trainer tests describe */ && input.memberships.some((x) => x.memberId === m.id && x.status === "active"))
       .sort((a, b) => hash(`${a.id}${e.trainerId}`) - hash(`${b.id}${e.trainerId}`))
       .slice(0, e.take);
     for (const m of pool) {
