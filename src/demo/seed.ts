@@ -12,6 +12,7 @@ import { TRAINER_POLICY_DEFAULTS } from "@/domain/trainerToday";
 import { buildFinanceSeed } from "@/demo/seedFinance";
 import { buildRoster } from "@/demo/seedTrainer";
 import { buildMemberData } from "@/demo/seedMember";
+import { addRenewalHistory, addTrainingClients, buildSales } from "@/demo/seedBusiness";
 
 export { SEED_VERSION } from "@/demo/version";
 
@@ -162,9 +163,9 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   const trainersAt = (branchId: string) => trainerAccounts.filter((t) => t.branchIds.includes(branchId));
   const deskFor = (branchId: string) => DEMO_ACCOUNTS.find((a) => a.role === "front_desk" && a.branchIds.includes(branchId))?.userId ?? "u_owner";
 
-  const members: Member[] = [];
-  const memberships: Membership[] = [];
-  const trainerAssignments: TrainerAssignment[] = [];
+  let members: Member[] = [];
+  let memberships: Membership[] = [];
+  let trainerAssignments: TrainerAssignment[] = [];
   const consents: Consent[] = [];
   const creditLedger: CreditLedgerEntry[] = [];
   const usedNames = new Set<string>(PERSONAS.map((p) => p.name));
@@ -301,6 +302,10 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     grant("marketing", 0.5);
   }
 
+  // A busy gym (M4): members who came back, trainers with a full book of clients, and the sale behind each membership.
+  ({ members, memberships } = addRenewalHistory({ today, members, memberships }));
+  trainerAssignments = addTrainingClients({ members, memberships, trainerAssignments, deskFor });
+
   // Training, billing and activity for the sample members. Everyone else gets this in the milestone that first shows it.
   const memberData = buildMemberData({ today, r, branches, members, memberships, membershipPlans, deskFor });
 
@@ -321,6 +326,12 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
       if (part) memberData.payments.push({ id: `pay_due_${m.id}`, tenantId: TENANT_ID, invoiceId: id, memberId: m.id, branchId: m.homeBranchId, method: "cash", amountPaise: Math.round(totals.totalPaise * 0.4), status: "succeeded", receivedAt: createdAt(addDays(issuedOn, 2)), receivedBy: deskFor(m.homeBranchId), receiptNumber: `RCP-2026-${String(9000 + k).padStart(4, "0")}`, idempotencyKey: `seed-due-${m.id}`, reconciliation: { status: "unmatched" } });
       if (k % 5 === 2) memberData.payments.push({ id: `pay_fail_${m.id}`, tenantId: TENANT_ID, invoiceId: id, memberId: m.id, branchId: m.homeBranchId, method: "upi", amountPaise: totals.totalPaise, status: "failed", receivedAt: createdAt(addDays(today, -2)), failureReason: "The payment didn’t go through, and no money was taken.", idempotencyKey: `seed-fail-${m.id}`, reconciliation: { status: "unmatched" } });
     });
+  }
+
+  {
+    const sales = buildSales({ today, members, memberships, branches, deskFor });
+    memberData.invoices.push(...sales.invoices);
+    memberData.payments.push(...sales.payments);
   }
 
   // Personal-training sessions take a room: a deterministic one at the branch where it happens (the room is only conflict-checked when set).
@@ -368,24 +379,24 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   // Rahul has withdrawn his assessment consent since his assessment, so Coach Farah sees “Assessment consent withdrawn”.
   const rahulConsent = consents.find((c) => c.id === "cn_mem_rahul_assessments");
   if (rahulConsent) rahulConsent.withdrawnAt = createdAt(addDays(today, -9));
-  const roster = buildRoster({ today, members, memberships, trainerAssignments, availability, deskFor });
+  const roster = buildRoster({ today, members, memberships, trainerAssignments, availability, deskFor, taken: memberData.bookings.flatMap((b) => (b.slotKey ? [b.slotKey] : [])) });
 
   const finance = buildFinanceSeed(memberData.payments, today);
 
   // Everyone else’s visits over the last four weeks, so the owner’s heat map and the desk’s history have something true to show. A visit is decided by a hash of member and day (the same
   // every time): one to four a week each, busier on weekdays, mostly 6 to 9 am and 5 to 8 pm. Never today, so the desk’s list for today stays its own.
   const visits: CheckIn[] = [];
-  const hoursAt = [6, 6, 7, 7, 8, 12, 13, 17, 18, 18, 19, 19, 20];
+  const hoursAt = [6, 6, 6, 7, 7, 7, 7, 8, 8, 9, 10, 12, 13, 17, 17, 18, 18, 18, 19, 19, 19, 20, 20, 21];
   for (const ms of memberships) {
     const m = members.find((x) => x.id === ms.memberId);
     if (!m || ms.status !== "active" || PERSONAS.some((p) => p.memberId === m.id)) continue;
-    const rate = 1 + (hash(m.id) % 4);
+    const rate = 2 + (hash(m.id) % 4);
     for (let back = 1; back <= 28; back++) {
       const date = addDays(today, -back);
       if (date < ms.startsOn) break;
       const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
       const roll = hash(`${m.id}${date}`) % 1000;
-      if (roll >= (rate * 1000 * (weekday === 0 ? 0.6 : weekday === 6 ? 1 : 1.15)) / 7) continue;
+      if (roll >= (rate * 1000 * ([0.45, 1.25, 1.1, 1.15, 1.1, 1, 0.95] as const)[weekday]!) / 7) continue;
       const h = hoursAt[hash(`${m.id}${date}h`) % hoursAt.length]!;
       visits.push({ id: `ci_g_${m.id}_${date}`, tenantId: TENANT_ID, memberId: m.id, branchId: m.homeBranchId, membershipId: ms.id, at: istDateTime(date, `${String(h).padStart(2, "0")}:${String(hash(`${m.id}${date}m`) % 60).padStart(2, "0")}`), method: "qr", result: "allowed", visitDebited: false, recordedBy: deskFor(m.homeBranchId) });
     }
