@@ -120,7 +120,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   );
 
   const terms = (p: MembershipPlan): Membership["terms"] => ({
-    name: p.name, kind: p.kind, pricePaise: p.pricePaise, taxRateBp: p.taxRateBp, durationDays: p.durationDays, visits: p.visits, branchIds: p.branchIds, classEntitlements: p.classEntitlements, ptCredits: p.ptCredits,
+    name: p.name, kind: p.kind, pricePaise: p.pricePaise, taxRateBp: p.taxRateBp, durationDays: p.durationDays, visits: p.visits, branchIds: p.branchIds, classEntitlements: p.classEntitlements, ptCredits: p.ptCredits, graceDays: p.graceDays,
   });
   const plan = (id: string, name: string, kind: MembershipPlan["kind"], pricePaise: number, extra: Partial<MembershipPlan>): MembershipPlan => ({
     id, tenantId: TENANT_ID, name, kind, pricePaise, taxRateBp: 1800, branchIds: ALL_BRANCHES, effectiveFrom: "2026-01-01", active: true, ...extra,
@@ -131,8 +131,8 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
     plan("pl_monthly_plus", "Monthly Plus", "time", 350_000, { durationDays: 30, ptCredits: 2, classEntitlements: 8 }),
     plan("pl_quarterly", "Quarterly", "time", 650_000, { durationDays: 90 }),
     plan("pl_half", "Half-yearly", "time", 1_100_000, { durationDays: 180 }),
-    plan("pl_annual", "Annual", "time", 1_900_000, { durationDays: 365 }),
-    plan("pl_annual_pt", "Annual with training", "time", 2_800_000, { durationDays: 365, ptCredits: 8, classEntitlements: 24 }),
+    plan("pl_annual", "Annual", "time", 1_900_000, { durationDays: 365, graceDays: 7 }),
+    plan("pl_annual_pt", "Annual with training", "time", 2_800_000, { durationDays: 365, ptCredits: 8, classEntitlements: 24, graceDays: 7 }),
     plan("pl_visit10", "10-visit pass", "visit", 300_000, { visits: 10, durationDays: 60 }),
     plan("pl_visit20", "20-visit pass", "visit", 520_000, { visits: 20, durationDays: 90, branchIds: [BRANCH.andheri, BRANCH.powai] }),
   ];

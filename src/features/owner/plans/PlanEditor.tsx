@@ -71,6 +71,7 @@ export function PlanEditor({ plan, view, onClose }: { plan: PlanRow | undefined;
   const cap = draft.maxDiscountBp && Number.isFinite(draft.maxDiscountBp) ? draft.maxDiscountBp : undefined;
   const preview = planPreview(draft, { startsOn: view.today, stateCode, discountBp: cap });
   const priceOk = draft.pricePaise !== null && !errors.pricePaise;
+  const graceDays = draft.graceDays === null || draft.graceDays === undefined || Number.isNaN(draft.graceDays) ? view.gymGraceDays : draft.graceDays;
   const pay = (label: string, paise: number, bold = false) => <div className={bold ? "flex justify-between gap-4 border-t border-clay-line pt-1 text-lg font-bold" : "flex justify-between gap-4"}><dt>{label}</dt><dd className="tabular">{formatRupees(paise)}</dd></div>;
 
   const submit = async () => {
@@ -128,6 +129,7 @@ export function PlanEditor({ plan, view, onClose }: { plan: PlanRow | undefined;
                 </dl>
                 {preview.atDiscount && <p className="mt-2 text-[0.95rem]">With the largest discount this plan allows ({Number((preview.atDiscount.bp / 100).toFixed(2))}%), the member pays <strong className="tabular">{formatRupees(preview.atDiscount.totalPaise)}</strong>, {formatRupees(preview.atDiscount.discountPaise)} less before GST.</p>}
                 <p className="mt-2 text-[0.95rem] text-clay-muted">{f.kind === "visit" ? "Joining today:" : "Joining today, it covers"} {preview.covers}.{preview.includes.length > 0 && ` Includes ${preview.includes.join(" and ")}.`}</p>
+                <p className="mt-1 text-[0.95rem] text-clay-muted">{graceDays === 0 ? "No grace period: entry stops the day after it ends." : `Members can still come in for ${graceDays} ${graceDays === 1 ? "day" : "days"} after it ends (${draft.graceDays === null || draft.graceDays === undefined || Number.isNaN(draft.graceDays) ? "the gym’s default" : "this plan’s"}).`}</p>
                 {plan && <p className="mt-1 text-sm text-clay-muted">Members who already bought this plan keep the price and terms they bought.</p>}
               </>
             ) : <p className="mt-1 text-[0.95rem] text-clay-muted">Enter the price to see the bill the member gets, with GST.</p>}
@@ -138,6 +140,7 @@ export function PlanEditor({ plan, view, onClose }: { plan: PlanRow | undefined;
             <Field label="Class bookings included" htmlFor="pl-classes" hint="Optional" error={shown("classEntitlements")}><input id="pl-classes" inputMode="numeric" value={f.classes} onChange={(e) => set({ classes: e.target.value })} className={inputClass} {...err("classEntitlements", "pl-classes")} /></Field>
             <Field label="On sale from" htmlFor="pl-from" error={shown("effectiveFrom")}><input id="pl-from" type="date" value={f.from} onChange={(e) => set({ from: e.target.value })} className={inputClass} {...err("effectiveFrom", "pl-from")} /></Field>
             <Field label="Last day on sale" htmlFor="pl-to" hint="Leave empty to keep selling" error={shown("effectiveTo")}><input id="pl-to" type="date" value={f.to} onChange={(e) => set({ to: e.target.value })} className={inputClass} {...err("effectiveTo", "pl-to")} /></Field>
+            <Field label="Grace period after it ends (days)" htmlFor="pl-grace" hint={`Optional. Empty uses the gym’s ${view.gymGraceDays} ${view.gymGraceDays === 1 ? "day" : "days"}.`} error={shown("graceDays")}><input id="pl-grace" inputMode="numeric" value={f.grace} onChange={(e) => set({ grace: e.target.value })} className={inputClass} {...err("graceDays", "pl-grace")} /></Field>
           </div>
 
           <fieldset aria-describedby={shown("branchIds") ? "pl-branches-error" : undefined}>

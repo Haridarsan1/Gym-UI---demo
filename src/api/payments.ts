@@ -49,7 +49,7 @@ export async function applyPaid(c: Pick<DeskContext, "tenantId" | "today" | "now
       const q = renewalQuote(plan, current, c.today);
       const next: Membership = {
         id: `ms_${invoice.memberId}_${invoice.id}`, tenantId: c.tenantId, memberId: invoice.memberId, planId: plan.id,
-        terms: { name: plan.name, kind: plan.kind, pricePaise: invoice.lines[0]?.unitPaise ?? plan.pricePaise, taxRateBp: plan.taxRateBp, durationDays: plan.durationDays, visits: plan.visits, branchIds: plan.branchIds, classEntitlements: plan.classEntitlements, ptCredits: plan.ptCredits },
+        terms: { name: plan.name, kind: plan.kind, pricePaise: invoice.lines[0]?.unitPaise ?? plan.pricePaise, taxRateBp: plan.taxRateBp, durationDays: plan.durationDays, visits: plan.visits, branchIds: plan.branchIds, classEntitlements: plan.classEntitlements, ptCredits: plan.ptCredits, graceDays: plan.graceDays },
         status: q.status, startsOn: q.startsOn, endsOn: q.endsOn, visitsRemaining: plan.visits ?? null, freezes: [], autoRenew: current?.autoRenew ?? false, autoRenewMethod: current?.autoRenewMethod, renewsMembershipId: current?.id, invoiceId: invoice.id, createdAt: c.nowIso,
       };
       await db.memberships.add(next);

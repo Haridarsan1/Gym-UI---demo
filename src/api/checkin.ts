@@ -160,7 +160,8 @@ export async function checkInMember(session: Session | null, raw: CheckInInput):
     ]);
     const cur = currentMembership(memberships);
     const dues = invoices.some((i) => (i.status === "open" || i.status === "partially_paid") && !isUnpaidCart(i, payments.filter((p) => p.invoiceId === i.id)) && amountDuePaise(i, payments.filter((p) => p.invoiceId === i.id)) > 0);
-    const d = checkInDecision({ membership: cur, branchId: input.branchId, today: c.today, nowIso: c.nowIso, recent, hasOpenDues: dues, scanWindowMinutes: (await policiesFor(c.tenantId)).repeatScanWindowMinutes });
+    const policy = await policiesFor(c.tenantId);
+    const d = checkInDecision({ membership: cur, branchId: input.branchId, today: c.today, nowIso: c.nowIso, recent, hasOpenDues: dues, scanWindowMinutes: policy.repeatScanWindowMinutes, gymGraceDays: policy.graceDays });
     const row: CheckIn = {
       id, tenantId: c.tenantId, memberId: member.id, branchId: input.branchId, membershipId: cur?.id, at: c.nowIso, method: input.method, result: d.result,
       message: d.reason ? `reason:${d.reason}` : undefined, visitDebited: d.visitDebited, recordedBy: c.principal.userId,

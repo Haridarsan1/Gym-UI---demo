@@ -101,3 +101,88 @@ export async function plansJourney(page: Page, signIn: SignIn) {
   await expect(ro.getByLabel("Plan name")).toBeDisabled();
   await noSideways(page, "Plans, branch manager");
 }
+
+/**
+ * Policies (M02, M05, T04, O02): an example under every value that follows what is typed, a value out of range refused in its own words, a review that lists each change from and to, the
+ * audit entry in the history, the grace period set for one membership at the desk, and a branch manager reading it all without being able to change it.
+ */
+export async function policiesJourney(page: Page, signIn: SignIn) {
+  await signIn("u_owner", "/owner/policies");
+  await expect(page.getByRole("heading", { name: "Policies", level: 1 })).toBeVisible();
+  await expect(page.locator("li", { hasText: "Free cancellation until" }).filter({ hasText: "For example" }).first()).toContainText("can be canceled free until 6:00 am Fri 20 Nov");
+  await expect(page.getByText("For example:")).toHaveCount(21);
+  await noSideways(page, "Policies");
+
+  // An example follows what is typed, and what is changed is marked until it is saved.
+  const cutoff = page.getByLabel("Free cancellation until", { exact: true });
+  await cutoff.fill("24");
+  await expect(page.locator("li", { hasText: "Free cancellation until" }).first()).toContainText("free until 6:00 pm Thu 19 Nov");
+  await expect(page.getByText("Changed from 12 hours. Not saved yet.")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Unsaved changes" })).toContainText("1 change not saved");
+
+  // A value out of range is refused in its own words, saving is closed, and the example keeps the saved value.
+  const horizon = page.getByLabel("How far ahead members can book", { exact: true });
+  await horizon.fill("90");
+  await expect(page.getByText("Enter 1 to 60 days.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Review and save" })).toBeDisabled();
+  await expect(page.locator("li", { hasText: "How far ahead members can book" }).first()).toContainText("up to Tue 1 Dec");
+  await horizon.fill("21");
+  await expect(page.locator("li", { hasText: "How far ahead members can book" }).first()).toContainText("up to Tue 8 Dec");
+
+  // A switch, an amount, a grace period: each with its example.
+  await page.getByRole("switch", { name: "A no-show uses the credit" }).click();
+  await expect(page.locator("li", { hasText: "A no-show uses the credit" }).first()).toContainText("gets the credit back");
+  await page.getByLabel("Cancellation fee", { exact: true }).fill("1000");
+  await expect(page.locator("li", { hasText: "Cancellation fee" }).first()).toContainText("less the ₹1,000 fee: ₹966.66 may be offered back");
+  await page.getByLabel("Grace period after a membership ends", { exact: true }).fill("3");
+  await expect(page.locator("li", { hasText: "Grace period after a membership ends" }).first()).toContainText("still lets the member in until Sun 20 Dec");
+  await page.getByLabel("Shortest freeze", { exact: true }).fill("45");
+  await expect(page.getByText("The shortest freeze can’t be longer than the longest.")).toBeVisible();
+  await expect(page.locator("li", { hasText: "Shortest freeze" }).first()).toContainText("isn’t allowed with these numbers");
+  await page.getByLabel("Shortest freeze", { exact: true }).fill("7");
+  await noSideways(page, "Policies, edited");
+
+  // The review lists each change from and to, then it is saved and audited.
+  await page.getByRole("button", { name: "Review and save" }).click();
+  const review = dialog(page, "Review policy changes");
+  await expect(review.getByRole("list", { name: "What will change" })).toContainText("12 hours");
+  await expect(review.getByRole("list", { name: "What will change" })).toContainText("24 hours");
+  await expect(review.getByRole("list", { name: "What will change" })).toContainText("₹500");
+  await expect(review.getByRole("list", { name: "What will change" }).getByRole("listitem")).toHaveCount(5);
+  await review.getByLabel("Reason (optional)").fill("Members asked for a day’s notice");
+  await review.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Policies saved")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Unsaved changes" })).toHaveCount(0);
+  const history = page.getByRole("list", { name: "Recent changes" });
+  await expect(history).toContainText("Free cancellation until: 12 hours to 24 hours");
+  await expect(history).toContainText("Cancellation fee: ₹500 to ₹1,000");
+  await expect(history).toContainText("Members asked for a day’s notice");
+  await expect(page.getByLabel("Free cancellation until", { exact: true })).toHaveValue("24");
+
+  // One membership’s own grace period, at the desk: a sheet with the date it means, a reason, and the profile says where it comes from.
+  await signIn("u_desk_andheri", "/desk/members/mem_arjun");
+  await expect(page.getByText("Grace after it ends")).toBeVisible();
+  await expect(page.getByText("3 days")).toBeVisible();
+  await page.getByRole("button", { name: "Grace period" }).click();
+  const grace = dialog(page, "Grace period");
+  await grace.getByLabel("Grace days for this membership").fill("10");
+  await expect(grace.getByText(/can come in until .* \(the membership ends /)).toBeVisible();
+  await grace.getByRole("button", { name: "Set grace period" }).click();
+  await expect(grace.getByText("Say why the grace period is being changed. The reason is kept and audited.")).toBeVisible();
+  await grace.getByLabel("Reason").fill("Away on work");
+  await grace.getByRole("button", { name: "Set grace period" }).click();
+  await expect(page.getByText("Grace period set")).toBeVisible();
+  await expect(page.getByText("10 days")).toBeVisible();
+  await expect(page.getByText("(set for this member)")).toBeVisible();
+
+  // A branch manager reads the values, the examples and the history, and cannot change any of it.
+  await signIn("u_bm_bandra", "/owner/policies");
+  await expect(page.getByText("Only the owner can change them.")).toBeVisible();
+  await expect(page.getByLabel("Free cancellation until", { exact: true })).toBeDisabled();
+  await expect(page.getByLabel("Free cancellation until", { exact: true })).toHaveValue("24");
+  await expect(page.getByRole("switch", { name: "A no-show uses the credit" })).toBeDisabled();
+  await expect(page.getByText("For example:")).toHaveCount(21);
+  await expect(page.getByRole("list", { name: "Recent changes" })).toContainText("Members asked for a day’s notice");
+  await expect(page.getByRole("region", { name: "Unsaved changes" })).toHaveCount(0);
+  await noSideways(page, "Policies, branch manager");
+}

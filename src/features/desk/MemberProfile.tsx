@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, CalendarClock, Hand, Snowflake, Sun, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarClock, Hand, Hourglass, Snowflake, Sun, XCircle } from "lucide-react";
 import { useMemberProfile, useWizardOptions } from "@/api/deskMoreHooks";
 import type { MemberProfileData } from "@/api/memberProfile";
 import { useCan } from "@/app/SessionContext";
@@ -9,7 +9,7 @@ import { Button3D, Button3DLink } from "@/design/Button3D";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonCard } from "@/design/Skeleton";
 import { MembershipStatusPill } from "@/design/StatusPills";
-import { CancelSheet, ChangePlanSheet, CollectSheet, FreezeSheet, KeepSheet, RefundRequestSheet, TransferSheet, UnfreezeSheet } from "@/features/desk/member/Sheets";
+import { CancelSheet, ChangePlanSheet, CollectSheet, FreezeSheet, GraceSheet, KeepSheet, RefundRequestSheet, TransferSheet, UnfreezeSheet } from "@/features/desk/member/Sheets";
 import { Activity, Billing, Credits, Messages, Trainer } from "@/features/desk/member/Tabs";
 import { formatDate, formatRupees } from "@/lib/when";
 import { cn } from "@/lib/format";
@@ -23,7 +23,7 @@ const TABS = [
   { value: "messages", label: "Messages" },
 ] as const;
 type Tab = (typeof TABS)[number]["value"];
-type Sheet = "freeze" | "unfreeze" | "change" | "cancel" | "keep" | "collect" | "refund" | "transfer" | null;
+type Sheet = "freeze" | "unfreeze" | "change" | "cancel" | "keep" | "collect" | "refund" | "transfer" | "grace" | null;
 
 /**
  * A member at the desk (M02 to M06, T01, A02): the membership and what can be done to it (each action says why it can’t be), billing with dues, credit notes
@@ -98,6 +98,7 @@ function Profile({ p }: { p: MemberProfileData }) {
       {sheet === "unfreeze" && <UnfreezeSheet p={p} onClose={() => setSheet(null)} />}
       {sheet === "change" && <ChangePlanSheet p={p} onClose={() => setSheet(null)} onCollect={(id) => collect(id)} />}
       {sheet === "cancel" && <CancelSheet p={p} onClose={() => setSheet(null)} />}
+      {sheet === "grace" && p.membership && <GraceSheet p={p} onClose={() => setSheet(null)} />}
       {sheet === "keep" && <KeepSheet p={p} onClose={() => setSheet(null)} />}
       {sheet === "collect" && <CollectSheet p={p} invoiceId={invoiceId} onClose={() => setSheet(null)} />}
       {sheet === "refund" && <RefundRequestSheet p={p} source="manual" onClose={() => setSheet(null)} />}
@@ -133,6 +134,7 @@ function MembershipTab({ p, canManage, canPay, canRefund, open, collect }: { p: 
               {m.visitsRemaining !== null && <div><dt className="text-sm text-clay-muted">Visits left</dt><dd className="font-bold tabular">{m.visitsRemaining}</dd></div>}
               {m.invoiceNumber && <div><dt className="text-sm text-clay-muted">Bought on invoice</dt><dd className="font-bold">{m.invoiceNumber}</dd></div>}
               <div><dt className="text-sm text-clay-muted">Auto-renew</dt><dd className="font-bold">{m.autoRenew ? "On" : "Off"}</dd></div>
+              <div><dt className="text-sm text-clay-muted">Grace after it ends</dt><dd className="font-bold">{m.grace.days === 0 ? "None" : `${m.grace.days} ${m.grace.days === 1 ? "day" : "days"}`}{m.grace.override !== undefined ? <span className="font-normal text-clay-muted"> (set for this member)</span> : m.grace.planDays !== undefined ? <span className="font-normal text-clay-muted"> (plan)</span> : null}</dd></div>
             </dl>
             {m.status === "frozen" && m.freezes.at(-1) && <p className="mt-3 rounded-2xl bg-lilac-100 px-4 py-2 font-semibold text-lilac-700">Frozen {formatDate(m.freezes.at(-1)!.from)} to {m.freezes.at(-1)!.to ? formatDate(m.freezes.at(-1)!.to!) : "until further notice"}: {m.freezes.at(-1)!.reason}</p>}
             {m.canceledEffectiveOn && <p className="mt-3 rounded-2xl bg-status-pending-bg px-4 py-2 font-semibold text-status-pending-fg">{m.status === "canceled" ? "Canceled" : "Being canceled"} from {formatDate(m.canceledEffectiveOn)}{m.cancelReason ? `: ${m.cancelReason}` : ""}. {m.status !== "canceled" && "Access continues until then."}</p>}
@@ -145,6 +147,7 @@ function MembershipTab({ p, canManage, canPay, canRefund, open, collect }: { p: 
             {btn("Freeze", <Snowflake className="h-4 w-4" aria-hidden="true" />, "freeze", A.freeze)}
             {A.unfreeze.allowed && btn("Unfreeze", <Sun className="h-4 w-4" aria-hidden="true" />, "unfreeze", A.unfreeze)}
             {A.keep.allowed && btn("Take the cancellation back", <Hand className="h-4 w-4" aria-hidden="true" />, "keep", A.keep)}
+            {btn("Grace period", <Hourglass className="h-4 w-4" aria-hidden="true" />, "grace", A.grace)}
             {btn("Cancel membership", <XCircle className="h-4 w-4" aria-hidden="true" />, "cancel", A.cancel)}
           </div>
         )}

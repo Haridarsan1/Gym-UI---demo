@@ -1,3 +1,4 @@
+import { addDays, daysBetween } from "@/domain/dates";
 import { effectiveStatus } from "@/domain/lifecycle";
 import type { CheckIn, Membership } from "@/domain/types";
 
@@ -23,7 +24,24 @@ export interface Decision {
   inGrace?: boolean;
 }
 
-type MembershipFacts = Pick<Membership, "status" | "startsOn" | "endsOn" | "visitsRemaining" | "graceUntil"> & Partial<Pick<Membership, "freezes" | "canceledEffectiveOn">> & { terms: Pick<Membership["terms"], "kind" | "branchIds"> };
+type MembershipFacts = Pick<Membership, "status" | "startsOn" | "endsOn" | "visitsRemaining" | "graceUntil"> & Partial<Pick<Membership, "freezes" | "canceledEffectiveOn" | "graceDays">> & { terms: Pick<Membership["terms"], "kind" | "branchIds"> & Partial<Pick<Membership["terms"], "graceDays">> };
+
+/** Where a membership’s grace period comes from, most specific first. */
+export type GraceSource = "date" | "membership" | "plan" | "gym";
+
+/**
+ * The grace period a membership has (M02), and where it comes from. Most specific wins: a last day set directly for this membership, then days set for this membership, then the plan’s days
+ * as sold, then the gym’s default days. Days count from the end date: 3 grace days on a membership that ends on the 17th lets the member in until the 20th.
+ */
+export function graceDetail(m: Pick<MembershipFacts, "endsOn" | "graceUntil" | "graceDays"> & { terms: Pick<MembershipFacts["terms"], "graceDays"> }, gymGraceDays = 0): { days: number; source: GraceSource; endsOn?: string } {
+  if (m.graceUntil) return { days: m.endsOn ? Math.max(0, daysBetween(m.endsOn, m.graceUntil)) : 0, source: "date", endsOn: m.graceUntil };
+  const source: GraceSource = m.graceDays !== undefined ? "membership" : m.terms.graceDays !== undefined ? "plan" : "gym";
+  const days = m.graceDays ?? m.terms.graceDays ?? gymGraceDays;
+  return { days, source, endsOn: m.endsOn !== undefined && days > 0 ? addDays(m.endsOn, days) : undefined };
+}
+
+/** The last day a member may still come in after their membership ends, or nothing when there is no grace. */
+export const graceEndsOn = (m: Parameters<typeof graceDetail>[0], gymGraceDays = 0): string | undefined => graceDetail(m, gymGraceDays).endsOn;
 
 export interface DecisionInput {
   membership: MembershipFacts | undefined;
@@ -35,13 +53,15 @@ export interface DecisionInput {
   hasOpenDues?: boolean;
   /** The gym’s repeat-scan window, in minutes (a policy). Defaults to `SCAN_WINDOW_MINUTES`. */
   scanWindowMinutes?: number;
+  /** The gym’s default grace days (a policy), used when neither the membership nor its plan says. */
+  gymGraceDays?: number;
 }
 
 const ENTERED: ReadonlySet<CheckIn["result"]> = new Set(["allowed", "allowed_with_dues", "override", "repeat_scan"]);
 export const enteredOk = (result: CheckIn["result"]): boolean => ENTERED.has(result);
 
 /** Why a membership can’t be used today, or undefined when it can. Ignores the branch, which depends on the door. */
-export function whyNotValid(m: MembershipFacts | undefined, today: string): { reason: DenyReason; inGrace?: boolean } | undefined {
+export function whyNotValid(m: MembershipFacts | undefined, today: string, gymGraceDays = 0): { reason: DenyReason; inGrace?: boolean } | undefined {
   if (!m) return { reason: "no_membership" };
   // What it is today: a freeze that has ended and a cancellation that has taken effect count (domain/lifecycle.ts).
   const status = effectiveStatus({ status: m.status, freezes: m.freezes ?? [], canceledEffectiveOn: m.canceledEffectiveOn, endsOn: m.endsOn }, today);
@@ -50,12 +70,12 @@ export function whyNotValid(m: MembershipFacts | undefined, today: string): { re
   if (status === "frozen") return { reason: "frozen" };
   if (status === "canceled") return { reason: "canceled" };
   const over = status === "expired" || (m.endsOn !== undefined && m.endsOn < today);
-  if (over) return m.graceUntil && m.graceUntil >= today ? undefined : { reason: "expired" };
+  if (over) { const until = graceEndsOn(m, gymGraceDays); return until && until >= today ? undefined : { reason: "expired" }; }
   return undefined;
 }
 
 export function checkInDecision(i: DecisionInput): Decision {
-  const bad = whyNotValid(i.membership, i.today);
+  const bad = whyNotValid(i.membership, i.today, i.gymGraceDays);
   if (bad) return { result: "denied", reason: bad.reason, visitDebited: false };
   const m = i.membership!;
   if (!m.terms.branchIds.includes(i.branchId)) return { result: "denied", reason: "branch", visitDebited: false };

@@ -3,6 +3,7 @@ import { db } from "@/demo/db";
 import { now } from "@/api/clock";
 import { ApiError } from "@/api/errors";
 import { openOwner } from "@/api/owner";
+import { policiesFor } from "@/api/policies";
 import { ptPricingFor } from "@/api/ptPricing";
 import { buildAuditEvent } from "@/domain/audit";
 import { can } from "@/domain/permissions";
@@ -36,6 +37,8 @@ export interface PlansView {
   /** The largest discount each kind of staff may give, in basis points, so the owner sees what a plan’s own cap changes. */
   discountLimits: Array<{ role: "front_desk" | "branch_manager" | "owner"; label: string; bp: number }>;
   gstRatesBp: readonly number[];
+  /** The gym’s default grace days, used by a plan that sets none (Policies). */
+  gymGraceDays: number;
 }
 
 export async function getPlans(session: Session | null): Promise<PlansView> {
@@ -60,7 +63,7 @@ export async function getPlans(session: Session | null): Promise<PlansView> {
     branches: branches.filter((b) => b.active).map((b) => ({ id: b.id, name: b.name, stateCode: b.stateCode })).sort((a, b) => a.name.localeCompare(b.name)),
     ptPricing: await ptPricingFor(c.tenantId), ptIsDefault: !tenant?.ptPricing,
     discountLimits: [{ role: "front_desk", label: "Front desk", bp: top("front_desk") }, { role: "branch_manager", label: "Branch manager", bp: top("branch_manager") }, { role: "owner", label: "Owner", bp: top("owner") }],
-    gstRatesBp: GST_RATES_BP,
+    gstRatesBp: GST_RATES_BP, gymGraceDays: (await policiesFor(c.tenantId)).graceDays,
   };
 }
 

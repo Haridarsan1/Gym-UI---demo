@@ -2,6 +2,7 @@ import { db } from "@/demo/db";
 import { memberInScope, openDesk } from "@/api/desk";
 import { amountDuePaise, isOverdue, isUnpaidCart, paidPaise } from "@/domain/billing";
 import { creditBalance, type CreditBalance } from "@/domain/credits";
+import { graceDetail, type GraceSource } from "@/domain/checkin";
 import { assignmentOn, currentMembership } from "@/domain/membership";
 import { effectiveStatus, freezeProblem, LIFECYCLE_DEFAULTS, type LifecycleRules } from "@/domain/lifecycle";
 import { passCodeFor } from "@/api/newMember";
@@ -65,9 +66,11 @@ export interface MemberProfileData {
     cancelReason?: string;
     autoRenew: boolean;
     invoiceNumber?: string;
+    /** The grace period this membership has after its end date, where it comes from, and the numbers behind it (M02). */
+    grace: { days: number; source: GraceSource; endsOn?: string; planDays?: number; gymDays: number; override?: number };
   };
   waiting: Array<{ id: string; planName: string; status: Membership["status"]; startsOn: string; endsOn?: string }>;
-  actions: { freeze: Action; unfreeze: Action; changePlan: Action; cancel: Action; keep: Action };
+  actions: { freeze: Action; unfreeze: Action; changePlan: Action; cancel: Action; keep: Action; grace: Action };
   rules: LifecycleRules;
   policy: { partialPaymentsEnabled: boolean };
   dues: { totalPaise: number; invoices: number };
@@ -124,7 +127,7 @@ export async function getMemberProfile(session: Session | null, memberId: string
       joinedOn: member.joinedOn, leadSource: member.leadSource, passCode: passCodeFor(member.qrToken),
       sharing: allMembers.filter((m) => m.id !== member.id && !m.archivedAt && (m.phone === member.phone || (!!member.email && m.email?.toLowerCase() === member.email.toLowerCase()))).map((m) => ({ id: m.id, name: m.name })),
     },
-    membership: cur && status && { id: cur.id, planName: cur.terms.name, kind: cur.terms.kind, status, startsOn: cur.startsOn, endsOn: cur.endsOn, visitsRemaining: cur.visitsRemaining, freezes: cur.freezes, canceledEffectiveOn: cur.canceledEffectiveOn, cancelReason: cur.cancelReason, autoRenew: cur.autoRenew, invoiceNumber: cur.invoiceId ? inv.get(cur.invoiceId)?.number : undefined },
+    membership: cur && status && { id: cur.id, planName: cur.terms.name, kind: cur.terms.kind, status, startsOn: cur.startsOn, endsOn: cur.endsOn, visitsRemaining: cur.visitsRemaining, freezes: cur.freezes, canceledEffectiveOn: cur.canceledEffectiveOn, cancelReason: cur.cancelReason, autoRenew: cur.autoRenew, invoiceNumber: cur.invoiceId ? inv.get(cur.invoiceId)?.number : undefined, grace: { ...graceDetail(cur, policy?.graceDays ?? 0), planDays: cur.terms.graceDays, gymDays: policy?.graceDays ?? 0, override: cur.graceDays } },
     waiting: memberships.filter((m) => m.id !== cur?.id && (m.status === "scheduled" || m.status === "pending")).map((m) => ({ id: m.id, planName: m.terms.name, status: m.status, startsOn: m.startsOn, endsOn: m.endsOn })),
     actions: {
       freeze: freezeBlocked ? { allowed: false, reason: freezeBlocked } : { allowed: !!live, reason: live ? undefined : "Only an active membership can be frozen." },
@@ -132,6 +135,7 @@ export async function getMemberProfile(session: Session | null, memberId: string
       changePlan: { allowed: !frozen && !cur?.canceledEffectiveOn && !pendingChange, reason: frozen ? "Frozen. Change the plan once the freeze ends." : cur?.canceledEffectiveOn ? "Being canceled." : pendingChange ? "An invoice for a renewal or upgrade is still open." : undefined },
       cancel: { allowed: !!cur && status !== "canceled" && status !== "expired", reason: !cur ? "No membership." : status === "canceled" ? "Already canceled." : status === "expired" ? "Already ended." : undefined },
       keep: { allowed: !!cur?.canceledEffectiveOn && status !== "canceled", reason: "No cancellation is waiting." },
+      grace: { allowed: !!cur && status !== "canceled", reason: "A canceled membership has no grace period." },
     },
     rules, policy: { partialPaymentsEnabled: policy?.partialPaymentsEnabled ?? false }, dues: { totalPaise: open.reduce((n, i) => n + i.duePaise, 0), invoices: open.length },
     invoices: invoiceViews,

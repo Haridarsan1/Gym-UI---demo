@@ -5,7 +5,9 @@ import { assertCan } from "@/api/context";
 import { allocateNumber } from "@/api/numbering";
 import { buildReceipt, type ReceiptData } from "@/api/receiptData";
 import { nextReceiptNumber } from "@/api/receipts";
+import { policiesFor } from "@/api/policies";
 import { ptPricingFor } from "@/api/ptPricing";
+import { graceEndsOn } from "@/domain/checkin";
 import { ApiError } from "@/api/errors";
 import { openMember, type MemberContext } from "@/api/member";
 import { amountDuePaise, invoiceTotals, isOverdue, isUnpaidCart, paidPaise, placeOfSupplyFor } from "@/domain/billing";
@@ -161,7 +163,7 @@ export async function getMembership(session: Session | null): Promise<Membership
   const view: MembershipView | null = current
     ? {
         id: current.id, status: current.status, planName: current.terms.name, startsOn: current.startsOn, endsOn: current.endsOn, daysLeft: current.endsOn ? daysBetween(c.today, current.endsOn) : undefined,
-        visitsRemaining: current.visitsRemaining, visitsTotal: current.terms.visits, canceledEffectiveOn: current.canceledEffectiveOn, graceUntil: current.graceUntil,
+        visitsRemaining: current.visitsRemaining, visitsTotal: current.terms.visits, canceledEffectiveOn: current.canceledEffectiveOn, graceUntil: current.graceUntil ?? (current.endsOn && current.endsOn < c.today ? graceEndsOn(current, (await policiesFor(c.tenantId)).graceDays) : undefined),
         freeze: freeze ? { from: freeze.from, to: freeze.to, reason: freeze.reason, current: freeze.from <= c.today && (freeze.to === undefined || freeze.to >= c.today) } : undefined,
         includes: includedInPlan(current.terms, branches.map((b) => b.name), current.terms.branchIds.map((id) => branchName.get(id) ?? id)),
         agreedPricePaise: current.terms.pricePaise,
@@ -423,7 +425,7 @@ async function applyGatewayEvent(c: MemberContext, ev: GatewayInput): Promise<{ 
       const q = renewalQuote(plan, current, c.today);
       const next: Membership = {
         id: `ms_${c.memberId}_${invoice.id}`, tenantId: c.tenantId, memberId: c.memberId, planId: plan.id,
-        terms: { name: plan.name, kind: plan.kind, pricePaise: invoice.lines[0]?.unitPaise ?? plan.pricePaise, taxRateBp: plan.taxRateBp, durationDays: plan.durationDays, visits: plan.visits, branchIds: plan.branchIds, classEntitlements: plan.classEntitlements, ptCredits: plan.ptCredits },
+        terms: { name: plan.name, kind: plan.kind, pricePaise: invoice.lines[0]?.unitPaise ?? plan.pricePaise, taxRateBp: plan.taxRateBp, durationDays: plan.durationDays, visits: plan.visits, branchIds: plan.branchIds, classEntitlements: plan.classEntitlements, ptCredits: plan.ptCredits, graceDays: plan.graceDays },
         status: q.status, startsOn: q.startsOn, endsOn: q.endsOn, visitsRemaining: plan.visits ?? null, freezes: [], autoRenew: current?.autoRenew ?? false, autoRenewMethod: current?.autoRenewMethod,
         renewsMembershipId: current?.id, invoiceId: invoice.id, createdAt: c.nowIso,
       };

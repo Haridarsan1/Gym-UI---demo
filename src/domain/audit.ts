@@ -4,7 +4,7 @@ import type { AuditEvent } from "@/domain/types";
 type Action = AuditEvent["action"];
 
 /** These actions are refused without a reason (S05). */
-const NEEDS_REASON: ReadonlySet<Action> = new Set<Action>(["refund.create", "credits.adjust", "checkin.override", "membership.cancel", "support.access.start"]);
+const NEEDS_REASON: ReadonlySet<Action> = new Set<Action>(["refund.create", "credits.adjust", "checkin.override", "membership.cancel", "membership.grace", "support.access.start"]);
 
 export const auditNeedsReason = (action: Action): boolean => NEEDS_REASON.has(action);
 

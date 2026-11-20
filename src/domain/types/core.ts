@@ -185,6 +185,7 @@ export const AuditAction = z.enum([
   "review.shared",
   "goal.confirm",
   "membership.cancel.undo",
+  "membership.grace",
   "refund.request",
   "refund.approve",
   "refund.reject",

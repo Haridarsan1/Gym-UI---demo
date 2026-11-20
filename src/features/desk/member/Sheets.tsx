@@ -216,6 +216,48 @@ export function KeepSheet({ p, onClose }: { p: MemberProfileData; onClose: () =>
   );
 }
 
+// ── Grace period ────────────────────────────────────────────────────────────────────────────────
+
+const SOURCE_WORDS = { date: "a last day set for this membership", membership: "set for this membership", plan: "the plan’s", gym: "the gym’s" } as const;
+
+/** One membership’s grace period (M02): the days after its end date the member can still come in. Shows where today’s number comes from and what a change would mean, in dates. */
+export function GraceSheet({ p, onClose }: { p: MemberProfileData; onClose: () => void }) {
+  const { grace } = useMemberActions(p.member.id);
+  const toast = useToast();
+  const m = p.membership!;
+  const [days, setDays] = useState(String(m.grace.days));
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string>();
+  const [key] = useState(() => newKey("grc"));
+  const n = /^\d+$/.test(days.trim()) ? Number(days.trim()) : null;
+  const inherited = m.grace.planDays ?? m.grace.gymDays;
+  const save = async (value: number | null) => {
+    setError(undefined);
+    if (value !== null && (value < 0 || value > 30)) { setError("Enter 0 to 30 days."); return; }
+    try {
+      const r = await grace.mutateAsync({ memberId: p.member.id, graceDays: value, reason, key });
+      toast({ title: value === null ? "Back to the usual grace period" : "Grace period set", description: r.graceEndsOn ? `${p.member.firstName} can come in until ${formatDate(r.graceEndsOn)}.` : `${p.member.firstName} can’t come in after the membership ends.`, tone: "success" });
+      onClose();
+    } catch (e) { setError(message(e, "We couldn’t save it. Try again.")); }
+  };
+  return (
+    <Frame label="Grace period" title={`Grace period for ${p.member.firstName}`} onClose={onClose}>
+      <p className="mt-1 text-clay-muted">After a membership ends, the member can still come in for this many days while they renew. Today it is {m.grace.days} {m.grace.days === 1 ? "day" : "days"}, from {SOURCE_WORDS[m.grace.source]}.</p>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <Field label="Grace days for this membership" htmlFor="gr-days"><input id="gr-days" inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} className={inputClass} /></Field>
+        <Field label="Reason" htmlFor="gr-why"><input id="gr-why" value={reason} onChange={(e) => setReason(e.target.value)} className={inputClass} placeholder="Away on work, waiting for salary…" /></Field>
+      </div>
+      <p aria-live="polite" className="mt-3 font-semibold">{n === null || n > 30 ? "Enter 0 to 30 days." : !m.endsOn ? "This membership has no end date." : n === 0 ? `No grace: ${p.member.firstName} can’t come in after ${formatDate(m.endsOn)}.` : `${p.member.firstName} can come in until ${formatDate(addDays(m.endsOn, n))} (the membership ends ${formatDate(m.endsOn)}).`}</p>
+      <Problem>{error}</Problem>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        <Button3D variant="ember" size="lg" className="sm:flex-1" disabled={grace.isPending} onClick={() => void save(n)}>{grace.isPending ? "Saving…" : "Set grace period"}</Button3D>
+        {(m.grace.override !== undefined || m.grace.source === "date") && <Button3D variant="white" size="lg" disabled={grace.isPending} onClick={() => void save(null)}>Use {inherited} {inherited === 1 ? "day" : "days"} again</Button3D>}
+        <Button3D variant="white" size="lg" onClick={onClose}>Cancel</Button3D>
+      </div>
+    </Frame>
+  );
+}
+
 // ── Request refund ──────────────────────────────────────────────────────────────────────────────
 
 export function RefundRequestSheet({ p, invoiceId, amountPaise, reason: initial, source, onClose }: { p: MemberProfileData; invoiceId?: string; amountPaise?: number; reason?: string; source: "cancellation" | "manual"; onClose: () => void }) {

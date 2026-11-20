@@ -81,7 +81,7 @@ export async function getPass(session: Session | null): Promise<PassData> {
   if (!member) throw new ApiError("not_found", "We couldn’t find your membership record. Ask the front desk.");
   const branchName = new Map(branches.map((b) => [b.id, b.name]));
   const current = currentMembership(memberships);
-  const bad = whyNotValid(current, c.today);
+  const bad = whyNotValid(current, c.today, (await policiesFor(c.tenantId)).graceDays);
   const freezeTo = current?.freezes.at(-1)?.to;
   const covers = current ? current.terms.branchIds.includes(member.homeBranchId) : false;
   const noVisits = current?.terms.kind === "visit" && (current.visitsRemaining ?? 0) <= 0;
@@ -132,7 +132,8 @@ export async function simulateDoorScan(session: Session | null): Promise<ScanRes
     ]);
     const current = currentMembership(memberships);
     const dues = invoices.some((i) => (i.status === "open" || i.status === "partially_paid") && !isUnpaidCart(i, payments.filter((p) => p.invoiceId === i.id)) && amountDuePaise(i, payments.filter((p) => p.invoiceId === i.id)) > 0);
-    const d = checkInDecision({ membership: current, branchId: member.homeBranchId, today: c.today, nowIso: c.nowIso, recent, hasOpenDues: dues, scanWindowMinutes: (await policiesFor(c.tenantId)).repeatScanWindowMinutes });
+    const policy = await policiesFor(c.tenantId);
+    const d = checkInDecision({ membership: current, branchId: member.homeBranchId, today: c.today, nowIso: c.nowIso, recent, hasOpenDues: dues, scanWindowMinutes: policy.repeatScanWindowMinutes, gymGraceDays: policy.graceDays });
     const message = d.reason ? denyText(d.reason, current ? { startsOn: current.startsOn, endsOn: current.endsOn, freezeTo: current.freezes.at(-1)?.to } : undefined) : d.result === "repeat_scan" ? "You scanned a moment ago, so no extra visit was used." : "Checked in.";
     const door = staff.find((s) => s.role === "front_desk" && s.branchIds.includes(member.homeBranchId))?.userId ?? staff.find((s) => s.role === "owner")?.userId ?? c.principal.userId;
     await db.checkIns.add({

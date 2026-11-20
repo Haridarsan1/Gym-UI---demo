@@ -6,6 +6,7 @@ import { memberInScope, openDesk, type DeskContext } from "@/api/desk";
 import { allocateNumber } from "@/api/numbering";
 import { buildAuditEvent } from "@/domain/audit";
 import { amountDuePaise, invoiceTotals, paidPaise, placeOfSupplyFor } from "@/domain/billing";
+import { graceEndsOn } from "@/domain/checkin";
 import { addDays } from "@/domain/dates";
 import { applyFreeze, applyUnfreeze, cancelProblem, effectiveStatus, freezeProblem, LIFECYCLE_DEFAULTS, quoteChange, refundEligibility, type LifecycleRules } from "@/domain/lifecycle";
 import { currentMembership } from "@/domain/membership";
@@ -174,7 +175,7 @@ export async function changePlan(session: Session | null, raw: ChangeInput): Pro
     const newId = `ms_${member.id}_up_${input.key.replace(/\W/g, "").slice(0, 12)}`;
     const next: Membership = {
       id: newId, tenantId: c.tenantId, memberId: member.id, planId: plan.id,
-      terms: { name: plan.name, kind: plan.kind, pricePaise: plan.pricePaise, taxRateBp: plan.taxRateBp, durationDays: plan.durationDays, visits: plan.visits, branchIds: plan.branchIds, classEntitlements: plan.classEntitlements, ptCredits: plan.ptCredits },
+      terms: { name: plan.name, kind: plan.kind, pricePaise: plan.pricePaise, taxRateBp: plan.taxRateBp, durationDays: plan.durationDays, visits: plan.visits, branchIds: plan.branchIds, classEntitlements: plan.classEntitlements, ptCredits: plan.ptCredits, graceDays: plan.graceDays },
       status: "pending", startsOn: c.today, endsOn: addDays(c.today, plan.durationDays ?? 30), visitsRemaining: plan.visits ?? null, freezes: [], autoRenew: cur.autoRenew, autoRenewMethod: cur.autoRenewMethod, renewsMembershipId: cur.id, upgradeOf: cur.id, createdAt: c.nowIso,
     };
     const inv: Invoice = { id: `inv_chg_${input.key}`, number: await allocateNumber(c.tenantId, "invoice", branch, c.today), ...base, membershipId: next.id, lines: [{ description: `${plan.name} membership, ${formatDate(next.startsOn)} to ${formatDate(next.endsOn!)}`, quantity: 1, unitPaise: plan.pricePaise, taxRateBp: plan.taxRateBp }], ...totals, status: "open" };
@@ -291,3 +292,32 @@ export async function requestRefund(session: Session | null, raw: RefundRequestI
   });
 }
 
+
+const GraceInput = z.object({
+  memberId: z.string().min(1),
+  /** Days after the end date the member may still come in; null puts it back to the plan’s (or the gym’s) days. */
+  graceDays: z.number().int("Enter a whole number of days.").min(0, "Enter 0 to 30 days.").max(30, "Enter 0 to 30 days.").nullable(),
+  reason: z.string().trim().min(3, "Say why the grace period is being changed. The reason is kept and audited."),
+  key: z.string().min(8),
+});
+export type GraceInput = z.input<typeof GraceInput>;
+
+/** Gives one membership its own grace period, or takes it back to the plan’s. Wins over the plan’s days and the gym’s (M02); audited with its reason. */
+export async function setMembershipGrace(session: Session | null, raw: GraceInput): Promise<{ membershipId: string; graceDays: number | null; graceEndsOn?: string; repeated: boolean }> {
+  const input = parse(GraceInput, raw);
+  const c = await openDesk(session, "membership.manage");
+  return db.transaction("rw", db.tables, async () => {
+    const { member, current, policy } = await load(c, input.memberId);
+    if (!current) throw new ApiError("conflict", "This member has no membership to give a grace period.");
+    if (effectiveStatus(current, c.today) === "canceled") throw new ApiError("conflict", "This membership was canceled, so it has no grace period.");
+    const auditId = `ae_grace_${input.key}`;
+    const result = (m: Membership) => ({ membershipId: m.id, graceDays: input.graceDays, graceEndsOn: graceEndsOn(m, policy?.graceDays ?? 0), repeated: false });
+    if (await db.auditEvents.get(auditId)) return { ...result(current), repeated: true };
+    // A date set directly is replaced too: the desk’s choice is now the days.
+    const { graceUntil: _date, graceDays: _days, ...rest } = current;
+    const next: Membership = input.graceDays === null ? rest : { ...rest, graceDays: input.graceDays };
+    await db.memberships.put(next);
+    await db.auditEvents.add(buildAuditEvent(c.principal, { action: "membership.grace", reason: input.reason, entityType: "membership", entityId: current.id, memberId: member.id, details: { from: { graceDays: current.graceDays ?? null, graceUntil: current.graceUntil ?? null }, to: { graceDays: input.graceDays } } }, auditId, now()));
+    return result(next);
+  });
+}

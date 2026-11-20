@@ -55,6 +55,7 @@ export function useMemberActions(memberId: string) {
     change: useMutation(life((api, i: import("@/api/lifecycle").ChangeInput) => api.changePlan(session, i))),
     cancel: useMutation(life((api, i: import("@/api/lifecycle").CancelInput) => api.cancelMembership(session, i))),
     keep: useMutation(life((api, _: void) => api.keepMembership(session, { memberId }))),
+    grace: useMutation(life((api, i: import("@/api/lifecycle").GraceInput) => api.setMembershipGrace(session, i))),
     requestRefund: useMutation(life((api, i: import("@/api/lifecycle").RefundRequestInput) => api.requestRefund(session, i))),
     collect: useMutation({ mutationFn: async (i: import("@/api/payments").CollectInput) => (await paymentsApi()).collectPayment(session, i), onSuccess: refresh }),
     transfer: useMutation({ mutationFn: async (i: import("@/api/assignments").TransferInput) => (await import("@/api/assignments")).transferTrainer(session, i), onSuccess: refresh }),

@@ -11,6 +11,7 @@ const implemented = {
   dashboard: lazy(() => import("@/features/owner/Dashboard")),
   reports: lazy(() => import("@/features/owner/Reports")),
   plans: lazy(() => import("@/features/owner/Plans")),
+  policies: lazy(() => import("@/features/owner/Policies")),
 };
 
 export default function OwnerArea() {

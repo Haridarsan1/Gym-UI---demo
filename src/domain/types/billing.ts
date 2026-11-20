@@ -39,6 +39,8 @@ export const PlanTerms = z.object({
   branchIds: z.array(id),
   classEntitlements: z.number().int().nonnegative().optional(),
   ptCredits: z.number().int().nonnegative().optional(),
+  /** The plan’s grace period when it was sold, in days after the end date. Absent: the gym’s default applies (M02). */
+  graceDays: z.number().int().min(0).max(30).optional(),
 });
 
 export const Membership = z.object({
@@ -54,7 +56,10 @@ export const Membership = z.object({
   /** Null for plans without a visit limit. */
   visitsRemaining: z.number().int().nonnegative().nullable(),
   freezes: z.array(z.object({ from: isoDate, to: isoDate.optional(), reason: z.string() })),
+  /** A last day of grace set directly, for one membership. Wins over every number of days. */
   graceUntil: isoDate.optional(),
+  /** Grace days the desk set for this membership alone. Wins over the plan’s and the gym’s (M02). */
+  graceDays: z.number().int().min(0).max(30).optional(),
   canceledEffectiveOn: isoDate.optional(),
   cancelReason: z.string().optional(),
   autoRenew: z.boolean(),

@@ -37,3 +37,14 @@ export function usePlanActions() {
     savePt: useMutation({ mutationFn: async (i: import("@/api/plans").SavePtPricingInput) => (await import("@/api/plans")).savePtPricing(session, i), onSuccess: done }),
   };
 }
+
+export function usePolicies() {
+  const { session } = useSession();
+  return useQuery({ queryKey: ["owner", session?.userId, "policies"], queryFn: async () => (await import("@/api/policyScreen")).getPolicies(session), enabled: !!session, retry, staleTime: 0 });
+}
+
+export function usePolicyActions() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  return { save: useMutation({ mutationFn: async (i: import("@/api/policyScreen").SavePoliciesInput) => (await import("@/api/policyScreen")).savePolicies(session, i), onSuccess: () => qc.invalidateQueries({ queryKey: ["owner", session?.userId, "policies"] }) }) };
+}

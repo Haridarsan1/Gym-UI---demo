@@ -210,7 +210,7 @@ export async function registerMember(session: Session | null, raw: RegisterInput
     const durationDays = plan.durationDays ?? 30;
     const membership: Membership = {
       id: `ms_${memberId}_1`, tenantId: c.tenantId, memberId, planId: plan.id,
-      terms: { name: plan.name, kind: plan.kind, pricePaise: plan.pricePaise, taxRateBp: plan.taxRateBp, durationDays: plan.durationDays, visits: plan.visits, branchIds: plan.branchIds, classEntitlements: plan.classEntitlements, ptCredits: plan.ptCredits },
+      terms: { name: plan.name, kind: plan.kind, pricePaise: plan.pricePaise, taxRateBp: plan.taxRateBp, durationDays: plan.durationDays, visits: plan.visits, branchIds: plan.branchIds, classEntitlements: plan.classEntitlements, ptCredits: plan.ptCredits, graceDays: plan.graceDays },
       status: "pending", startsOn, endsOn: addDays(startsOn, durationDays), visitsRemaining: plan.visits ?? null, freezes: [], autoRenew: false, createdAt: c.nowIso,
     };
     let invoice: Invoice | undefined;
