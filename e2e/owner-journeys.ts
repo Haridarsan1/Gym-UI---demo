@@ -598,3 +598,54 @@ export async function accountJourney(page: Page, signIn: SignIn) {
     await expect(page.getByRole("heading", { name: /^(Settings|Subscription)$/, level: 1 })).toHaveCount(0);
   }
 }
+
+/**
+ * M4 acceptance (R02), the branch manager’s view: Bandra only on every owner screen, in the dashboard, the reports and their downloaded files; the screens that are the owner’s alone are not theirs,
+ * and the ones they may read are read-only. The same screens as the owner, side by side, are in the API acceptance test.
+ */
+export async function scopeJourney(page: Page, signIn: SignIn) {
+  await signIn("u_bm_bandra", "/owner");
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+  await expect(page.getByText(/visits, Bandra/)).toBeVisible();
+  await expect(page.getByText(/Andheri|Powai/).first()).toHaveCount(0);
+  await noSideways(page, "Dashboard, branch manager");
+
+  // A report, and the file it downloads, hold Bandra’s invoices and no other branch’s.
+  await page.goto("/owner/reports?report=invoices");
+  await expect(page.getByText(/For Bandra\./)).toBeVisible();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download CSV" }).click();
+  const file = await download;
+  const text = (await import("node:fs")).readFileSync(await file.path(), "utf8");
+  expect(file.suggestedFilename()).toContain("bandra");
+  expect(text).toContain("PFBAN");
+  expect(text).not.toMatch(/PFAND|PFPOW/);
+
+  // Screens they may read: their branch only, and read only.
+  await page.goto("/owner/staff");
+  await expect(page.getByRole("heading", { name: "Staff and roles", level: 1 })).toBeVisible();
+  await expect(rowOf(page, "Imran Qureshi")).toBeVisible();
+  await expect(page.locator("tr:visible, li:visible").filter({ hasText: /Aditya Rao|Kavya Reddy|Tanvi Desai/ })).toHaveCount(0);
+  await page.goto("/owner/branches");
+  await expect(page.locator("ul[aria-label=Branches] > li")).toHaveCount(1);
+  await page.goto("/owner/plans");
+  await expect(page.getByText("Only the owner can change plans.").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "New plan" })).toHaveCount(0);
+  await page.goto("/owner/policies");
+  await expect(page.getByText("Only the owner can change them.")).toBeVisible();
+  await expect(page.getByLabel("Free cancellation until", { exact: true })).toBeDisabled();
+  await page.goto("/owner/communications");
+  await expect(page.getByRole("heading", { name: "Communications", level: 1 })).toBeVisible();
+  await page.goto("/owner/audit");
+  await expect(page.getByText("What concerns this branch")).toBeVisible();
+  await noSideways(page, "Audit log, branch manager");
+
+  // The owner’s alone: not theirs, whatever address they type.
+  for (const path of ["/owner/settings", "/owner/subscription", "/owner/import"]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { name: /^(Settings|Subscription|Import members)$/, level: 1 }), path).toHaveCount(0);
+  }
+  await signIn("u_owner", "/owner");
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+  await expect(page.getByText(/visits, /).first()).toBeVisible();
+}

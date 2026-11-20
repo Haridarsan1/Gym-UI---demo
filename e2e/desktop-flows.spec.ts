@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
 import { a01Journey } from "./a01";
 import { a03Journey } from "./a03";
-import { accountJourney, branchesJourney, communicationsJourney, importJourney, plansJourney, policiesJourney, staffJourney } from "./owner-journeys";
+import { accountJourney, branchesJourney, communicationsJourney, importJourney, plansJourney, policiesJourney, scopeJourney, staffJourney } from "./owner-journeys";
 import { bookingsJourney, dashboardJourney, reportsJourney, financeJourney, checkInJourney, coachLogJourney, memberLifecycleJourney, moneyJourney, newMemberJourney, refundJourney, reviewJourney, scheduleJourney } from "./trainer-journeys";
 
 /**
@@ -737,6 +737,15 @@ for (const width of WIDTHS) {
       test.setTimeout(120_000);
       const problems = await open(page, width, "u_owner", "/owner/subscription");
       await accountJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
+      expect(problems).toEqual([]);
+    });
+  });
+
+  test.describe(`branch manager scope at ${width} px`, () => {
+    test("Bandra only on the dashboard, a report and its file, and read-only set-up screens; the owner’s screens are not theirs", async ({ page }) => {
+      test.setTimeout(90_000);
+      const problems = await open(page, width, "u_bm_bandra", "/owner");
+      await scopeJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
       expect(problems).toEqual([]);
     });
   });
