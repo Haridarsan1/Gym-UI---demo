@@ -16,7 +16,7 @@ const screens: Record<RoleKey, ReactElement> = {
 
 /** Stage tint and progress colour per role. */
 const tones: Record<RoleKey, { stage: string; bar: string; label: string }> = {
-  owner: { stage: "from-ember-50 to-[#FFE3D0]", bar: "#FC5200", label: "text-ember-600" },
+  owner: { stage: "from-ember-50 to-[#FFE3D0]", bar: "#FC5200", label: "text-ember-700" },
   desk: { stage: "from-mint-100 to-[#CDEFE0]", bar: "#3FB68B", label: "text-mint-700" },
   trainer: { stage: "from-lilac-100 to-[#E0D7FD]", bar: "#8B6CF6", label: "text-lilac-700" },
   member: { stage: "from-[#FFF1D6] to-[#FFE2C2]", bar: "#FF7A3D", label: "text-ember-700" },

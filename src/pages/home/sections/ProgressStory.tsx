@@ -37,7 +37,7 @@ export function ProgressStory() {
             <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {stats.map((s) => (
                 <div key={s.label} className={cn("rounded-2xl p-3", s.cls)}>
-                  <dt className="text-xs opacity-75">{s.label}</dt>
+                  <dt className="text-xs font-medium">{s.label}</dt>
                   <dd className="font-display text-2xl font-extrabold">{s.value}</dd>
                 </div>
               ))}

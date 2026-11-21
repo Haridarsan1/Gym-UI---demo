@@ -397,7 +397,8 @@ Build notes: [docs/milestones/M6.md](milestones/M6.md)
 
 - [x] Upgrade to Vite 6 and Vitest 4 (Vite 6.4.6, Vitest 4.1.12, plugin-react 4.7.0, PostCSS 8.5.33)
 - [x] Acceptance suite A01–A05 green in demo mode: `npm run acceptance` (A05’s backup restore moves to M6B)
-- [ ] Lighthouse measured and saved for `/`, `/m`, `/t`, `/desk` and `/owner` (performance ≥ 90, accessibility 100)
+- [x] Lighthouse measured and saved for `/`, `/login`, `/m`, `/t`, `/desk` and `/owner`: `npm run lighthouse`, reports in `docs/lighthouse/` (all 100 and 100)
+- [x] Safari: a WebKit project runs the A01 journey, the member workout, desk check-in and the owner dashboard at 390 and 1440 px: `npm run e2e:webkit`
 - [x] Keyboard and screen-reader pass: axe on every screen at 390 and 1440 px (serious and critical fail), manual checklist in `docs/a11y-manual-check.md`
 - [x] Plain-language copy pass: the writing rules as tests over the source and over every screen; no internal terms on screen
 - [x] Demo guide (six scenarios, `/demo`) and a presenter reset button, separate and confirmed
@@ -457,7 +458,7 @@ Not planned in detail yet. It starts after M6 is approved.
 | Finance staff work in `/desk` but cannot check members in. Where do they land? | On Invoices and payments. |
 | Platform administrators see no gym records. | Done in M5: support access is a time-limited, reasoned, read-only, audited grant, announced to everyone in the gym. |
 | GST place of supply and rates | Branch state for in-gym services (CGST + SGST), 18%, SAC 999723. GST rules to be confirmed by the gym’s accountant before launch. |
-| Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6 (`/`, `/m`, `/t`, `/desk`, `/owner`). Bundle budget for `/m` is met: 141.1 KB of 170 KB on a return visit after M5. The first visit (160.4 KB) includes one-time demo data generation and is reported, not budgeted (decided after M5). The workout API (which uses Zod) is loaded on demand with the program and workout screens, so it stays out of every area’s first download. |
+| Lighthouse (performance 90, accessibility 100) | Measured in M6 on a return visit, mobile settings, median of three: performance 100 and accessibility 100 on `/`, `/login`, `/m`, `/t`, `/desk` and `/owner` (`docs/lighthouse/`). Bundle budget for `/m` is met: 141.1 KB of 170 KB on a return visit after M5. The first visit (160.4 KB) includes one-time demo data generation and is reported, not budgeted (decided after M5). The workout API (which uses Zod) is loaded on demand with the program and workout screens, so it stays out of every area’s first download. |
 | Retention of member records, including assessments withdrawn by consent | Kept, hidden from all staff, until the retention period ends or the member asks for deletion. Retention policy to be confirmed with the gym’s accountant and legal adviser (GST record-keeping, Digital Personal Data Protection Act 2023). |
 | Proration and credit-note treatment (M3) | An upgrade credits the unused days of the old plan pro rata on its pre-tax price and invoices the difference. The credit is issued as a GST credit note linked to the original invoice, not netted silently. A downgrade (the credit is more than the new plan’s price) is not refunded automatically: it takes effect at period end. **Proration and credit-note treatment to be confirmed with the gym’s accountant.** |
 | Invoice numbering format (M3) | Consecutive and unique within each financial year (April to March), at most 16 characters, a per-branch prefix, for example `PFAND/26-27/0001`; credit notes have their own series; allocated inside the invoice’s transaction. **Invoice numbering format to be confirmed with the gym’s accountant.** |

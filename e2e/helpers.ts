@@ -14,6 +14,8 @@ export async function signInAs(page: Page, userId: string, path = "/app") {
   await page.clock.install({ time: DEMO_NOW });
   await page.clock.resume();
   await page.goto("/login");
+  // Let the login page finish loading before leaving it: Safari reports the scripts of a page that was left half-loaded as page errors.
+  await page.getByRole("heading", { level: 1 }).first().waitFor();
   await page.evaluate(
     (s) => {
       localStorage.setItem("ember.session", JSON.stringify(s));

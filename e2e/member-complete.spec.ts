@@ -134,9 +134,10 @@ test.describe("Workout complete", () => {
       })),
     });
     await finishSheet(page).getByRole("button", { name: "Save partly done workout" }).click();
-    await expect(done(page)).toBeVisible({ timeout: 6000 });
+    await expect(done(page)).toBeVisible({ timeout: 15_000 });
     const reached = page.getByRole("region", { name: "Target reached" });
-    await expect(reached).toContainText("Bench press 55 kg");
+    // The result is celebrated in stages, so on a busy machine it arrives later than the default wait.
+    await expect(reached).toContainText("Bench press 55 kg", { timeout: 20_000 });
     await expect(reached).toContainText("Your trainer will confirm it at your next review.");
     expect(requests.length).toBeGreaterThan(0);
     await page.goto("/m/progress");

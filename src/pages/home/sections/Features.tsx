@@ -63,7 +63,7 @@ function Versions() {
         <li key={x.n} className={cn("flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[0.85rem]", x.current ? "bg-white text-lilac-700 shadow-[0_10px_20px_-12px_rgba(43,22,120,0.6)]" : "bg-white/20")}>
           <span className="font-display text-xl font-extrabold">v{x.n}</span>
           <span className="flex-1">{x.note}</span>
-          <span className="opacity-70">{x.when}</span>
+          <span className="opacity-90">{x.when}</span>
         </li>
       ))}
     </ol>
@@ -88,7 +88,7 @@ function Ledger() {
       </div>
       <div className="mt-3 flex justify-between text-[0.82rem] text-clay-muted">
         <span>2 used</span>
-        <span className="text-ember-600">1 reserved for tomorrow</span>
+        <span className="text-ember-700">1 reserved for tomorrow</span>
         <span className="font-semibold text-clay-ink">5 left</span>
       </div>
     </div>
