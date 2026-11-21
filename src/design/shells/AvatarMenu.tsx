@@ -10,11 +10,14 @@ import { Tooltip } from "@/design/Tooltip";
  */
 /** The panel (role switcher, “Me” links, reset, sign out) is fetched when the menu is first opened. */
 const AvatarPanel = lazy(() => import("@/design/shells/AvatarPanel"));
+/** The reset confirmation lives here, not in the panel: the panel closes the moment it is used, and a confirmation must outlast it. Fetched when asked for. */
+const ResetDemoConfirm = lazy(() => import("@/design/shells/ResetDemoConfirm"));
 
 export function AvatarMenu({ drop = "down" }: { drop?: "down" | "up" }) {
   const { session } = useSession();
   const me = useMe();
   const [open, setOpen] = useState(false);
+  const [resetAsked, setResetAsked] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const panelId = useId();
 
@@ -41,7 +44,8 @@ export function AvatarMenu({ drop = "down" }: { drop?: "down" | "up" }) {
           <Avatar name={name} />
         </button>
       </Tooltip>
-      {open && <Suspense fallback={null}><AvatarPanel id={panelId} drop={drop} name={name} tenantName={me.data?.tenant?.name} close={() => setOpen(false)} /></Suspense>}
+      {open && <Suspense fallback={null}><AvatarPanel id={panelId} drop={drop} name={name} tenantName={me.data?.tenant?.name} close={() => setOpen(false)} askReset={() => setResetAsked(true)} /></Suspense>}
+      {resetAsked && <Suspense fallback={null}><ResetDemoConfirm onClose={() => setResetAsked(false)} /></Suspense>}
     </div>
   );
 }

@@ -222,7 +222,7 @@ export default function LoginPage() {
           className={cn("-mx-3 mt-8 rounded-3xl p-3 transition-shadow focus:outline-none", pointToPicker && "bg-ember-50/70 ring-[3px] ring-ember-500")}
         >
           <h2 id="try-as" className="text-sm font-semibold text-clay-muted">Try the demo as</h2>
-          <p className="mt-1 text-sm text-clay-muted">One tap signs you in to Pulse Fitness, a sample gym with 3 branches.</p>
+          <p className="mt-1 text-sm text-clay-muted">One tap signs you in to Pulse Fitness, a sample gym with 3 branches. <Link to="/demo" className="font-semibold text-clay-ink underline decoration-ember-500/70 decoration-2 underline-offset-4">Demo guide</Link>: six short scenarios.</p>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2">
             {FEATURED_ACCOUNTS.map((a) => (
               <li key={a.userId}>

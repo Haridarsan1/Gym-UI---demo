@@ -400,7 +400,7 @@ Build notes: [docs/milestones/M6.md](milestones/M6.md)
 - [ ] Lighthouse measured and saved for `/`, `/m`, `/t`, `/desk` and `/owner` (performance ≥ 90, accessibility 100)
 - [x] Keyboard and screen-reader pass: axe on every screen at 390 and 1440 px (serious and critical fail), manual checklist in `docs/a11y-manual-check.md`
 - [ ] Plain-language copy pass
-- [ ] Demo reset button for presenters
+- [x] Demo guide (six scenarios, `/demo`) and a presenter reset button, separate and confirmed
 - [ ] Final Vercel deploy
 - **Done when:** the demo is deployed, the A01–A05 suite is green in demo mode, and the Lighthouse reports are saved in `docs/`.
 

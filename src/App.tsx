@@ -8,6 +8,7 @@ const HomePage = lazy(() => import("@/pages/home/HomePage"));
 const TrialSignupPage = lazy(() => import("@/pages/signup/TrialSignupPage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const JoinPage = lazy(() => import("@/pages/JoinPage"));
+const DemoGuidePage = lazy(() => import("@/pages/DemoGuidePage"));
 const AppEntry = lazy(() => import("@/app/AppEntry"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="/signup" element={<TrialSignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/join/:token" element={<JoinPage />} />
+          <Route path="/demo" element={<DemoGuidePage />} />
           <Route path="/app/*" element={<AppEntry area="index" />} />
           {AREAS.map((a) => (
             <Route key={a} path={`${AREA_PATH[a]}/*`} element={<AppEntry area={a} />} />

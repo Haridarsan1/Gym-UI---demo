@@ -255,10 +255,11 @@ test.describe("sign out and reset", () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  test("reset demo data confirms with a message", async ({ page }) => {
+  test("reset demo data asks first, then confirms with a message", async ({ page }) => {
     await signInAs(page, "u_owner", "/owner");
     await page.getByRole("button", { name: /Account menu/ }).click();
     await page.getByRole("button", { name: "Reset demo data" }).click();
+    await page.getByRole("dialog", { name: "Reset demo data" }).getByRole("button", { name: "Reset demo data" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Demo data reset" })).toBeVisible();
   });
 });

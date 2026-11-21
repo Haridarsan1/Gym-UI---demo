@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-import { LogOut, RotateCcw, Shuffle } from "lucide-react";
+import { BookOpen, LogOut, RotateCcw, Shuffle } from "lucide-react";
 import { useNewMemberLogins, useNewStaffLogins } from "@/api/hooks";
 import { menuFor, screenPath } from "@/app/navigation";
 import { useCan, useSession } from "@/app/SessionContext";
-import { useResetDemo, useSignOut, useSwitchAccount } from "@/app/useSessionActions";
+import { useSignOut, useSwitchAccount } from "@/app/useSessionActions";
 import { FEATURED_ACCOUNTS } from "@/app/demoSignIn";
 import { DEMO_ACCOUNTS, LOTUS_NAME, otherProfiles } from "@/app/demoAccounts";
 import { DEMO_MODE } from "@/app/mode";
@@ -11,11 +11,10 @@ import { ROLE_LABEL, areaFor } from "@/domain/roles";
 import { cn } from "@/lib/format";
 
 /** The account menu’s panel: who you are, the “Me” links, the demo role switcher, reset and sign out. Loaded when the menu is first opened. */
-export default function AvatarPanel({ id, drop, name, tenantName, close }: { id: string; drop: "down" | "up"; name: string; tenantName?: string; close: () => void }) {
+export default function AvatarPanel({ id, drop, name, tenantName, close, askReset }: { id: string; drop: "down" | "up"; name: string; tenantName?: string; close: () => void; askReset: () => void }) {
   const { session } = useSession();
   const can = useCan();
   const signOut = useSignOut();
-  const resetDemo = useResetDemo();
   const switchAccount = useSwitchAccount();
   const newLogins = useNewMemberLogins(DEMO_MODE);
   const newStaff = useNewStaffLogins(DEMO_MODE);
@@ -25,7 +24,7 @@ export default function AvatarPanel({ id, drop, name, tenantName, close }: { id:
   const items = area === "member" || area === "trainer" ? menuFor(area, can) : [];
   const row = "flex min-h-[2.75rem] w-full items-center gap-3 rounded-xl px-3 text-left text-[0.95rem] hover:bg-clay-canvas";
   return (
-        <div id={id} className={cn("clay absolute z-50 w-72 !rounded-2xl p-2", drop === "up" ? "bottom-[calc(100%+0.5rem)] left-0 max-h-[80dvh] overflow-y-auto" : "right-0 top-[calc(100%+0.5rem)] max-h-[calc(100dvh-5rem)] overflow-y-auto")}>
+        <div id={id} className={cn("clay absolute z-50 w-72 !rounded-2xl p-2", drop === "up" ? "bottom-[calc(100%+0.5rem)] left-0 max-h-[80dvh] overflow-y-auto" : "right-0 top-[calc(100%+0.5rem)] max-h-[calc(100dvh-10rem)] overflow-y-auto sm:max-h-[calc(100dvh-5rem)]")}>
           <div className="px-3 py-2">
             <p className="font-semibold">{name}</p>
             <p className="text-sm text-clay-muted">
@@ -132,18 +131,21 @@ export default function AvatarPanel({ id, drop, name, tenantName, close }: { id:
               </details>
             </div>
           )}
+          {DEMO_MODE && (
+            <div className="border-t border-clay-line py-1">
+              <Link to="/demo" onClick={() => setOpen(false)} className={row}>
+                <BookOpen className="h-5 w-5 text-clay-muted" aria-hidden="true" />
+                Demo guide
+              </Link>
+            </div>
+          )}
           <div className="border-t border-clay-line py-1">
-            <button
-              type="button"
-              className={row}
-              onClick={() => {
-                setOpen(false);
-                void resetDemo();
-              }}
-            >
-              <RotateCcw className="h-5 w-5 text-clay-muted" aria-hidden="true" />
-              Reset demo data
-            </button>
+            {DEMO_MODE && (
+              <button type="button" className={row} onClick={() => { setOpen(false); askReset(); }}>
+                <RotateCcw className="h-5 w-5 text-clay-muted" aria-hidden="true" />
+                Reset demo data
+              </button>
+            )}
             <button type="button" className={row} onClick={signOut}>
               <LogOut className="h-5 w-5 text-clay-muted" aria-hidden="true" />
               Sign out
