@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { hasHorizontalScroll, logRemainingSets, readStore, signInAs } from "./helpers";
+import { saasPlansJourney, supportJourney, tenantsJourney } from "./platform-journeys";
 import { a01Journey } from "./a01";
 import { a03Journey } from "./a03";
 import { accountJourney, branchesJourney, communicationsJourney, importJourney, plansJourney, policiesJourney, scopeJourney, staffJourney } from "./owner-journeys";
@@ -739,6 +740,17 @@ for (const width of WIDTHS) {
       await accountJourney(page, (id, path) => open(page, width, id, path).then(() => undefined));
       expect(problems).toEqual([]);
     });
+  });
+
+  test.describe(`platform admin at ${width} px`, () => {
+    for (const [title, journey] of [["tenants, a new gym, a suspended gym seen by its owner and its reactivation", tenantsJourney], ["support access with its banner, read-only view and audit entries", supportJourney], ["SaaS plans, limits and an approved upgrade", saasPlansJourney]] as const) {
+      test(title, async ({ page }) => {
+        test.setTimeout(120_000);
+        const problems = await open(page, width, "u_admin", "/admin");
+        await journey(page, (id, path) => open(page, width, id, path).then(() => undefined));
+        expect(problems).toEqual([]);
+      });
+    }
   });
 
   test.describe(`branch manager scope at ${width} px`, () => {

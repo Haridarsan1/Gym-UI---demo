@@ -3,6 +3,7 @@ import { db } from "@/demo/db";
 import { now } from "@/api/clock";
 import { ApiError } from "@/api/errors";
 import { openOwner } from "@/api/owner";
+import { requireRoom } from "@/api/usage";
 import { buildAuditEvent } from "@/domain/audit";
 import { ROLE_LABEL } from "@/domain/roles";
 import { accessChanges, accessSummary, authorityOf, canManageStaff, cleanLimits, defaultLimits, digitsOf, STAFF_ROLES, validateStaff, type Authority, type StaffDraft, type StaffErrors, type StaffRoleName } from "@/domain/staffRules";
@@ -117,6 +118,7 @@ export async function inviteStaff(session: Session | null, raw: InviteStaffInput
   return db.transaction("rw", db.tables, async () => {
     const userId = `u_staff_${slug(input.name)}_${slug(input.key).slice(-6)}`;
     const existing = await db.users.get(userId);
+    if (!existing) await requireRoom(c.principal, "staff");
     const [users, branches, tenant] = await Promise.all([db.users.where("tenantId").equals(c.tenantId).toArray(), db.branches.where("tenantId").equals(c.tenantId).toArray(), db.tenants.get(c.tenantId)]);
     const names = new Map(branches.map((b) => [b.id, b.name]));
     const branchIds = input.role === "owner" ? branches.map((b) => b.id) : [...new Set(input.branchIds)];

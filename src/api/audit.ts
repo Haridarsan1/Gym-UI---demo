@@ -29,7 +29,7 @@ const flat = (v: unknown, prefix = ""): Array<{ key: string; value: string }> =>
 
 async function load(c: OwnerContext, scope: string[], q: AuditQuery) {
   const [events, users, roles, members, branches] = await Promise.all([
-    db.auditEvents.where("tenantId").equals(c.tenantId).toArray(), db.users.where("tenantId").equals(c.tenantId).toArray(), db.staffRoles.where("tenantId").equals(c.tenantId).toArray(),
+    db.auditEvents.where("tenantId").equals(c.tenantId).toArray(), db.users.filter((u) => u.tenantId === c.tenantId || u.role === "platform_admin").toArray(), db.staffRoles.where("tenantId").equals(c.tenantId).toArray(),
     db.members.where("tenantId").equals(c.tenantId).toArray(), db.branches.where("tenantId").equals(c.tenantId).toArray(),
   ]);
   const name = new Map(users.map((u) => [u.id, u.name]));

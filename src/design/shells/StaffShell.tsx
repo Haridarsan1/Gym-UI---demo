@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Ellipsis, LogOut, Search } from "lucide-react";
 import { LogoMark } from "@/components/ui/Logo";
+import { GymBanners } from "@/design/GymBanners";
 import { GymMark } from "@/design/GymMark";
 import { useMe } from "@/api/hooks";
 import { mobileBar, screenPath, sidebarFor } from "@/app/navigation";
@@ -102,6 +103,7 @@ export function StaffShell({ area }: { area: StaffArea }) {
             </div>
           </header>
           <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1200px] px-4 py-6 focus:outline-none sm:px-8 lg:px-10 lg:py-8">
+            {area !== "admin" && <GymBanners staff />}
             <Outlet />
           </main>
         </div>

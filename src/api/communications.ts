@@ -23,7 +23,7 @@ export const MAX_ATTEMPTS = 5;
 const REMINDER_DAYS = 14;
 const QUIET_DAYS = 14;
 
-export interface TemplateView { id: GymTemplateId; title: string; about: string; rule: string; placeholders: Array<{ key: Placeholder; about: string }>; subject: string; body: string; custom: boolean; defaultSubject: string; defaultBody: string; preview: { subject: string; body: string } }
+export interface TemplateView { sample: Record<Placeholder, string>; id: GymTemplateId; title: string; about: string; rule: string; placeholders: Array<{ key: Placeholder; about: string }>; subject: string; body: string; custom: boolean; defaultSubject: string; defaultBody: string; preview: { subject: string; body: string } }
 export interface AudienceView { id: "renewal" | "inactive" | "offers"; title: string; template: GymTemplateId; total: number; willSend: number; noEmail: number; optedOut: number; noConsent: number }
 export interface LogRow { id: string; at: string; to?: string; name: string; kind: "member" | "staff"; template: string; subject: string; body: string; status: EmailLogEntry["status"]; detail?: string; attempts: number; canRetry: boolean }
 export interface CommunicationsView {
@@ -115,7 +115,7 @@ export async function getCommunications(session: Session | null, q: CommsQuery =
     today: c.today, canEditTemplates: can(c.principal, "communication.template"), emailFails: getSimulation().emailFails,
     templates: TEMPLATES.map((t): TemplateView => {
       const w = wordingFor(d.tenant, t.id);
-      return { id: t.id, title: t.title, about: t.about, rule: t.rule, placeholders: t.placeholders.map((key) => ({ key, about: ({ first_name: "The member’s first name", gym: "The gym’s name", plan: "Their plan", ends_on: "The date it ends", days: "Days left, or days since their last visit", invite_link: "The link that opens their login set-up", amount_due: "The amount due, with GST", invoice: "The invoice number", due_on: "The date it was due", last_visit: "The date of their last visit" } as Record<Placeholder, string>)[key] })), subject: w.subject, body: w.body, custom: w.custom, defaultSubject: t.subject, defaultBody: t.body, preview: render(w, SAMPLE) };
+      return { id: t.id, title: t.title, about: t.about, rule: t.rule, placeholders: t.placeholders.map((key) => ({ key, about: ({ first_name: "The member’s first name", gym: "The gym’s name", plan: "Their plan", ends_on: "The date it ends", days: "Days left, or days since their last visit", invite_link: "The link that opens their login set-up", amount_due: "The amount due, with GST", invoice: "The invoice number", due_on: "The date it was due", last_visit: "The date of their last visit" } as Record<Placeholder, string>)[key] })), subject: w.subject, body: w.body, custom: w.custom, defaultSubject: t.subject, defaultBody: t.body, preview: render(w, { ...SAMPLE, gym: d.tenant?.name ?? SAMPLE.gym }), sample: { ...SAMPLE, gym: d.tenant?.name ?? SAMPLE.gym } };
     }),
     audiences: AUDIENCES.map((a) => audienceView(a, c.today, d)),
     counts, matching: filtered.length, failedRetryable: mine.filter((e) => e.status === "failed" && (e.attempts ?? 1) < MAX_ATTEMPTS).length,

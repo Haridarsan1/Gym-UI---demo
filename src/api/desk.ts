@@ -28,6 +28,8 @@ export async function openDesk(session: Session | null, action: Action): Promise
   if (!principal.tenantId || principal.role === "member" || principal.role === "trainer" || principal.role === "platform_admin") throw new ApiError("forbidden", "This screen is for the gym’s desk and finance staff.");
   assertCan(principal, action);
   const clock = now();
+  // An Ember administrator inside this gym under a support session: every call is a line in the gym’s own audit log (R01, S05).
+  if (principal.support) await db.auditEvents.add({ id: `ae_sup_${crypto.randomUUID()}`, tenantId: principal.tenantId, actorId: principal.userId, actorRole: "platform_admin", at: clock.toISOString(), action: "support.access.action", entityType: "screen", entityId: action, details: { opened: action, session: principal.support.sessionId } });
   const branches = principal.role === "owner" ? (await db.branches.where("tenantId").equals(principal.tenantId).toArray()).map((b) => b.id) : principal.branchIds;
   return { principal, tenantId: principal.tenantId, branchIds: branches, today: todayIST(clock), nowIso: clock.toISOString() };
 }

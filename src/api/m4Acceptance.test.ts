@@ -19,6 +19,7 @@ import { getSettings, saveSettings } from "@/api/settings";
 import { getStaff, inviteStaff, setStaffActive, updateStaff } from "@/api/staff";
 import { getSubscription } from "@/api/subscription";
 import { resetDemo } from "@/demo";
+import { ensureLotus } from "@/demo/second";
 import { db } from "@/demo/db";
 import { defaultLimits } from "@/domain/staffRules";
 
@@ -113,7 +114,9 @@ describe("actions that are the owner’s alone", () => {
   ];
 
   it("everyone else is refused every one of them, and nothing is written", async () => {
-    const counts = async () => [await db.auditEvents.count(), await db.membershipPlans.count(), await db.members.count(), await db.users.count(), await db.importBatches.count(), (await db.gymPolicies.toArray())[0]!.graceDays, (await db.tenants.toArray())[0]!.name];
+    const counts = async () => [await db.auditEvents.count(), await db.membershipPlans.count(), await db.members.count(), await db.users.count(), await db.importBatches.count(), (await db.gymPolicies.toArray())[0]!.graceDays, (await db.tenants.get("t_pulse"))!.name];
+    // An administrator’s call builds the second gym the first time (that is not something the refused actions wrote), so it exists before counting.
+    await ensureLotus();
     const before = await counts();
     for (const [what, call] of calls) for (const id of anyone) expect(await code(call(as(id))), `${what} as ${id}`).toBe("forbidden");
     expect(await counts()).toEqual(before);

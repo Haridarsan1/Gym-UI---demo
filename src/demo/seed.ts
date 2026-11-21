@@ -1,4 +1,7 @@
-import { ALL_BRANCHES, BRANCH, DEMO_ACCOUNTS, TENANT_ID } from "@/app/demoAccounts";
+import { ALL_BRANCHES, BRANCH, DEMO_ACCOUNTS as ALL_ACCOUNTS, TENANT_ID } from "@/app/demoAccounts";
+
+/** The people of this gym and of Ember itself: the second demo gym’s people are `seedLotus.ts`’s. */
+const DEMO_ACCOUNTS = ALL_ACCOUNTS.filter((a) => a.tenantId === TENANT_ID || a.tenantId === null);
 import { addDays, istDateTime, todayIST, weekStart } from "@/domain/dates";
 import type {
   AuditEvent, Booking, Branch, CheckIn, Consent, CreditLedgerEntry, GatewayEvent, GatewaySettlement, GymClass, GymPolicies, Invoice, Member, Membership, MembershipPlan, NumberSeries, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, RefundRequest, TrainerAvailability, TrainerLeave, TrainerShift, User,
@@ -72,7 +75,7 @@ export function generateSeed(now: Date = new Date(), seed = 20261117): SeedData 
   const tenants: Tenant[] = [
     {
       id: TENANT_ID, name: "Pulse Fitness", slug: "pulse-fitness", gstin: "27AABCP1234F1Z5", legalName: "Pulse Fitness Private Limited", logoUrl: PULSE_LOGO_URL, address: "Ground floor, Veera Desai Road, Andheri West, Mumbai 400053, Maharashtra", currency: "INR", timeZone: "Asia/Kolkata",
-      subscription: { state: "trial", saasPlanId: "sp_growth", trialEndsAt: createdAt(addDays(today, 12)), renewsOn: addDays(today, 12) },
+      subscription: { state: "paid", saasPlanId: "sp_growth", renewsOn: addDays(today, 19) },
       createdAt: createdAt(addDays(today, -2)),
     },
   ];

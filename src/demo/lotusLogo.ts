@@ -1,0 +1,4 @@
+/** Lotus Strength Club’s logo for the second demo gym: an original mark with its own colours (plum and gold), so it is plainly a different gym’s. */
+export const LOTUS_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Lotus Strength Club"><rect width="128" height="128" rx="64" fill="#4A1D5C"/><g fill="#F2C14E"><path d="M64 28c10 12 14 24 0 44-14-20-10-32 0-44z"/><path d="M36 48c14 2 24 10 28 28-18 4-28-4-28-28z" opacity=".85"/><path d="M92 48c0 24-10 32-28 28 4-18 14-26 28-28z" opacity=".85"/></g><rect x="30" y="86" width="68" height="8" rx="4" fill="#F2C14E"/></svg>`;
+const base64 = (text: string): string => (typeof btoa === "function" ? btoa(text) : Buffer.from(text).toString("base64"));
+export const LOTUS_LOGO_URL = `data:image/svg+xml;base64,${base64(LOTUS_LOGO_SVG)}`;

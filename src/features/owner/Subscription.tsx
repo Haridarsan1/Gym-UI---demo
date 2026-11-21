@@ -1,5 +1,11 @@
 import { Check, Minus } from "lucide-react";
-import { useSubscription } from "@/api/ownerHooks";
+import { useState } from "react";
+import { ShieldAlert } from "lucide-react";
+import { useSubscription, useSubscriptionActions } from "@/api/ownerHooks";
+import { isApiError } from "@/api/errors";
+import { Button3D } from "@/design/Button3D";
+import { Field, inputClass } from "@/design/Field";
+import { useToast } from "@/design/Toast";
 import type { SubscriptionView } from "@/api/subscription";
 import { QueryBoundary } from "@/design/QueryBoundary";
 import { SkeletonRows } from "@/design/Skeleton";
@@ -22,6 +28,44 @@ export default function Subscription() {
   );
 }
 
+/** What the state means for the gym today, in words, with the way out: pay and reopen, or ask for another plan. */
+function StateCard({ v }: { v: SubscriptionView }) {
+  const { reactivate, requestPlan } = useSubscriptionActions();
+  const toast = useToast();
+  const [planId, setPlanId] = useState("");
+  const [note, setNote] = useState("");
+  const [rk] = useState(() => `react-${crypto.randomUUID()}`);
+  const [pk] = useState(() => `plan-${crypto.randomUUID()}`);
+  const b = v.status.banner;
+  const due = v.invoices.filter((i) => i.status === "open" && i.dueOn <= v.today).reduce((n, i) => n + i.amountPaise, 0);
+  const others = v.plans.filter((p) => p.id !== v.plan.id && !p.archived);
+  const fail = (e: unknown) => toast({ title: "Not done", description: isApiError(e) ? e.message : "Try again.", tone: "error" });
+  return (
+    <>
+      {b && (
+        <section aria-label="What this means" role="status" className={cn("space-y-3 rounded-3xl p-4 sm:p-5", b.tone === "danger" ? "bg-status-danger-bg text-status-danger-fg" : "bg-status-pending-bg text-status-pending-fg")}>
+          <h2 className="flex items-center gap-2 text-xl font-bold"><ShieldAlert className="h-6 w-6" aria-hidden="true" />{b.title}</h2>
+          <p className="max-w-[70ch]">{b.body}</p>
+          {v.status.reactivatable && <Button3D variant="ember" size="md" disabled={reactivate.isPending} onClick={() => void reactivate.mutateAsync({ key: rk }).then((r) => toast({ title: "The gym is open again", description: r.paidPaise ? `${formatRupees(r.paidPaise)} paid (simulated in this demo). Everything works as before.` : "Everything works as before.", tone: "success" })).catch(fail)}>{reactivate.isPending ? "Reactivating…" : due ? `Pay ${formatRupees(due)} and reactivate` : "Reactivate the gym"}</Button3D>}
+        </section>
+      )}
+      {others.length > 0 && (
+        <section aria-labelledby="chg-t" className="clay space-y-3 p-4 sm:p-5">
+          <h2 id="chg-t" className="text-lg font-bold">Need more room or a feature?</h2>
+          {v.request?.status === "pending" ? <p role="status" className="rounded-2xl bg-clay-canvas p-3">You asked Ember for the <strong>{v.request.planName}</strong> plan on {formatDate(v.request.at.slice(0, 10))}. It is waiting for an answer, and nothing changes until it comes.</p> : (
+            <form className="grid gap-3 sm:grid-cols-[14rem_minmax(0,1fr)_auto] sm:items-end" onSubmit={(e) => { e.preventDefault(); if (planId) void requestPlan.mutateAsync({ planId, note, key: pk }).then(() => toast({ title: "Request sent to Ember", description: "You will see the answer here.", tone: "success" })).catch(fail); }}>
+              <Field label="Ask for another plan" htmlFor="pl-ask"><select id="pl-ask" value={planId} onChange={(e) => setPlanId(e.target.value)} className={inputClass}><option value="">Choose a plan</option>{others.map((p) => <option key={p.id} value={p.id}>{p.name}{p.monthlyPaise !== null ? `, ${formatRupees(p.monthlyPaise)} a month` : ""}</option>)}</select></Field>
+              <Field label="A note for Ember" htmlFor="pl-note" hint="Optional"><input id="pl-note" value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} /></Field>
+              <Button3D type="submit" variant="ember" size="md" disabled={!planId || requestPlan.isPending}>Ask Ember</Button3D>
+            </form>
+          )}
+          {v.request && v.request.status !== "pending" && <p className="text-sm text-clay-muted">Your last request, for {v.request.planName}, was {v.request.status}{v.request.decisionNote ? `: ${v.request.decisionNote}` : ""}.</p>}
+        </section>
+      )}
+    </>
+  );
+}
+
 function Loaded({ v }: { v: SubscriptionView }) {
   const features = [...new Set(v.plans.flatMap((p) => p.features))].filter((f) => f !== "everything");
   return (
@@ -30,6 +74,8 @@ function Loaded({ v }: { v: SubscriptionView }) {
         <h1 className="text-[1.7rem] font-bold tracking-tight lg:text-4xl">Subscription</h1>
         <p className="max-w-[70ch] text-clay-muted">Your Ember plan, what you use of it, and what it includes. This is what {v.gym} pays Ember for the software. It is separate from what your members pay you.</p>
       </header>
+
+      <StateCard v={v} />
 
       <section aria-labelledby="plan-title" className="clay space-y-3 p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -84,7 +130,7 @@ function Loaded({ v }: { v: SubscriptionView }) {
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-sm text-clay-muted">To change plan, ask Ember. Your members and records stay exactly as they are.</p>
+        <p className="mt-3 text-sm text-clay-muted">To change plan, use “Ask for another plan” above. Your members and records stay exactly as they are.</p>
       </section>
 
       <section aria-labelledby="states-title" className="clay p-4 sm:p-5">
@@ -96,7 +142,9 @@ function Loaded({ v }: { v: SubscriptionView }) {
 
       <section aria-labelledby="inv-title" className="space-y-3">
         <h2 id="inv-title" className="text-lg font-bold">Software invoices</h2>
-        {v.invoices.length === 0 ? <EmptyState title="No software invoices yet">{v.state === "trial" && v.trialEndsAt ? `Your trial runs to ${formatDate(v.trialEndsAt)}. Ember’s first invoice comes after it.` : "Ember’s invoices for the software appear here."}</EmptyState> : null}
+        {v.invoices.length === 0 ? <EmptyState title="No software invoices yet">{v.state === "trial" && v.trialEndsAt ? `Your trial runs to ${formatDate(v.trialEndsAt)}. Ember’s first invoice comes after it.` : "Ember’s invoices for the software appear here."}</EmptyState> : (
+          <ul aria-label="Software invoices" className="clay divide-y divide-clay-line p-4 sm:p-5">{v.invoices.map((i) => <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0"><span className="min-w-0"><span className="font-semibold">{i.number}</span> <span className="text-sm text-clay-muted">{formatDate(i.issuedOn)}, due {formatDate(i.dueOn)}</span><span className="block text-sm text-clay-muted">{i.description}</span></span><span className="text-right"><span className="tabular block font-semibold">{formatRupees(i.amountPaise)} <span className="text-sm font-normal text-clay-muted">with GST</span></span><span className="block text-sm text-clay-muted">{i.status === "paid" ? `Paid ${i.paidOn ? formatDate(i.paidOn) : ""}` : i.status === "open" ? (i.dueOn < v.today ? "Overdue" : "Not due yet") : "Void"}</span></span></li>)}</ul>
+        )}
       </section>
     </>
   );

@@ -11,6 +11,9 @@ const SEED_TODAY_KEY = "seedToday";
 const SEED_MEMBERS_KEY = "seedMembers";
 const TRAINING_KEY = "trainingVersion";
 let seeding: Promise<void> | null = null;
+/** Set by `second.ts` the first time it is used, so a reset can forget what it built. */
+const onReset: Array<() => void> = [];
+export function whenReset(fn: () => void): void { onReset.push(fn); }
 
 async function writeSeed(): Promise<void> {
   performance.mark("demo-seed-start");
@@ -90,12 +93,14 @@ export function ensureTraining(): Promise<void> {
   return trainingReady;
 }
 
-/** Wipes the demo and builds it again, so a demo can start from a known state. The training half comes back the next time a member or trainer needs it, unless asked for now (tests). */
-export async function resetDemo(options: { training?: boolean } = {}): Promise<void> {
+/** Wipes the demo and builds it again, so a demo can start from a known state. The training half and the second gym come back the next time someone needs them, unless asked for now (tests). */
+export async function resetDemo(options: { training?: boolean; secondGym?: boolean } = {}): Promise<void> {
   seeding = null;
   trainingReady = null;
+  onReset.forEach((fn) => fn());
   await db.meta.delete(SEED_KEY);
   await ensureSeeded();
+  if (options.secondGym) await (await import("@/demo/second")).ensureLotus();
   if (options.training ?? true) await ensureTraining();
 }
 

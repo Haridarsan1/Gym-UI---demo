@@ -11,6 +11,12 @@ export const TENANT_NAME = "Pulse Fitness";
 export const BRANCH = { andheri: "br_andheri", bandra: "br_bandra", powai: "br_powai" } as const;
 export const ALL_BRANCHES: string[] = [BRANCH.andheri, BRANCH.bandra, BRANCH.powai];
 
+/** The second demo gym, so a person in one gym can be shown to see nothing of the other (S03). */
+export const LOTUS_TENANT_ID = "t_lotus";
+export const LOTUS_NAME = "Lotus Strength Club";
+export const LOTUS_BRANCH = { koregaon: "br_lotus_kp", baner: "br_lotus_baner" } as const;
+export const LOTUS_BRANCHES: string[] = [LOTUS_BRANCH.koregaon, LOTUS_BRANCH.baner];
+
 export interface DemoAccount {
   userId: string;
   name: string;
@@ -27,6 +33,8 @@ export interface DemoAccount {
   sample?: boolean;
   /** One line shown under the role in the picker. */
   blurb: string;
+  /** Belongs to the second demo gym. Not on the login page’s pickers; listed apart in the role switcher so tenant isolation can be shown. */
+  otherGym?: boolean;
 }
 
 const owner: StaffLimits = { refundLimitPaise: null, canOverrideCheckIn: true, maxDiscountBp: 2000, canViewClientHealth: false };
@@ -57,6 +65,12 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   // A parent and a teenage child who share one mobile number and one email, as families often do (the login asks “Which profile?”).
   { userId: "u_member_meena", name: "Meena Ramaswamy", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], memberId: "mem_040", email: "meena.ramaswamy@example.in", phone: "9820022090", sample: true, blurb: "Shares a phone number and email with her son Aarav" },
   { userId: "u_member_aarav", name: "Aarav Ramaswamy", role: "member", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], memberId: "mem_041", email: "meena.ramaswamy@example.in", phone: "9820022090", sample: true, blurb: "Teenager on his mother’s number and email" },
+  // Lotus Strength Club: a second, smaller gym in Pune, with its own people, so what each gym can see of the other is shown to be nothing.
+  { userId: "u_lotus_owner", name: "Anita Desai", role: "owner", tenantId: LOTUS_TENANT_ID, branchIds: LOTUS_BRANCHES, email: "anita@lotusclub.example", phone: "9300000101", limits: owner, otherGym: true, blurb: "Lotus Strength Club, a second gym in Pune" },
+  { userId: "u_lotus_bm", name: "Rakesh Pawar", role: "branch_manager", tenantId: LOTUS_TENANT_ID, branchIds: [LOTUS_BRANCH.baner], email: "rakesh@lotusclub.example", phone: "9300000102", limits: manager, otherGym: true, blurb: "Lotus, Baner branch only" },
+  { userId: "u_lotus_desk", name: "Sneha Kale", role: "front_desk", tenantId: LOTUS_TENANT_ID, branchIds: [LOTUS_BRANCH.koregaon], email: "sneha@lotusclub.example", phone: "9300000103", limits: desk, otherGym: true, blurb: "Lotus front desk, Koregaon Park" },
+  { userId: "u_lotus_trainer", name: "Imran Shaikh", role: "trainer", tenantId: LOTUS_TENANT_ID, branchIds: LOTUS_BRANCHES, email: "imran@lotusclub.example", phone: "9300000104", limits: trainer, otherGym: true, blurb: "Lotus trainer, both branches" },
+  { userId: "u_lotus_member", name: "Nisha Bhat", role: "member", tenantId: LOTUS_TENANT_ID, branchIds: [LOTUS_BRANCH.koregaon], memberId: "mem_lotus_001", email: "nisha.bhat@example.in", phone: "9300001001", otherGym: true, blurb: "Member of Lotus Strength Club" },
 ];
 
 /** Every person who signs in with this email: more than one when a family shares it. */

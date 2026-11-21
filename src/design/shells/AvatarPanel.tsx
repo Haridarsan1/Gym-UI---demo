@@ -5,7 +5,7 @@ import { menuFor, screenPath } from "@/app/navigation";
 import { useCan, useSession } from "@/app/SessionContext";
 import { useResetDemo, useSignOut, useSwitchAccount } from "@/app/useSessionActions";
 import { FEATURED_ACCOUNTS } from "@/app/demoSignIn";
-import { DEMO_ACCOUNTS, otherProfiles } from "@/app/demoAccounts";
+import { DEMO_ACCOUNTS, LOTUS_NAME, otherProfiles } from "@/app/demoAccounts";
 import { DEMO_MODE } from "@/app/mode";
 import { ROLE_LABEL, areaFor } from "@/domain/roles";
 import { cn } from "@/lib/format";
@@ -25,7 +25,7 @@ export default function AvatarPanel({ id, drop, name, tenantName, close }: { id:
   const items = area === "member" || area === "trainer" ? menuFor(area, can) : [];
   const row = "flex min-h-[2.75rem] w-full items-center gap-3 rounded-xl px-3 text-left text-[0.95rem] hover:bg-clay-canvas";
   return (
-        <div id={id} className={cn("clay absolute z-50 w-72 !rounded-2xl p-2", drop === "up" ? "bottom-[calc(100%+0.5rem)] left-0 max-h-[80dvh] overflow-y-auto" : "right-0 top-[calc(100%+0.5rem)]")}>
+        <div id={id} className={cn("clay absolute z-50 w-72 !rounded-2xl p-2", drop === "up" ? "bottom-[calc(100%+0.5rem)] left-0 max-h-[80dvh] overflow-y-auto" : "right-0 top-[calc(100%+0.5rem)] max-h-[calc(100dvh-5rem)] overflow-y-auto")}>
           <div className="px-3 py-2">
             <p className="font-semibold">{name}</p>
             <p className="text-sm text-clay-muted">
@@ -95,6 +95,14 @@ export default function AvatarPanel({ id, drop, name, tenantName, close }: { id:
                   ))}
                 </ul>
               )}
+              <details className="group">
+                <summary className={`${row} cursor-pointer list-none text-xs font-semibold text-clay-subtle`}>Another gym: {LOTUS_NAME}</summary>
+                <ul aria-label="Another gym">
+                  {DEMO_ACCOUNTS.filter((a) => a.otherGym && a.userId !== session.userId).map((a) => (
+                    <li key={a.userId}><button type="button" className={row} onClick={() => { setOpen(false); switchAccount(a.userId); }}><span className="flex-1">{a.name}<span className="block text-xs text-clay-muted">{ROLE_LABEL[a.role]} at {LOTUS_NAME}</span></span></button></li>
+                  ))}
+                </ul>
+              </details>
               {(newStaff.data?.length ?? 0) > 0 && (
                 <ul aria-label="New staff">
                   {newStaff.data!.filter((m) => m.userId !== session.userId).map((m) => (
@@ -110,7 +118,7 @@ export default function AvatarPanel({ id, drop, name, tenantName, close }: { id:
               <details className="group">
                 <summary className={`${row} cursor-pointer list-none text-xs font-semibold text-clay-subtle`}>More accounts</summary>
                 <ul aria-label="More accounts" className="max-h-60 overflow-y-auto">
-                  {DEMO_ACCOUNTS.filter((a) => (a.role === "trainer" || a.role === "member") && !a.featured && a.userId !== session.userId).map((a) => (
+                  {DEMO_ACCOUNTS.filter((a) => (a.role === "trainer" || a.role === "member") && !a.featured && !a.otherGym && a.userId !== session.userId).map((a) => (
                     <li key={a.userId}>
                       <button type="button" className={row} onClick={() => { setOpen(false); switchAccount(a.userId); }}>
                         <span className="flex-1">

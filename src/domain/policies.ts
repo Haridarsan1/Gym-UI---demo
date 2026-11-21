@@ -5,6 +5,7 @@ import { applyFreeze, freezeDays, freezeProblem, refundEligibility } from "@/dom
 import { creditRuleText } from "@/domain/schedule";
 import { expiringCredits, reviewDue } from "@/domain/trainerToday";
 import { exactWhen, formatDate, formatDayMonth, formatRupees, formatTime, formatWeekdayDate } from "@/lib/when";
+import { POLICY_DEFAULTS } from "@/domain/policyDefaults";
 import type { GymPolicies } from "@/domain/types";
 
 /**
@@ -14,12 +15,7 @@ import type { GymPolicies } from "@/domain/types";
 export type PolicyValues = Omit<GymPolicies, "id" | "tenantId">;
 export type PolicyKey = keyof PolicyValues;
 
-/** What a gym has before its owner changes anything. The demo gym starts from these. */
-export const POLICY_DEFAULTS: PolicyValues = {
-  cancellationCutoffHours: 12, lateCancelConsumesCredit: true, noShowConsumesCredit: true, streakThresholdPercent: 75, bookingHorizonDays: 14, sessionMinutes: 60, membersMayChooseTrainer: false,
-  reviewCadenceDays: 28, missedWorkoutsThreshold: 2, missedWorkoutsWindowDays: 7, creditExpiryWarningDays: 14, noShowAfterMinutes: 15, markWindowHours: 48, partialPaymentsEnabled: false,
-  freezeMinDays: 7, freezeMaxDays: 30, maxFreezesPerMembership: 2, cancellationFeePaise: 50_000, repeatScanWindowMinutes: 10, graceDays: 0, reminderGapDays: 3,
-};
+export { POLICY_DEFAULTS };
 
 export type GroupId = "sessions" | "training" | "memberships" | "money" | "entry";
 export const POLICY_GROUPS: Array<{ id: GroupId; title: string; summary: string }> = [

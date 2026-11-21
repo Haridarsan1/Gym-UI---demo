@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button3DLink } from "@/design/Button3D";
+import { GymBanners } from "@/design/GymBanners";
 import { GymMark } from "@/design/GymMark";
 import { Skeleton } from "@/design/Skeleton";
 import { useGym } from "@/app/useGym";
@@ -93,6 +94,7 @@ export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer";
         </div>
       </header>
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1200px] px-4 py-6 focus:outline-none sm:px-8 sm:py-8 lg:px-10">
+        <GymBanners staff={area === "trainer"} />
         <Outlet />
       </main>
       {!immersive && (

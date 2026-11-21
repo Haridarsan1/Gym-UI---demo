@@ -6,7 +6,7 @@ import { isApiError } from "@/api/errors";
 import { Button3D } from "@/design/Button3D";
 import { Field, inputClass } from "@/design/Field";
 import { useToast } from "@/design/Toast";
-import { fill, SAMPLE, templateDef, validateTemplate } from "@/domain/emailTemplates";
+import { fill, templateDef, validateTemplate } from "@/domain/emailTemplates";
 
 /** The wording of one email, with the placeholders it may use and a preview filled with a sample member as you type. Only the owner can change it. */
 export function TemplateEditor({ t, canEdit, onClose }: { t: TemplateView; canEdit: boolean; onClose: () => void }) {
@@ -29,7 +29,7 @@ export function TemplateEditor({ t, canEdit, onClose }: { t: TemplateView; canEd
       onClose();
     } catch (e) { setFailure(isApiError(e) ? e.message : "We couldn’t save the wording. Try again."); }
   };
-  const preview = { subject: fill(subject, SAMPLE), body: fill(body, SAMPLE) };
+  const preview = { subject: fill(subject, t.sample), body: fill(body, t.sample) };
   return (
     <form onSubmit={(e) => { e.preventDefault(); void save(subject, body); }} noValidate aria-label={`Email: ${t.title}`} className="flex min-h-full flex-col">
       <header className="flex items-start justify-between gap-3 px-5 pb-2 pt-5">

@@ -47,7 +47,7 @@ describe("demo seed", () => {
     expect(roles("front_desk")).toBeGreaterThanOrEqual(1);
     expect(roles("finance")).toBeGreaterThanOrEqual(1);
     expect(seed.users.filter((u) => u.role === "platform_admin")).toHaveLength(1);
-    expect(seed.users.length).toBe(DEMO_ACCOUNTS.length);
+    expect(seed.users.length).toBe(DEMO_ACCOUNTS.filter((a) => a.tenantId === "t_pulse" || a.tenantId === null).length);
   });
 
   it("has 150 members in every membership state, with unique ids, names and phone numbers", () => {

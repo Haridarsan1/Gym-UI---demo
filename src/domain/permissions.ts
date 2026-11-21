@@ -162,6 +162,34 @@ export interface Principal {
   /** Set for members: their own member record. */
   memberId?: string;
   limits?: StaffLimits;
+  /**
+   * What the gym’s subscription allows (S02): “full”, “readonly” (looking and downloading only) or “export_only” (downloading only). Read from the gym’s record on every call, never
+   * from the session. Absent means full (platform administrators, who have no gym).
+   */
+  access?: Access;
+  /** A sentence for when this access refuses something, in words for the person. */
+  accessNote?: string;
+  /** Set when an Ember administrator is inside this gym under a support session (R01). They get the owner’s read-only view and nothing else, and every call is audited. */
+  support?: { sessionId: string; adminId: string; expiresAt: string };
+}
+
+export type Access = "full" | "readonly" | "export_only";
+
+/** Actions that only look. A gym that is read-only (suspended) still allows these, and downloading a report. */
+const LOOKING = /\.(read|list|view|exists|status)$/;
+const DOWNLOADS: readonly string[] = ["report.export"];
+/** What a canceled gym can still do: download, and see its subscription to reactivate it. */
+const EXPORT_ONLY_ALLOWED: readonly string[] = [...DOWNLOADS, "subscription.view"];
+/** What an Ember administrator may do inside a gym under a support session: the owner’s views, and nothing that changes, downloads or opens health data. */
+export const SUPPORT_ALLOWED: readonly string[] = [
+  "dashboard.view", "report.view", "member.read", "member.list", "membership.read", "invoice.read", "dues.read", "plan.read", "staff.read", "policy.read", "audit.read", "checkin.read", "booking.read", "credits.read", "subscription.view",
+];
+
+/** Whether the gym’s subscription state lets this action through. */
+export function accessAllows(access: Access | undefined, action: string): boolean {
+  if (!access || access === "full") return true;
+  if (access === "export_only") return EXPORT_ONLY_ALLOWED.includes(action);
+  return LOOKING.test(action) || DOWNLOADS.includes(action);
 }
 
 /** The record being accessed. The caller fills in what it knows. Anything missing fails a scope that needs it. */
@@ -211,6 +239,8 @@ export function can(p: Principal | null | undefined, action: Action, resource?: 
   const scope = scopeFor(p.role, action);
   if (!scope) return false;
   if (!limitsAllow(p, action)) return false;
+  if (p.support && !SUPPORT_ALLOWED.includes(action)) return false;
+  if (!accessAllows(p.access, action)) return false;
 
   if (scope === "platform") return p.tenantId === null && resource === undefined;
 

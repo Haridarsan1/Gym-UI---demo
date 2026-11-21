@@ -47,7 +47,7 @@ describe("settings", () => {
       expect((await err(getSettings(as(id)))).code, id).toBe("forbidden");
       expect((await err(saveSettings(as(id), { key: key(), ...(await base()), logo: PNG }))).code, id).toBe("forbidden");
     }
-    expect((await db.tenants.toArray())[0]!.logoUrl).toBe(PULSE_LOGO_URL);
+    expect((await db.tenants.get("t_pulse"))!.logoUrl).toBe(PULSE_LOGO_URL);
   });
 
   it("a saved logo and name are what the header, the sidebar and every receipt read, for staff and members alike; the audit entry says logo replaced, not the image", async () => {
@@ -79,7 +79,8 @@ describe("the subscription", () => {
   it("is the owner’s alone, and shows the plan, the state and what is used against each limit", async () => {
     for (const id of ["u_bm_bandra", "u_desk_andheri", "u_finance", "u_member_arjun", "u_admin"]) expect((await err(getSubscription(as(id)))).code, id).toBe("forbidden");
     const v = await getSubscription(owner);
-    expect(v).toMatchObject({ gym: "Pulse Fitness", state: "trial", plan: { name: "Growth" }, trialEndsAt: "2026-11-29", daysLeft: 12 });
+    expect(v).toMatchObject({ gym: "Pulse Fitness", state: "paid", plan: { name: "Growth" }, renewsOn: "2026-12-06", daysLeft: 19, status: { access: "full" } });
+    expect(v.invoices.map((i) => i.status)).toEqual(["open", "paid", "paid", "paid"]);
     expect(v.usage.map((u) => [u.key, u.used, u.limit, u.level])).toEqual([["branches", 3, 3, "full"], ["staff", 12, 20, "ok"], ["activeMembers", v.usage[2]!.used, 250, "ok"]]);
     expect(v.usage[2]!.used).toBeGreaterThan(90);
     expect(v.plans.map((p) => p.name)).toEqual(["Starter", "Growth", "Pro", "Enterprise"].filter((x) => v.plans.some((p) => p.name === x)));

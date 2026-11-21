@@ -1,0 +1,14 @@
+[
+  { "key": "tenants", "caption": "Tenants: each gym with its state, health, use against its limits and set-up progress" },
+  { "key": "tenant-detail", "caption": "A gym’s detail: plan, limits, entitlements and billing dates" },
+  { "key": "tenant-invoices", "caption": "Ember’s software invoices to the gym, apart from the gym’s own member billing" },
+  { "key": "saas-plans", "caption": "SaaS plans: limits and entitlements, and which gyms are on each" },
+  { "key": "suspend", "caption": "Suspending a gym needs a reason the owner can read" },
+  { "key": "suspended-owner", "caption": "The suspended gym as its owner sees it: what it means and how to reopen it" },
+  { "key": "suspended-desk", "caption": "The same gym on the front desk: read-only, with a short banner" },
+  { "key": "support-request", "caption": "Asking for support access: a reason and a time" },
+  { "key": "support-active", "caption": "An active support session, with where it ends" },
+  { "key": "support-banner-member", "caption": "The banner every member of that gym sees while support has access" },
+  { "key": "support-banner-inside", "caption": "Inside the gym, read-only, with the time left and a way to end it" },
+  { "key": "audit-support", "caption": "The owner’s audit log: support access started, screens looked at, and ended, with the reason" }
+]

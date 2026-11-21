@@ -84,3 +84,24 @@ const staffStatus: Record<"active" | "invited" | "disabled", Pill> = {
 export function StaffStatusPill({ status, className }: { status: "active" | "invited" | "disabled"; className?: string }) {
   return <span className={cn(filled, staffStatus[status].cls, className)}>{staffStatus[status].label}</span>;
 }
+
+const tenantState: Record<string, { label: string; cls: string }> = {
+  trial: { label: "Free trial", cls: "bg-lilac-100 text-lilac-700" },
+  paid: { label: "Paid", cls: "bg-status-active-bg text-status-active-fg" },
+  past_due: { label: "Payment overdue", cls: "bg-status-pending-bg text-status-pending-fg" },
+  suspended: { label: "Suspended", cls: "bg-status-expired-bg text-status-expired-fg" },
+  canceled: { label: "Canceled", cls: "bg-status-danger-bg text-status-danger-fg" },
+};
+
+/** A gym’s subscription state, filled like membership status. */
+export function TenantStatePill({ state, className }: { state: string; className?: string }) {
+  const p = tenantState[state] ?? { label: state, cls: "bg-clay-lavender text-clay-muted" };
+  return <span className={cn(filled, p.cls, className)}>{p.label}</span>;
+}
+
+const health = { good: { label: "Healthy", cls: "border-[#2E9E5B] text-status-active-fg" }, watch: { label: "Needs a look", cls: "border-[#D29A3A] text-status-pending-fg" }, risk: { label: "At risk", cls: "border-[#D0473C] text-status-danger-fg" } } as const;
+
+/** How a gym looks to the platform: outlined, so it never reads as the filled subscription state beside it. */
+export function HealthPill({ level, className }: { level: keyof typeof health; className?: string }) {
+  return <span className={cn(outlined, health[level].cls, className)}>{health[level].label}</span>;
+}

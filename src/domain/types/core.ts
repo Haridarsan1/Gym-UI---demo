@@ -11,6 +11,9 @@ export const SaasPlan = z.object({
   monthlyPaise: z.number().int().nonnegative().nullable(),
   limits: z.object({ branches: z.number().int().nullable(), staff: z.number().int().nullable(), activeMembers: z.number().int().nullable() }),
   features: z.array(z.string()),
+  /** A plan that is no longer offered to new gyms. Gyms already on it keep it (S02). */
+  archived: z.boolean().optional(),
+  blurb: z.string().optional(),
 });
 export type SaasPlan = z.infer<typeof SaasPlan>;
 
@@ -36,6 +39,10 @@ export const Tenant = z.object({
     saasPlanId: id,
     trialEndsAt: isoDateTime.optional(),
     renewsOn: isoDate.optional(),
+    /** When the payment became overdue. The grace period runs from here (S02). */
+    pastDueSince: isoDate.optional(),
+    suspendedOn: isoDate.optional(),
+    canceledOn: isoDate.optional(),
   }),
   createdAt: isoDateTime,
 });
@@ -210,6 +217,9 @@ export const AuditAction = z.enum([
   "communication.send",
   "communication.template",
   "member.invite",
+  "subscription.change",
+  "saasplan.change",
+  "support.access.action",
   "member.join",
   "export.create",
   "import.run",

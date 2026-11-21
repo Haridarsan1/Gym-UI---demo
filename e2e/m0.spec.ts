@@ -29,7 +29,7 @@ const roles: Role[] = [
   { pick: /^Finance/, built: true, name: "Deepa Menon", url: /\/desk\/finance\/invoices$/, home: "Invoices and payments", phone: ["Members", "Dues", "Collect payment", "Invoices and payments"], desktop: ["Members", "Collect payment", "Dues", "Invoices and payments", "Refunds", "Reconciliation", "Exports"], absent: ["Check-in", "New member", "Bookings", "Settings"] },
   { pick: /^Owner/, built: true, name: "Neha Kulkarni", url: /\/owner$/, home: "Dashboard", phone: ["Dashboard", "Reports", "Members", "Plans and pricing"], desktop: ["Dashboard", "Reports", "Members", "Plans and pricing", "Staff and roles", "Branches", "Policies", "Communications", "Import members", "Subscription", "Audit log", "Settings"], absent: ["Check-in", "Tenants"] },
   { pick: /^Branch manager/, built: true, name: "Rohit Sethi", url: /\/owner$/, home: "Dashboard", phone: ["Dashboard", "Reports", "Members", "Plans and pricing"], desktop: ["Dashboard", "Reports", "Members", "Plans and pricing", "Branches", "Communications", "Audit log"], absent: ["Import members", "Subscription", "Settings"] },
-  { pick: /^Platform admin/, name: "Ember Admin", url: /\/admin$/, home: "Tenants", phone: ["Tenants", "Support access", "SaaS plans"], desktop: ["Tenants", "Support access", "SaaS plans"], absent: ["Members", "Dashboard", "Check-in"] },
+  { pick: /^Platform admin/, built: true, name: "Ember Admin", url: /\/admin$/, home: "Tenants", phone: ["Tenants", "Support access", "SaaS plans"], desktop: ["Tenants", "Support access", "SaaS plans"], absent: ["Members", "Dashboard", "Check-in"] },
 ];
 
 for (const role of roles) {
@@ -119,7 +119,7 @@ test("the sample gym is the same for everyone who opens it", async ({ page }) =>
         };
       }),
   );
-  expect(counts).toMatchObject({ members: 150, branches: 3, users: 19 });
+  expect(counts).toMatchObject({ members: 150, branches: 3, users: 19 }); // Pulse Fitness alone: Lotus Strength Club is built only when someone opens it (demo/second.ts)
   expect(counts.memberships).toBeGreaterThanOrEqual(150);
 });
 

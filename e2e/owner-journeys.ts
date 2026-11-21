@@ -555,14 +555,15 @@ export async function accountJourney(page: Page, signIn: SignIn) {
   await signIn("u_owner", "/owner/subscription");
   await expect(page.getByRole("heading", { name: "Subscription", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Growth", level: 2 })).toBeVisible();
-  await expect(page.getByText("Free trial").first()).toBeVisible();
+  await expect(page.getByText("Paid", { exact: true }).first()).toBeVisible();
   const usage = page.getByRole("list", { name: "Usage against your limits" });
   await expect(usage).toContainText("Branches");
   await expect(usage).toContainText("3 of 3");
   await expect(usage).toContainText("You are at this limit.");
   await expect(usage).toContainText("of 250");
   await expect(page.getByRole("table", { name: "What each Ember plan includes" }).or(page.getByRole("list", { name: "Plans" }))).toContainText("Pro");
-  await expect(page.getByRole("heading", { name: "No software invoices yet" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Software invoices" })).toContainText("EMB/26-27/0004");
+  await expect(page.getByRole("list", { name: "Software invoices" })).toContainText("Not due yet");
   await expect(page.getByText("separate from what your members pay you", { exact: false })).toBeVisible();
   await noSideways(page, "Subscription");
 

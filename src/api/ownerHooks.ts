@@ -140,3 +140,13 @@ export function useImports() {
   const { session } = useSession();
   return useQuery({ queryKey: ["owner", session?.userId, "imports"], queryFn: async () => (await import("@/api/memberImport")).listImports(session), enabled: !!session, retry, staleTime: 0 });
 }
+
+export function useSubscriptionActions() {
+  const { session } = useSession();
+  const qc = useQueryClient();
+  const done = () => Promise.all([qc.invalidateQueries({ queryKey: ["owner", session?.userId] }), qc.invalidateQueries({ queryKey: ["me"] })]);
+  return {
+    reactivate: useMutation({ mutationFn: async (i: { key: string }) => (await import("@/api/subscription")).reactivateSubscription(session, i), onSuccess: done }),
+    requestPlan: useMutation({ mutationFn: async (i: { planId: string; note?: string; key: string }) => (await import("@/api/subscription")).requestPlanChange(session, i), onSuccess: done }),
+  };
+}

@@ -154,6 +154,19 @@ test.describe("the gym’s own name and logo, never Ember", () => {
 
   test("with no logo the gym’s initials are shown, and the cache is for that gym only", async ({ page }) => {
     await signInAs(page, "u_member_arjun", "/m");
+    // The demo gym has a sample logo, so take it away to see the initials.
+    await page.evaluate(() => new Promise<void>((done, fail) => {
+      const open = indexedDB.open("ember-demo");
+      open.onerror = () => fail(open.error);
+      open.onsuccess = () => {
+        const tx = open.result.transaction("tenants", "readwrite"), store = tx.objectStore("tenants"), get = store.get("t_pulse");
+        get.onsuccess = () => { const t = get.result; delete t.logoUrl; store.put(t); };
+        tx.oncomplete = () => { open.result.close(); done(); };
+        tx.onerror = () => fail(tx.error);
+      };
+    }));
+    await page.evaluate(() => localStorage.removeItem("ember.gym"));
+    await page.reload();
     await expect(page.getByRole("banner").getByText("PF", { exact: true })).toBeVisible();
     await page.evaluate(() => localStorage.setItem("ember.gym", JSON.stringify({ tenantId: "t_other", name: "Other Gym" })));
     await page.evaluate(() => localStorage.setItem("ember.demo.simulation", JSON.stringify({ minMs: 1200, maxMs: 1200, failureRate: 0 })));

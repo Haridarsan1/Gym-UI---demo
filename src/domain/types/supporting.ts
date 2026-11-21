@@ -290,3 +290,51 @@ export const ImportBatch = z.object({
   credits: z.number().int(),
 });
 export type ImportBatch = z.infer<typeof ImportBatch>;
+
+/** Time-limited access an Ember administrator has asked for to one gym, with a reason (R01, S05). While it is active a banner shows inside the gym for everyone and every action is audited. */
+export const SupportSession = z.object({
+  id,
+  tenantId: id,
+  adminId: id,
+  reason: z.string(),
+  minutes: z.number().int().positive(),
+  startedAt: isoDateTime,
+  expiresAt: isoDateTime,
+  /** Set when it ended before or at its time, by whom (the administrator, or “time” when it ran out). */
+  endedAt: isoDateTime.optional(),
+  endedBy: z.string().optional(),
+});
+export type SupportSession = z.infer<typeof SupportSession>;
+
+/** What a gym pays Ember for the software (S02). Separate from the invoices the gym raises for its members. */
+export const SaasInvoice = z.object({
+  id,
+  tenantId: id,
+  number: z.string(),
+  issuedOn: isoDate,
+  dueOn: isoDate,
+  periodFrom: isoDate,
+  periodTo: isoDate,
+  planId: id,
+  description: z.string(),
+  amountPaise: z.number().int().nonnegative(),
+  taxPaise: z.number().int().nonnegative(),
+  status: z.enum(["open", "paid", "void"]),
+  paidOn: isoDate.optional(),
+});
+export type SaasInvoice = z.infer<typeof SaasInvoice>;
+
+/** A gym owner’s request for another Ember plan, for the platform to approve (S02). */
+export const PlanRequest = z.object({
+  id,
+  tenantId: id,
+  planId: id,
+  requestedBy: id,
+  note: z.string().optional(),
+  at: isoDateTime,
+  status: z.enum(["pending", "approved", "declined"]),
+  decidedAt: isoDateTime.optional(),
+  decidedBy: id.optional(),
+  decisionNote: z.string().optional(),
+});
+export type PlanRequest = z.infer<typeof PlanRequest>;

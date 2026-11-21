@@ -2,7 +2,7 @@ import Dexie, { type EntityTable } from "dexie";
 import { getSimulation } from "@/demo/simulate";
 import type {
   Assessment, AuditEvent, BadgeAward, Booking, EmailLogEntry, Branch, CheckIn, Consent, CreditLedgerEntry, Exercise, Goal, GymClass, Invoice, Measurement, Member, Membership,
-  MembershipPlan, MemberSettings, NumberSeries, CreditNote, RefundRequest, ProgramTemplate, GatewayEvent, GatewaySettlement, DayClose, DataRequest, ImportBatch, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
+  MembershipPlan, MemberSettings, NumberSeries, CreditNote, RefundRequest, ProgramTemplate, GatewayEvent, GatewaySettlement, DayClose, DataRequest, ImportBatch, PlanRequest, SaasInvoice, SupportSession, Payment, Refund, SaasPlan, StaffRole, Tenant, TrainerAssignment, TrainerAvailability, TrainerLeave, TrainerReview, TrainerShift, User, WorkoutLog, WorkoutPlanVersion, GymPolicies,
 } from "@/domain/types";
 
 export interface MetaRow {
@@ -63,6 +63,9 @@ export class EmberDB extends Dexie {
   meta!: EntityTable<MetaRow, "key">;
   idempotency!: EntityTable<IdempotencyRow, "key">;
   importBatches!: EntityTable<ImportBatch, "id">;
+  supportSessions!: EntityTable<SupportSession, "id">;
+  saasInvoices!: EntityTable<SaasInvoice, "id">;
+  planRequests!: EntityTable<PlanRequest, "id">;
 
   constructor(name = "ember-demo") {
     super(name);
@@ -141,6 +144,12 @@ export class EmberDB extends Dexie {
     // Version 10 (M4, import): one record for each run of the member import, so a retry finds it.
     this.version(10).stores({
       importBatches: "id, tenantId",
+    });
+    // Version 11 (M5, platform): support sessions, Ember’s software invoices and requests for another plan.
+    this.version(11).stores({
+      supportSessions: "id, tenantId, adminId, expiresAt",
+      saasInvoices: "id, tenantId, status",
+      planRequests: "id, tenantId, status",
     });
     // With the demo’s mail server switched to refuse mail, every message written as sent is written as failed instead, whoever sends it.
     this.emailLog.hook("creating", (_key, row) => {

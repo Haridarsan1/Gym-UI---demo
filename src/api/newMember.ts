@@ -3,6 +3,7 @@ import { db } from "@/demo/db";
 import { ApiError } from "@/api/errors";
 import { assertInBranch, openDesk } from "@/api/desk";
 import { allocateNumber } from "@/api/numbering";
+import { requireRoom } from "@/api/usage";
 import { NOTICE_VERSION } from "@/api/profileNotice";
 import { nextReceiptNumber } from "@/api/receipts";
 import { buildAuditEvent } from "@/domain/audit";
@@ -161,6 +162,7 @@ export async function registerMember(session: Session | null, raw: RegisterInput
     const existing = await db.members.get(memberId);
     if (existing) return summary(c.tenantId, existing, true);
 
+    await requireRoom(c.principal, "activeMembers");
     const dup = await checkDuplicates(session, { name: input.member.name, phone: input.member.phone, email: input.member.email, dateOfBirth: input.member.dateOfBirth });
     const unanswered = dup.sharing.filter((x) => !(input.sharesContactWith ?? []).includes(x.memberId));
     if (unanswered[0]) throw new ApiError("conflict", `${unanswered[0].name} already has this ${unanswered[0].match === "phone" ? "phone number" : "email address"}. Open their profile if it is the same person, or say it is a different person sharing it.`, { sharing: unanswered[0] });

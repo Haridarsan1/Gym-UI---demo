@@ -1,6 +1,7 @@
 import { db } from "@/demo/db";
 import { now } from "@/api/clock";
 import { ApiError } from "@/api/errors";
+import { requireFeature } from "@/api/usage";
 import { branchScope, openOwner, type OwnerContext } from "@/api/owner";
 import { buildAuditEvent } from "@/domain/audit";
 import { amountDuePaise, isOverdue } from "@/domain/billing";
@@ -168,6 +169,7 @@ async function build(c: OwnerContext, q: ReportQuery): Promise<ReportData> {
 
 export async function getReport(session: Session | null, q: ReportQuery): Promise<ReportData> {
   const c = await openOwner(session, "report.view");
+  await requireFeature(c.principal, "reports");
   return build(c, q);
 }
 
@@ -176,6 +178,7 @@ const cell = (col: Column, v: Cell): string | number => (v === null || v === "" 
 /** The CSV of exactly what the report shows, for the branches this person may see. Writes an audit event. */
 export async function exportReport(session: Session | null, q: ReportQuery): Promise<{ filename: string; csv: string; rows: number }> {
   const c = await openOwner(session, "report.export");
+  await requireFeature(c.principal, "reports");
   const r = await build(c, q);
   const csv = toCsv(r.columns.map((x) => x.header), r.rows.map((row) => r.columns.map((col) => cell(col, row[col.key] ?? null))));
   await db.auditEvents.add(buildAuditEvent(c.principal, { action: "export.create", entityType: "export", entityId: r.id, details: { report: r.id, rows: r.rows.length, branches: r.branches, from: r.from, to: r.to } }, `ae_${crypto.randomUUID()}`, now()));

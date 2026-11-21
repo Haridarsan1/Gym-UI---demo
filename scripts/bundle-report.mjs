@@ -109,8 +109,8 @@ for (const route of routes) {
     failed = true;
   }
   if (!route.marketing) {
-    // A return visit: the demo gym already exists in this browser, so the seed generator is not downloaded.
-    const seed = files.filter((f) => f.url.includes("/seed-")).reduce((n, f) => n + f.gz, 0);
+    // A return visit: the demo gym already exists in this browser, so none of the seed generators (the gym, the training half, the plans, the second gym, Ember’s invoices) are downloaded.
+    const seed = files.filter((f) => /\/seed[A-Za-z]*-[\w-]{8}\.js$/.test(f.url)).reduce((n, f) => n + f.gz, 0);
     notes.push(`return visit ${((total - seed) / 1024).toFixed(1)} KB`);
   }
   if (process.env.BUNDLE_FILES === route.path) for (const f of files.sort((a, b) => b.gz - a.gz)) console.log(`    ${(f.gz / 1024).toFixed(1).padStart(6)} KB  ${f.url.split("/").pop()}`);

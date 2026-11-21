@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import { useStaffActions } from "@/api/ownerHooks";
 import { isApiError } from "@/api/errors";
@@ -58,6 +59,7 @@ export function StaffEditor({ row, view, onClose }: { row: StaffRow | undefined;
   const [f, setF] = useState<Form>(() => formFor(row));
   const [tried, setTried] = useState(false);
   const [failure, setFailure] = useState<string>();
+  const [upgrade, setUpgrade] = useState<string>();
   const [switching, setSwitching] = useState<"off" | "on" | null>(null);
   const [why, setWhy] = useState("");
   const [reason, setReason] = useState("");
@@ -97,7 +99,7 @@ export function StaffEditor({ row, view, onClose }: { row: StaffRow | undefined;
         toast({ title: "Invitation sent", description: `${r.name.split(" ")[0]} is invited as ${ROLE_LABEL[r.role].toLowerCase()}. The email is in the delivery log; they can’t sign in until they accept it.`, tone: "success" });
       }
       onClose();
-    } catch (e) { setFailure(isApiError(e) ? e.message : "We couldn’t save. Try again."); }
+    } catch (e) { setFailure(isApiError(e) ? e.message : "We couldn’t save. Try again."); setUpgrade(isApiError(e) ? (e.details as { upgrade?: string } | undefined)?.upgrade : undefined); }
   };
   const switchAccount = async (active: boolean) => {
     if (!row) return;
@@ -182,7 +184,7 @@ export function StaffEditor({ row, view, onClose }: { row: StaffRow | undefined;
           </section>
           {row && !readOnly && changes.length > 0 && <Field label="Reason (optional)" htmlFor="st-reason"><input id="st-reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} className={inputClass} placeholder="Why their access is changing" /></Field>}
         </fieldset>
-        {failure && <p role="alert" className="mx-5 mb-3 rounded-2xl bg-status-danger-bg px-4 py-3 text-sm font-semibold text-status-danger-fg">{failure}</p>}
+        {failure && <p role="alert" className="mx-5 mb-3 rounded-2xl bg-status-danger-bg px-4 py-3 text-sm font-semibold text-status-danger-fg">{failure}{upgrade && <> <Link to={upgrade} className="underline underline-offset-2">Ask for a larger plan</Link></>}</p>}
         <footer className="sticky bottom-0 flex flex-wrap items-center gap-3 border-t border-clay-line bg-white/95 px-5 py-3 backdrop-blur">
           {readOnly ? <Button3D type="button" variant="white" size="md" onClick={onClose}>Close</Button3D> : (
             <>

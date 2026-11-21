@@ -9,6 +9,10 @@ export interface Session extends Principal {
   name: string;
 }
 
+/** Where an administrator’s own session is kept while they are inside a gym under support access, so ending the access puts them back. */
+export const ADMIN_SESSION_KEY = "ember.admin.session";
+
+
 export const SESSION_KEY = "ember.session";
 
 export function readSession(): Session | null {
