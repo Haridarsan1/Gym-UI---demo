@@ -61,7 +61,7 @@ for (let i = 0; i < 50; i++) {
 
 const browser = await chromium.launch();
 let failed = false;
-console.log("Route      JS gzip   Files  Notes");
+console.log("Route      First visit  Files  Notes   (first visit includes one-time demo data generation)");
 for (const route of routes) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
   if (route.user) {
@@ -103,15 +103,18 @@ for (const route of routes) {
     if (leaks.length) notes.push(`FAIL: code that does not belong in ${route.path}: ${[...new Set(leaks)].join(", ")}`);
     if (seen.size === 0 || leaks.length) failed = true;
   }
-  const budget = BUDGET_KB[route.path];
-  if (budget && total / 1024 > budget) {
-    notes.push(`FAIL: over ${budget} KB budget`);
-    failed = true;
-  }
+  let budgeted = total;
   if (!route.marketing) {
     // A return visit: the demo gym already exists in this browser, so none of the seed generators (the gym, the training half, the plans, the second gym, Ember’s invoices) are downloaded.
     const seed = files.filter((f) => /\/seed[A-Za-z]*-[\w-]{8}\.js$/.test(f.url)).reduce((n, f) => n + f.gz, 0);
-    notes.push(`return visit ${((total - seed) / 1024).toFixed(1)} KB`);
+    budgeted = total - seed;
+    notes.push(`return visit ${(budgeted / 1024).toFixed(1)} KB (the budget)`);
+  }
+  // The budget is the return visit, which is what a production user downloads. The first visit also generates the demo gym (the seed generators), which goes away with the real backend.
+  const budget = BUDGET_KB[route.path];
+  if (budget && budgeted / 1024 > budget) {
+    notes.push(`FAIL: over ${budget} KB budget`);
+    failed = true;
   }
   if (process.env.BUNDLE_FILES === route.path) for (const f of files.sort((a, b) => b.gz - a.gz)) console.log(`    ${(f.gz / 1024).toFixed(1).padStart(6)} KB  ${f.url.split("/").pop()}`);
   console.log(`${route.path.padEnd(10)} ${(total / 1024).toFixed(1).padStart(6)} KB ${String(files.length).padStart(5)}  ${notes.join(", ") || (route.marketing ? "no app code" : "")}`);

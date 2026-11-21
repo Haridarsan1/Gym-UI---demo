@@ -231,23 +231,9 @@ These exist because the member app needs them. Each is a Zod schema in `src/doma
 
 Also added to existing records: `Invoice.placeOfSupply` (GST state code, decides CGST + SGST or IGST) and `Tenant.legalName` and `Tenant.address` (printed on tax receipts).
 
-### Rules written down in M1
+### Rules written down in M1 (steps 4 to 6)
 
-- **Which plan applies on a date:** the published version that started most recently on or before that date. A new version replaces the old one from its start date; earlier dates keep their original targets (T06).
-- **Adherence (P03):** completed workouts against scheduled, non-canceled workouts whose dates have passed in the period. Partial, skipped and missed (nothing logged) are counted separately. Unscheduled workouts are reported as extra. With nothing scheduled the rate is empty, never zero. Days inside a freeze are not counted as missed.
-- **Volume (P02):** the sum of load × reps over sets that were done and have both.
-- **Personal record:** the heaviest load ever lifted for an exercise in a set that was done. The first time an exercise is logged sets the baseline and is not a record. A substituted exercise is judged as the exercise actually done.
-- **Streak:** weeks (Monday to Sunday) in a row in which at least 75% of the planned workouts were completed or partial (the percentage is a `GymPolicies` value). Weeks with nothing planned, and weeks overlapping a freeze, pause the streak. The week in progress adds to it once it reaches the threshold and never breaks it before it ends.
-- **Credits (M06):** purchase adds to available; reservation moves available to reserved; consumption uses reserved; release returns reserved to available; reversal undoes the referenced entry; expiry and adjustments change available.
-- **Invoice totals:** a discount is spread over the lines before 18% GST is worked out. **Tax split:** CGST + SGST in equal halves (an odd paisa goes to SGST) when the place of supply is the gym’s state, otherwise IGST. **Place of supply** for in-gym services (memberships, PT sessions, classes) is the branch’s state (`Branch.stateCode`), whatever the member’s address (`placeOfSupplyFor` in `billing.ts`); IGST stays for services delivered in another state. Gym services use SAC 999723.
-
-### Rules written down in M1, steps 5 and 6
-
-- **Workout result (T05):** completed when every prescribed main set was done, whatever the reps and load (10, 10, 8 against 3 × 10 is completed); partial when some were done; skipped when none were. Warm-up and cool-down sets are logged but do not change the result, unless they are all a day has.
-- **Pre-filled sets (W03):** reps are the prescribed number; for a range, last time’s reps when they fall inside it, otherwise the bottom of the range. Load is last time’s load when there is one, otherwise the prescribed load. “Last time” is the best set done for that exercise in the most recent finished workout (heaviest load; at equal load, most reps; skipped sets and workouts don’t count), shown under the set title (“Best last time: 10 × 22.5 kg”). A swapped exercise gets the reps and no load. A set logged unchanged is stored as “as prescribed” only when it equals the prescription.
-- **Substitution (W03):** a swapped exercise is stored against the one it replaced and answers its prescription. Its sets start empty, because they are a different movement.
-- **When a workout can be logged:** on its day, for an active membership. A started workout can still be saved until the end of the next day. A finished workout is final; a trainer corrects it (T05). A frozen or ended membership can preview the plan but not log.
-- **Drafts and retries:** one log per member and day. A draft is saved as sets are logged and carries the workout’s idempotency key; the final submit uses the same key, so repeating it returns the same log. A draft save that arrives after the submit is ignored.
+Moved to [docs/milestones/M1.md](milestones/M1.md#rules-written-down-in-m1): the rules for lifecycle, check-in, credits and billing as the member app uses them.
 
 ### Responsive patterns (M1.5, for every area)
 
@@ -268,20 +254,9 @@ The full rules are in `CLAUDE.md` (“Responsive rules”). What was built and w
 - **Celebrations** go through `celebrate()` in `src/design/celebrate.ts`: a buzz for every kind, and a lazy-loaded confetti burst (under 1 s, Ember, mint and lilac) for records and new badges only. Never where money or access is handled.
 - **Space at the bottom:** member and trainer screens leave about 76 px between the last content and the raised button; a test at 390 px requires at least 40 px.
 
-### Seeded training history (seed versions 5 to 7)
+### Seeded training history and sample members
 
-Plan loads rise in steps: each main lift holds a load for 2, 3 or 4 weeks (different for each lift), then goes up one step (2.5 kg on the bench press, about 6% elsewhere). The first session at a new load is a personal record, so a lift sets one every 2 to 4 weeks, not every session. About one completed session in ten is a lighter day (main loads a tenth lower, lower effort, “Light day, slept badly.”) and never sets a record; partial and skipped sessions stay as before. Arjun’s trainer benchmark tests for the bench press are 40 kg at the start and 47.5 kg a month ago, in line with his logged loads. A test checks the cadence and that Arjun’s latest record is within two weeks. The 10, 10, 8 against 3 × 10 case is a test of the submit flow and does not depend on the seeded loads. `writeSeed` uses the shared clock, so tests that fix the date get the same gym every day.
-
-### Sample members
-
-| Member | Login | Shows |
-|---|---|---|
-| Arjun Kumar | `u_member_arjun`, phone 98200 22002 | A workout today (new plan from 13 days ago), 12 weeks of logs, a streak, 8 training credits (5 free, 1 held, 2 used), a booking in two days at 6 pm (free cancellation until 6 am that day), one unread review, badges, a GST invoice for each month. |
-| Priya Sharma | phone 98200 22003 | A rest day, and a renewal invoice of ₹2,950 overdue by four days. |
-| Rahul Mehta | phone 98200 22004 | A frozen membership (streak paused), a CGST + SGST invoice (in-gym services are taxed in the branch’s state, even though Rahul lives in Karnataka). |
-| Sneha Patil | phone 98200 22005 | A trainer but no plan yet, a 10-visit pass with 4 visits left. |
-
-Everything is relative to today, so Arjun always has a workout today.
+Moved to [docs/milestones/M1.md](milestones/M1.md#seeded-training-history-seed-versions-5-to-7) and [sample members](milestones/M1.md#sample-members).
 
 ### Permissions
 
@@ -295,7 +270,8 @@ One permission map in `domain/permissions.ts` (role × action × scope: own, ass
 
 | Measure | Target |
 |---|---|
-| Initial JS for `/m` (gzipped) | ≤ 170 KB (155.6 KB at the end of M2 (164.9 KB before the split; 141.6 KB on a return visit); the report fails if trainer, desk, owner or admin code reaches it) |
+| Initial JS for `/m`, return visit (gzipped; the budget) | ≤ 170 KB (141.1 KB after M5). The report fails if trainer, desk, owner or admin code reaches it |
+| First visit of `/m`, reported separately | 160.4 KB after M5. Includes one-time demo data generation (the seed generator, about 19 KB), which goes away with the real backend in M6B. Not a budget |
 | Largest Contentful Paint, mid-range Android, 4G | ≤ 2.0 s |
 | Interaction to Next Paint | ≤ 200 ms |
 | Common views load (S06) | ≤ 2 s at p95 in demo |
@@ -479,7 +455,7 @@ Not planned in detail yet. It starts after M6 is approved.
 | Finance staff work in `/desk` but cannot check members in. Where do they land? | On Invoices and payments. |
 | Platform administrators see no gym records. | Done in M5: support access is a time-limited, reasoned, read-only, audited grant, announced to everyone in the gym. |
 | GST place of supply and rates | Branch state for in-gym services (CGST + SGST), 18%, SAC 999723. GST rules to be confirmed by the gym’s accountant before launch. |
-| Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6 (`/`, `/m`, `/t`, `/desk`, `/owner`). Bundle budget for `/m` is met: 160.4 KB of 170 KB on a first visit after M5 (the aim of 158 KB, 10 KB under budget, is open: see `docs/milestones/M5.md`). The workout API (which uses Zod) is loaded on demand with the program and workout screens, so it stays out of every area’s first download. |
+| Lighthouse (performance 90, accessibility 100) | Not yet measured. Planned for M6 (`/`, `/m`, `/t`, `/desk`, `/owner`). Bundle budget for `/m` is met: 141.1 KB of 170 KB on a return visit after M5. The first visit (160.4 KB) includes one-time demo data generation and is reported, not budgeted (decided after M5). The workout API (which uses Zod) is loaded on demand with the program and workout screens, so it stays out of every area’s first download. |
 | Retention of member records, including assessments withdrawn by consent | Kept, hidden from all staff, until the retention period ends or the member asks for deletion. Retention policy to be confirmed with the gym’s accountant and legal adviser (GST record-keeping, Digital Personal Data Protection Act 2023). |
 | Proration and credit-note treatment (M3) | An upgrade credits the unused days of the old plan pro rata on its pre-tax price and invoices the difference. The credit is issued as a GST credit note linked to the original invoice, not netted silently. A downgrade (the credit is more than the new plan’s price) is not refunded automatically: it takes effect at period end. **Proration and credit-note treatment to be confirmed with the gym’s accountant.** |
 | Invoice numbering format (M3) | Consecutive and unique within each financial year (April to March), at most 16 characters, a per-branch prefix, for example `PFAND/26-27/0001`; credit notes have their own series; allocated inside the invoice’s transaction. **Invoice numbering format to be confirmed with the gym’s accountant.** |

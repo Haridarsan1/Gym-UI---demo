@@ -97,4 +97,4 @@ Shells are `PlayShell` (member, trainer) and `StaffShell`; both use `NavRail` an
 
 ## Performance budgets
 
-Initial JS for `/m` ≤ 170 KB gzipped (kept near 155 KB; `npm run bundle-report` also fails if trainer, desk, owner or admin code reaches it) · LCP ≤ 2 s on mid-range Android over 4G · Lighthouse mobile performance ≥ 90 and accessibility 100. Code-split by role and by heavy feature.
+Initial JS for `/m` on a return visit ≤ 170 KB gzipped (141 KB after M5; the first visit is reported separately, labelled “includes one-time demo data generation”, and is not a budget; `npm run bundle-report` also fails if trainer, desk, owner or admin code reaches it) · LCP ≤ 2 s on mid-range Android over 4G · Lighthouse mobile performance ≥ 90 and accessibility 100. Code-split by role and by heavy feature.
