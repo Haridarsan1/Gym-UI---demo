@@ -6,7 +6,8 @@ Ember is gym management software for Indian gyms: one role-based web app for pla
 
 **Read these first, every session:**
 1. `docs/REQUIREMENTS.md`: the product requirements. Requirement IDs (T01, W03, M05, A01…) are the source of truth.
-2. `docs/PLAN.md`: what to build, in which order, and the current checklist.
+2. `docs/PLAN.md`: what to build, in which order, and the current checklist. Read it every session; it is kept short.
+3. `docs/milestones/M<n>.md`: the detailed build notes for the milestone and area you are working on (M0 to M5 so far). Read the one you need, not all of them. When a milestone is finished, move its step notes there and leave one line per item in `docs/PLAN.md`.
 
 ## How to work
 
@@ -90,7 +91,7 @@ Shells are `PlayShell` (member, trainer) and `StaffShell`; both use `NavRail` an
 - [ ] Permissions enforced in UI and API
 - [ ] Unit tests for new domain rules; Playwright test for the main flow
 - [ ] `npm run build` passes with no type errors
-- [ ] **Never commit with a failing test or an emptied instruction file.** `npm run check-docs` (also the pre-commit hook, installed by `npm install`, and a unit test) fails if CLAUDE.md, docs/PLAN.md or docs/REQUIREMENTS.md is missing or near-empty.
+- [ ] **Never commit with a failing test or an emptied instruction file.** `npm run check-docs` (also the pre-commit hook, installed by `npm install`, and a unit test) fails if CLAUDE.md, docs/PLAN.md, docs/REQUIREMENTS.md or a milestone file in `docs/milestones/` is missing or near-empty.
 - [ ] **Never commit with a failing test.** Run the affected suites (Vitest and the Playwright specs for the screens touched) before every commit. If something fails, fix it first, then commit. Do not commit a known failure, skip a test to get green, or leave a fix for the next commit
 - [ ] Checkbox ticked in `docs/PLAN.md`
 

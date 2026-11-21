@@ -1,6 +1,6 @@
 /**
  * The project’s instructions and plan must never go missing or empty without anyone noticing (CLAUDE.md was once committed empty by a
- * routine commit). Fails if CLAUDE.md, docs/PLAN.md or docs/REQUIREMENTS.md is missing, near-empty, or lost its key headings.
+ * routine commit). Fails if CLAUDE.md, docs/PLAN.md, docs/REQUIREMENTS.md or a milestone file (docs/milestones/M0.md to M5.md) is missing, near-empty, or lost its key headings.
  *   node scripts/check-docs.mjs            checks the files on disk
  *   node scripts/check-docs.mjs --staged   checks what is about to be committed (the pre-commit hook)
  */
@@ -9,8 +9,10 @@ import { existsSync, readFileSync } from "node:fs";
 
 export const REQUIRED = [
   { file: "CLAUDE.md", minBytes: 4000, mustContain: ["Definition of done", "Architecture rules"] },
-  { file: "docs/PLAN.md", minBytes: 20000, mustContain: ["## 7. Milestones", "## 8. Decisions"] },
+  { file: "docs/PLAN.md", minBytes: 15000, mustContain: ["## 7. Milestones", "## 8. Decisions", "### M6B", "docs/milestones/M5.md"] },
   { file: "docs/REQUIREMENTS.md", minBytes: 8000, mustContain: ["A01"] },
+  // The detailed build notes of each finished milestone (PLAN.md keeps one line per item and links here).
+  ...[["M0", 2000], ["M1", 15000], ["M2", 10000], ["M3", 10000], ["M4", 20000], ["M5", 3000]].map(([m, minBytes]) => ({ file: `docs/milestones/${m}.md`, minBytes, mustContain: [`# ${m} · `] })),
 ];
 
 export function problems(read) {
