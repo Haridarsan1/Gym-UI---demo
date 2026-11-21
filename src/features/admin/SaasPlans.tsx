@@ -24,7 +24,7 @@ export default function SaasPlans() {
   return (
     <div className="max-w-6xl space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="text-[1.7rem] font-bold tracking-tight lg:text-4xl">SaaS plans</h1><p className="max-w-[70ch] text-clay-muted">What Ember sells to gyms. Limits stop a gym adding more than its plan allows, and features decide what its owner can open.</p></div>
+        <div><h1 className="text-[1.7rem] font-bold tracking-tight lg:text-4xl">Ember plans</h1><p className="max-w-[70ch] text-clay-muted">What Ember sells to gyms. Limits stop a gym adding more than its plan allows, and features decide what its owner can open.</p></div>
         <Button3D variant="ember" size="md" onClick={() => setOpen("new")}><Plus className="h-4 w-4" aria-hidden="true" />New plan</Button3D>
       </header>
       <QueryBoundary query={query} errorTitle="We couldn’t load the plans" skeleton={<SkeletonRows rows={4} />}>

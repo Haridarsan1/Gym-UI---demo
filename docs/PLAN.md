@@ -141,10 +141,10 @@ Restrictions (R03): no access to assessments or progress photos anywhere in `/de
 
 | Screen | What it does | Requirements |
 |---|---|---|
-| **Tenants** | List, health, subscription state (trial, paid, past due, suspended, cancelled), usage vs limits | S02, S06 |
+| **Gyms** | List, health, subscription state (trial, paid, past due, suspended, cancelled), usage vs limits | S02, S06 |
 | **Tenant detail** | Plan, limits, entitlements, billing, onboarding progress | S01, S02 |
 | **Support access** | Request time-limited, reasoned access; visible banner while active; auto-expiry; audited | R01, S05 |
-| **SaaS plans** | Plan limits by branches, staff or active members | S02 |
+| **Ember plans** | Plan limits by branches, staff or active members | S02 |
 
 ### 4.7 Release 2 modules
 
@@ -399,7 +399,7 @@ Build notes: [docs/milestones/M6.md](milestones/M6.md)
 - [x] Acceptance suite A01–A05 green in demo mode: `npm run acceptance` (A05’s backup restore moves to M6B)
 - [ ] Lighthouse measured and saved for `/`, `/m`, `/t`, `/desk` and `/owner` (performance ≥ 90, accessibility 100)
 - [x] Keyboard and screen-reader pass: axe on every screen at 390 and 1440 px (serious and critical fail), manual checklist in `docs/a11y-manual-check.md`
-- [ ] Plain-language copy pass
+- [x] Plain-language copy pass: the writing rules as tests over the source and over every screen; no internal terms on screen
 - [x] Demo guide (six scenarios, `/demo`) and a presenter reset button, separate and confirmed
 - [ ] Final Vercel deploy
 - **Done when:** the demo is deployed, the A01–A05 suite is green in demo mode, and the Lighthouse reports are saved in `docs/`.

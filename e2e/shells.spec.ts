@@ -41,7 +41,7 @@ test.describe("each role lands in its own home", () => {
     ["u_finance", "/desk/finance/invoices", "Invoices and payments"],
     ["u_owner", "/owner", "Dashboard"],
     ["u_bm_bandra", "/owner", "Dashboard"],
-    ["u_admin", "/admin", "Tenants"],
+    ["u_admin", "/admin", "Gyms"],
   ];
   for (const [userId, url, heading] of landings) {
     test(`${userId} lands on ${heading}`, async ({ page }) => {

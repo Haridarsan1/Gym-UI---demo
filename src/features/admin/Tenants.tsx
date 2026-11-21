@@ -43,7 +43,7 @@ export default function Tenants() {
   const query = useTenants();
   return (
     <div className="max-w-6xl space-y-5">
-      <QueryBoundary query={query} errorTitle="We couldn’t load the gyms" skeleton={<><h1 className="text-[1.7rem] font-bold tracking-tight lg:text-4xl">Tenants</h1><SkeletonRows rows={5} /></>}>
+      <QueryBoundary query={query} errorTitle="We couldn’t load the gyms" skeleton={<><h1 className="text-[1.7rem] font-bold tracking-tight lg:text-4xl">Gyms</h1><SkeletonRows rows={5} /></>}>
         {(v) => <Loaded v={v} />}
       </QueryBoundary>
     </div>
@@ -66,7 +66,7 @@ function Loaded({ v }: { v: { tenants: TenantRow[]; plans: Array<{ id: string; n
   return (
     <>
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="text-[1.7rem] font-bold tracking-tight lg:text-4xl">Tenants</h1><p className="max-w-[70ch] text-clay-muted">Every gym on Ember: its subscription, its health, what it uses of its plan and how far its set-up has got. A gym’s members and money are its own and are not shown here.</p></div>
+        <div><h1 className="text-[1.7rem] font-bold tracking-tight lg:text-4xl">Gyms</h1><p className="max-w-[70ch] text-clay-muted">Every gym on Ember: its subscription, its health, what it uses of its plan and how far its set-up has got. A gym’s members and money are its own and are not shown here.</p></div>
         <Button3D variant="ember" size="md" onClick={() => setAdding(true)}><Plus className="h-4 w-4" aria-hidden="true" />New gym</Button3D>
       </header>
       <div role="group" aria-label="Show" className="flex flex-wrap gap-2">

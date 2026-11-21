@@ -12,7 +12,7 @@ test.describe("email and password", () => {
     ["deepa.menon@pulsefitness.in", "/desk/finance/invoices", "Invoices and payments", "finance"],
     ["meera.joshi@pulsefitness.in", "/t", /^Good (morning|afternoon|evening), Meera$/, "trainer"],
     ["arjun.kumar@example.in", "/m", /^Good (morning|afternoon|evening), Arjun$/, "member"],
-    ["admin@ember.example", "/admin", "Tenants", "platform admin"],
+    ["admin@ember.example", "/admin", "Gyms", "platform admin"],
   ];
   for (const [email, url, title, who] of people) {
     test(`${who} signs in with any password`, async ({ page }) => {
@@ -132,7 +132,7 @@ test.describe("phone and code", () => {
 
 test.describe("try the demo as", () => {
   const roles: Array<[RegExp, string, string | RegExp]> = [
-    [/^Platform admin/, "/admin", "Tenants"],
+    [/^Platform admin/, "/admin", "Gyms"],
     [/^Owner/, "/owner", "Dashboard"],
     [/^Branch manager/, "/owner", "Dashboard"],
     [/^Front desk/, "/desk", "Check-in"],

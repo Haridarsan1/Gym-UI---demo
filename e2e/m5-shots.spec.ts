@@ -43,7 +43,7 @@ test("Checkpoint 4: tenants, a suspended gym, support access and the audit entri
 
   // ── Tenants and plans ──
   await signInAs(page, "u_admin", "/admin");
-  await expect(page.getByRole("heading", { name: "Tenants", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Gyms", level: 1 })).toBeVisible();
   await page.waitForTimeout(400);
   await shot(page, "tenants");
   await page.goto("/admin/tenants/t_pulse");
@@ -51,7 +51,7 @@ test("Checkpoint 4: tenants, a suspended gym, support access and the audit entri
   await shot(page, "tenant-detail");
   await shot(page, "tenant-invoices", page.getByRole("list", { name: "Software invoices" }));
   await page.goto("/admin/plans");
-  await expect(page.getByRole("heading", { name: "SaaS plans", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ember plans", level: 1 })).toBeVisible();
   await shot(page, "saas-plans");
 
   // ── Suspending, and the gym seen by its owner and its desk ──

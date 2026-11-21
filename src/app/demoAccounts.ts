@@ -45,7 +45,7 @@ const finance: StaffLimits = { refundLimitPaise: 2_500_000, canOverrideCheckIn: 
 const trainer: StaffLimits = { refundLimitPaise: 0, canOverrideCheckIn: false, maxDiscountBp: 0, canViewClientHealth: false };
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [
-  { userId: "u_admin", name: "Ember Admin", role: "platform_admin", tenantId: null, branchIds: [], email: "admin@ember.example", featured: true, blurb: "Tenants, plans and support access" },
+  { userId: "u_admin", name: "Ember Admin", role: "platform_admin", tenantId: null, branchIds: [], email: "admin@ember.example", featured: true, blurb: "Gyms, plans and support access" },
   { userId: "u_owner", name: "Neha Kulkarni", role: "owner", tenantId: TENANT_ID, branchIds: ALL_BRANCHES, email: "owner@pulsefitness.in", phone: "9820011001", limits: owner, featured: true, blurb: "Pulse Fitness, all 3 branches" },
   { userId: "u_bm_bandra", name: "Rohit Sethi", role: "branch_manager", tenantId: TENANT_ID, branchIds: [BRANCH.bandra], email: "rohit.sethi@pulsefitness.in", phone: "9820011002", limits: manager, featured: true, blurb: "Bandra branch only" },
   { userId: "u_desk_andheri", name: "Pooja Nair", role: "front_desk", tenantId: TENANT_ID, branchIds: [BRANCH.andheri], email: "pooja.nair@pulsefitness.in", phone: "9820011003", limits: desk, featured: true, blurb: "Front desk, Andheri" },

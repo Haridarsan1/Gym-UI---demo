@@ -27,9 +27,9 @@ const roles: Role[] = [
   { pick: /^Trainer/, name: "Meera Joshi", url: /\/t$/, built: true, home: /^Good (morning|afternoon|evening), Meera$/, phone: ["Today", "Clients", "Log session", "Schedule", "Exercises"], desktop: ["Today", "Clients", "Log session", "Schedule", "Exercises"], absent: ["Program", "Bookings", "Dashboard"] },
   { pick: /^Front desk/, built: true, name: "Pooja Nair", url: /\/desk$/, home: "Check-in", phone: ["Check-in", "Members", "Bookings", "Dues"], desktop: ["Check-in", "New member", "Members", "Collect payment", "Bookings", "Dues", "Day close"], absent: ["Refunds", "Reconciliation", "Exports", "Invoices and payments", "Reports", "Settings"] },
   { pick: /^Finance/, built: true, name: "Deepa Menon", url: /\/desk\/finance\/invoices$/, home: "Invoices and payments", phone: ["Members", "Dues", "Collect payment", "Invoices and payments"], desktop: ["Members", "Collect payment", "Dues", "Invoices and payments", "Refunds", "Reconciliation", "Exports"], absent: ["Check-in", "New member", "Bookings", "Settings"] },
-  { pick: /^Owner/, built: true, name: "Neha Kulkarni", url: /\/owner$/, home: "Dashboard", phone: ["Dashboard", "Reports", "Members", "Plans and pricing"], desktop: ["Dashboard", "Reports", "Members", "Plans and pricing", "Staff and roles", "Branches", "Policies", "Communications", "Import members", "Subscription", "Audit log", "Settings"], absent: ["Check-in", "Tenants"] },
+  { pick: /^Owner/, built: true, name: "Neha Kulkarni", url: /\/owner$/, home: "Dashboard", phone: ["Dashboard", "Reports", "Members", "Plans and pricing"], desktop: ["Dashboard", "Reports", "Members", "Plans and pricing", "Staff and roles", "Branches", "Policies", "Communications", "Import members", "Subscription", "Audit log", "Settings"], absent: ["Check-in", "Gyms"] },
   { pick: /^Branch manager/, built: true, name: "Rohit Sethi", url: /\/owner$/, home: "Dashboard", phone: ["Dashboard", "Reports", "Members", "Plans and pricing"], desktop: ["Dashboard", "Reports", "Members", "Plans and pricing", "Branches", "Communications", "Audit log"], absent: ["Import members", "Subscription", "Settings"] },
-  { pick: /^Platform admin/, built: true, name: "Ember Admin", url: /\/admin$/, home: "Tenants", phone: ["Tenants", "Support access", "SaaS plans"], desktop: ["Tenants", "Support access", "SaaS plans"], absent: ["Members", "Dashboard", "Check-in"] },
+  { pick: /^Platform admin/, built: true, name: "Ember Admin", url: /\/admin$/, home: "Gyms", phone: ["Gyms", "Support access", "Ember plans"], desktop: ["Gyms", "Support access", "Ember plans"], absent: ["Members", "Dashboard", "Check-in"] },
 ];
 
 for (const role of roles) {
@@ -41,7 +41,7 @@ for (const role of roles) {
     await expect(page.getByRole("button", { name: `Account menu for ${role.name}` })).toBeVisible();
 
     // Until an area’s milestone builds its home, it is a placeholder that says which milestone does.
-    if (!role.built) await expect(page.getByText(/is built in milestone M\d/)).toBeVisible();
+    if (!role.built) await expect(page.getByText(/isn’t in this demo yet/)).toBeVisible();
 
     // Correct navigation for this role, for this screen size.
     for (const label of isMobile ? role.phone : role.desktop) await expect(nav(page).getByRole("link", { name: label, exact: true }), label).toBeVisible();
@@ -62,7 +62,7 @@ test.describe("every screen in the navigation opens", () => {
     [/^Owner/, ["Dashboard", "Reports", "Members", "Plans and pricing", "Staff and roles", "Branches", "Policies", "Communications", "Import members", "Subscription", "Audit log", "Settings"]],
     [/^Front desk/, ["Check-in", "New member", "Members", "Collect payment", "Bookings", "Dues"]],
     [/^Finance/, ["Invoices and payments", "Refunds", "Reconciliation", "Exports"]],
-    [/^Platform admin/, ["Tenants", "Support access", "SaaS plans"]],
+    [/^Platform admin/, ["Gyms", "Support access", "Ember plans"]],
   ];
   for (const [pick, titles] of sweeps) {
     test(`${pick.source.slice(1)}`, async ({ page, isMobile }) => {

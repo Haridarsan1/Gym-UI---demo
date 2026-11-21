@@ -80,7 +80,7 @@ function Loaded({ d }: { d: Detail }) {
 
           <section aria-labelledby="ent-t" className="clay p-4 sm:p-5">
             <h2 id="ent-t" className="text-lg font-bold">Features it is entitled to</h2>
-            <ul aria-label="Entitlements" className="mt-2 grid gap-1.5 sm:grid-cols-2">{d.entitlements.map((e) => <li key={e.key} className={cn("flex items-center gap-2", !e.included && "text-clay-subtle")}>{e.included ? <Check className="h-4 w-4 text-status-active-fg" aria-hidden="true" /> : <Minus className="h-4 w-4" aria-hidden="true" />}<span>{FEATURE_LABEL[e.key] ?? e.key}</span><span className="sr-only">{e.included ? "included" : "not included"}</span></li>)}</ul>
+            <ul aria-label="What’s included" className="mt-2 grid gap-1.5 sm:grid-cols-2">{d.entitlements.map((e) => <li key={e.key} className={cn("flex items-center gap-2", !e.included && "text-clay-subtle")}>{e.included ? <Check className="h-4 w-4 text-status-active-fg" aria-hidden="true" /> : <Minus className="h-4 w-4" aria-hidden="true" />}<span>{FEATURE_LABEL[e.key] ?? e.key}</span><span className="sr-only">{e.included ? "included" : "not included"}</span></li>)}</ul>
           </section>
 
           <section aria-labelledby="inv-t" className="clay space-y-3 p-4 sm:p-5">
@@ -142,7 +142,7 @@ function Loaded({ d }: { d: Detail }) {
           <section aria-labelledby="ob-t" className="clay space-y-3 p-4">
             <h2 id="ob-t" className="text-lg font-bold">Set-up</h2>
             <OnboardingBar percent={d.onboarding.percent} steps={d.onboarding.steps} />
-            <ol aria-label="Onboarding steps" className="space-y-2">{d.onboarding.steps.map((s) => <li key={s.key} className="flex items-start gap-2 text-[0.95rem]"><span aria-hidden="true" className={cn("mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-white", s.done ? "bg-status-active-fg" : "bg-clay-subtle")}>{s.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}</span><span><span className="font-semibold">{s.label}</span><span className="sr-only">{s.done ? ", done" : ", not done"}</span><span className="block text-sm text-clay-muted">{s.detail}</span></span></li>)}</ol>
+            <ol aria-label="Set-up steps" className="space-y-2">{d.onboarding.steps.map((s) => <li key={s.key} className="flex items-start gap-2 text-[0.95rem]"><span aria-hidden="true" className={cn("mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-white", s.done ? "bg-status-active-fg" : "bg-clay-subtle")}>{s.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}</span><span><span className="font-semibold">{s.label}</span><span className="sr-only">{s.done ? ", done" : ", not done"}</span><span className="block text-sm text-clay-muted">{s.detail}</span></span></li>)}</ol>
           </section>
           <section aria-labelledby="ow-t" className="clay p-4"><h2 id="ow-t" className="text-lg font-bold">Owner</h2>{d.owner ? <p className="mt-1">{d.owner.name}<span className="block text-sm text-clay-muted">{d.owner.email}{d.owner.status === "invited" ? ", invited, hasn’t accepted" : ""}</span></p> : <p className="mt-1 text-clay-muted">No owner yet.</p>}<p className="mt-2 text-sm text-clay-muted">Created {formatDate(d.createdOn)}{d.lastActivityOn ? `. Last activity ${formatDate(d.lastActivityOn)}.` : ". No activity yet."}</p></section>
         </aside>

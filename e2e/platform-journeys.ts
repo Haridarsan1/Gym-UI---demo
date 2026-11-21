@@ -13,14 +13,14 @@ const row = (page: Page, text: string | RegExp) => page.locator("tr:visible, li:
  */
 export async function tenantsJourney(page: Page, signIn: SignIn) {
   await signIn("u_admin", "/admin");
-  await expect(page.getByRole("heading", { name: "Tenants", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Gyms", level: 1 })).toBeVisible();
   await expect(row(page, "Pulse Fitness")).toContainText("Growth");
   await expect(row(page, "Pulse Fitness")).toContainText("Paid");
   await expect(row(page, "Pulse Fitness")).toContainText("Needs a look");
   await expect(row(page, "Lotus Strength Club")).toContainText("Free trial");
   await expect(row(page, "Lotus Strength Club")).toContainText("The trial ends in 5 days");
   if ((page.viewportSize()?.width ?? 0) >= 640) { await expect(row(page, "Pulse Fitness")).toContainText("3 of 3 branches"); await expect(row(page, "Pulse Fitness")).toContainText("100%"); }
-  await noSideways(page, "Tenants");
+  await noSideways(page, "Gyms");
   await page.getByRole("button", { name: /^Needs a look/ }).click();
   await expect(row(page, "Lotus Strength Club")).toBeVisible();
   await page.getByRole("button", { name: /^All gyms/ }).click();
@@ -36,7 +36,7 @@ export async function tenantsJourney(page: Page, signIn: SignIn) {
   await make.getByLabel("Owner’s email").fill("farhan@ironoak.example");
   await make.getByRole("button", { name: "Create gym" }).click();
   await expect(page.getByRole("heading", { name: "Iron Oak Gym", level: 1 })).toBeVisible();
-  const steps = page.getByRole("list", { name: "Onboarding steps" });
+  const steps = page.getByRole("list", { name: "Set-up steps" });
   await expect(steps).toContainText("Owner invited");
   await expect(steps.getByText("Branches configured")).toBeVisible();
   await expect(page.getByText("50%").first()).toBeVisible();
@@ -47,7 +47,7 @@ export async function tenantsJourney(page: Page, signIn: SignIn) {
   await row(page, "Pulse Fitness").getByRole("link", { name: "Open Pulse Fitness" }).or(page.getByRole("link", { name: "Open Pulse Fitness" })).first().click();
   await expect(page.getByRole("heading", { name: "Pulse Fitness", level: 1 })).toBeVisible();
   await expect(page.getByRole("list", { name: "Use against limits" })).toContainText("3 of 3");
-  await expect(page.getByRole("list", { name: "Entitlements" })).toContainText("Reports and CSV downloads");
+  await expect(page.getByRole("list", { name: "What’s included" })).toContainText("Reports and CSV downloads");
   await expect(page.getByRole("list", { name: "Software invoices" })).toContainText("EMB/26-27/0004");
   await expect(page.getByText("Separate from the invoices it raises for its members.")).toBeVisible();
   await noSideways(page, "Tenant detail");
@@ -192,12 +192,12 @@ export async function supportJourney(page: Page, signIn: SignIn) {
  */
 export async function saasPlansJourney(page: Page, signIn: SignIn) {
   await signIn("u_admin", "/admin/plans");
-  await expect(page.getByRole("heading", { name: "SaaS plans", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ember plans", level: 1 })).toBeVisible();
   const plans = page.getByRole("list", { name: "Ember plans" });
   await expect(plans).toContainText("Starter");
   await expect(plans).toContainText("Growth");
   await expect(plans.getByRole("listitem").filter({ hasText: "Growth" })).toContainText("2 gyms on it: Lotus Strength Club, Pulse Fitness");
-  await noSideways(page, "SaaS plans");
+  await noSideways(page, "Ember plans");
 
   // Lowering Growth’s staff limit to what Pulse already uses stops it adding anyone, with a way out.
   await page.getByRole("button", { name: "Edit Growth" }).click();

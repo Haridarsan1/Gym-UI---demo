@@ -102,7 +102,7 @@ describe("staff consoles", () => {
   });
 
   it("gives the platform admin only platform screens", () => {
-    expect(side("u_admin")).toEqual(["Tenants", "Support access", "SaaS plans"]);
+    expect(side("u_admin")).toEqual(["Gyms", "Support access", "Ember plans"]);
   });
 
   it("splits a long sidebar into four bottom-bar items and a More sheet on phones", () => {
