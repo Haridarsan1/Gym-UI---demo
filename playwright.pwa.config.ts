@@ -5,6 +5,8 @@ import { defineConfig, devices } from "@playwright/test";
  * development. Run with `npm run e2e:pwa`.
  */
 const PORT = 4175;
+/** A deployed address to test instead of a local build (the checks of a deploy, `npm run verify:deploy`). */
+const LIVE = process.env.PWA_BASE_URL?.replace(/\/$/, "");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -12,11 +14,13 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [["list"]],
-  use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure", ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
-  webServer: {
-    command: `npm run build && node scripts/serve-dist.mjs ${PORT}`,
-    url: `http://localhost:${PORT}`,
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  use: { baseURL: LIVE ?? `http://localhost:${PORT}`, trace: "retain-on-failure", ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+  webServer: LIVE
+    ? undefined
+    : {
+        command: `npm run build && node scripts/serve-dist.mjs ${PORT}`,
+        url: `http://localhost:${PORT}`,
+        reuseExistingServer: false,
+        timeout: 120_000,
+      },
 });

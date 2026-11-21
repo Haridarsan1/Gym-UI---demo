@@ -1,7 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { signInAs } from "./helpers";
 
-/** Runs against a production build (npm run e2e:pwa). */
+/**
+ * Runs against a production build (npm run e2e:pwa), or against a deployed address with PWA_BASE_URL=<address> npm run e2e:pwa. The three tests that simulate a new deploy need
+ * the test server’s /__deploy and are skipped against a deployed address.
+ */
+const LIVE = !!process.env.PWA_BASE_URL;
 
 const controlled = (page: Page) =>
   page.evaluate(async () => {
@@ -81,6 +85,7 @@ test("page loads go to the network first and the last copy opens the app when of
 });
 
 test("shows “New version available” when a new service worker takes over, and Reload reloads", async ({ page, request }) => {
+  test.skip(LIVE, "needs the test server’s /__deploy");
   await openAppWithWorker(page);
   await expect(page.getByText("New version available")).toHaveCount(0);
 
@@ -103,6 +108,7 @@ test("shows “New version available” when a new service worker takes over, an
 });
 
 test("a deploy shows up on the next page load, even with the service worker in control", async ({ page, request }) => {
+  test.skip(LIVE, "needs the test server’s /__deploy");
   const deployNumber = (html: string) => Number(html.match(/<!-- deploy (\d+) -->/)?.[1] ?? 0);
   await openAppWithWorker(page);
   // Load once more so the worker has handled a page load and kept its own copy for offline use.
@@ -118,8 +124,22 @@ test("a deploy shows up on the next page load, even with the service worker in c
 });
 
 test("a lazy screen that a deploy removed offers the same reload", async ({ page }) => {
+  test.skip(LIVE, "needs the test server’s /__deploy");
   await signInAs(page, "u_owner", "/owner");
   await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event("vite:preloadError")));
   await expect(page.getByRole("status").filter({ hasText: "New version available" })).toBeVisible();
+});
+
+test("the production build is in demo mode: the demo guide and the sample logins are there", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: "Try the demo as" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Demo guide" })).toBeVisible();
+  await page.getByRole("link", { name: "Demo guide" }).click();
+  await expect(page.getByRole("list", { name: "Scenarios" }).getByRole("listitem")).toHaveCount(6);
+  await page.getByRole("button", { name: "Start: See the dashboard as the owner" }).click();
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+  // The demo gym is built in this browser, so the demo’s own controls are on offer.
+  await page.getByRole("button", { name: /Account menu/ }).click();
+  await expect(page.getByRole("button", { name: "Reset demo data" })).toBeVisible();
 });
