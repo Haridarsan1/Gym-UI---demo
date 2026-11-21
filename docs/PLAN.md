@@ -393,7 +393,7 @@ Build notes: [docs/milestones/M5.md](milestones/M5.md)
 
 ### M6 · Demo release hardening
 
-- [ ] Upgrade to Vite 6 and Vitest 4 (Vitest 4 needs Vite 6; clears the remaining development-tool advisories)
+- [x] Upgrade to Vite 6 and Vitest 4 (Vite 6.4.6, Vitest 4.1.12, plugin-react 4.7.0, PostCSS 8.5.33)
 - [ ] Acceptance suite A01–A05 green in demo mode (A05’s backup restore moves to M6B)
 - [ ] Lighthouse measured and saved for `/`, `/m`, `/t`, `/desk` and `/owner` (performance ≥ 90, accessibility 100)
 - [ ] Keyboard and screen-reader pass
@@ -436,7 +436,7 @@ Not planned in detail yet. It starts after M6 is approved.
 | Reviews and check-ins | A Reviews section inside Progress, not in the avatar menu. Today shows a card when a trainer shares a new review. |
 | Button colours | Coloured faces stay. Ember is `#D14000` (white text 4.7:1). Mint and lilac keep dark text. The marketing site’s orange (`.clay-ember`) uses the same shade family. |
 | Unknown email or phone at login | No error. “This demo uses sample accounts. Pick one below to explore.” and the “Try the demo as” picker is highlighted. |
-| Vite 6 and Vitest 4 | Planned for M6. |
+| Vite 6 and Vitest 4 | Done in M6. Six moderate advisories remain, none in code that ships: `glob` and `minimatch` inside `workbox-build` (the service worker is built at build time) and React Router 6.x (see above). |
 
 **Still to confirm (defaults in use)**
 

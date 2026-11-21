@@ -232,7 +232,7 @@ export async function saasPlansJourney(page: Page, signIn: SignIn) {
   await expect(page.getByRole("list", { name: "Plan requests" })).toContainText("Neha Kulkarni asked for Pro");
   await expect(page.getByRole("list", { name: "Plan requests" })).toContainText("We are hiring two more trainers");
   await page.getByRole("button", { name: "Approve" }).click();
-  await expect(page.getByText("Approved")).toBeVisible();
+  await expect(page.getByRole("status").getByText("Approved")).toBeVisible();
   await expect(page.getByText("Pulse Fitness is now on Pro.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Pulse Fitness", level: 1 })).toBeVisible();
   await signIn("u_owner", "/owner/subscription");
