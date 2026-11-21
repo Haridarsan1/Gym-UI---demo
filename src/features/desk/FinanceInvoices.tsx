@@ -51,7 +51,7 @@ export default function FinanceInvoices() {
         {(d) => (
           <>
             <dl aria-label="Totals" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {([["Billed", d.totals.billedPaise, "Invoiced, before any payment"], ["Collected", d.totals.collectedPaise, "Money received"], ["Still due", d.totals.duePaise, "Billed less paid and credit notes"], ["Refunded", d.totals.refundedPaise, "Paid back to members"]] as const).map(([l, v, hint]) => <div key={l} className="clay p-4"><dt className="text-sm text-clay-muted">{l}</dt><dd className="font-display text-2xl font-extrabold tabular lg:text-3xl">{formatRupees(v)}</dd><p className="text-xs text-clay-muted">{hint}</p></div>)}
+              {([["Billed", d.totals.billedPaise, "Invoiced, before any payment"], ["Collected", d.totals.collectedPaise, "Money received"], ["Still due", d.totals.duePaise, "Billed less paid and credit notes"], ["Refunded", d.totals.refundedPaise, "Paid back to members"]] as const).map(([l, v, hint]) => <div key={l} className="clay p-4"><dt className="text-sm text-clay-muted">{l}</dt><dd className="font-display text-2xl font-extrabold tabular lg:text-3xl">{formatRupees(v)}</dd><dd className="text-xs text-clay-muted">{hint}</dd></div>)}
             </dl>
             {d.total === 0 ? <EmptyState title={view === "invoices" ? "No invoices match" : "No payments match"}>Clear a filter or widen the dates.</EmptyState> : view === "invoices" ? (
               <ResponsiveTable caption="Invoices" rows={d.invoices} rowKey={(r) => r.id} columns={[

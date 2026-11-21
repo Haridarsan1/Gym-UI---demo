@@ -23,7 +23,7 @@ export function Switch({ checked, onChange, label, description, disabled, id }: 
         onClick={() => onChange(!checked)}
         className="grid min-h-[2.75rem] min-w-[3.5rem] shrink-0 place-items-center disabled:opacity-50"
       >
-        <span className={cn("relative h-8 w-14 rounded-full transition-colors motion-reduce:transition-none", checked ? "bg-ember-600" : "bg-clay-subtle")} aria-hidden="true">
+        <span className={cn("relative h-8 w-14 rounded-full transition-colors motion-reduce:transition-none", checked ? "bg-ember-650" : "bg-clay-subtle")} aria-hidden="true">
           <span className={cn("absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-[left] motion-reduce:transition-none", checked ? "left-[1.75rem]" : "left-1")} />
         </span>
       </button>

@@ -28,9 +28,9 @@ export function ExercisePicker({ onPick, heading = true }: { onPick: (exerciseId
       <ul aria-label="Library" className="max-h-[26rem] space-y-1 overflow-y-auto pr-1">
         {rows.slice(0, 60).map((e) => (
           <li key={e.id}>
-            <button type="button" onClick={() => onPick(e.id, section)} aria-label={`Add ${e.name}`} className="flex min-h-[3rem] w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-1.5 text-left hover:bg-clay-canvas">
+            <button type="button" onClick={() => onPick(e.id, section)} className="flex min-h-[3rem] w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-1.5 text-left hover:bg-clay-canvas">
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{e.name}</span>
+                <span className="block truncate font-semibold"><span className="sr-only">Add </span>{e.name}</span>
                 <span className="block truncate text-sm text-clay-muted">{CATEGORY_LABEL[e.category]}, {e.muscleGroups.map(cap).join(", ")}</span>
               </span>
               <Plus className="h-5 w-5 shrink-0 text-clay-muted" aria-hidden="true" />

@@ -560,10 +560,10 @@ export async function moneyJourney(page: Page) {
   await expect(row).toContainText(/\d+ days?/);
   await noSideways(page, "Dues");
 
-  await page.getByRole("button", { name: "Send Priya Sharma a reminder" }).click();
+  await page.getByRole("button", { name: "Remind: Priya Sharma" }).click();
   await expect(page.getByText("Reminder sent to Priya")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Send Priya Sharma a reminder" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Send Priya Sharma a reminder" })).toContainText("Sent, again 20 Nov 2026");
+  await expect(page.getByRole("button", { name: /: Priya Sharma$/ }).filter({ hasText: "Sent, again" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /: Priya Sharma$/ }).filter({ hasText: "Sent, again" })).toContainText("Sent, again 20 Nov 2026");
   expect((await readStore(page, "emailLog")).filter((e) => e.memberId === "mem_priya" && e.template === "payment_reminder")).toHaveLength(1);
   await expect(page.getByRole("link", { name: "Collect from Priya Sharma" })).toHaveAttribute("href", /\/desk\/members\/mem_priya\?collect=/);
 
@@ -757,7 +757,7 @@ export async function financeJourney(page: Page, signIn: (userId: string, path: 
   await expect(flagged).toContainText("The payout is a different amount");
   await expect(flagged).toContainText("A payout line Ember doesn’t know");
   await noSideways(page, "Reconciliation");
-  await flagged.getByRole("button", { name: /^Accept: Gateway event delivered 3 times/ }).click();
+  await flagged.getByRole("button", { name: /^Accept with a note: Gateway event delivered 3 times/ }).click();
   const dlg = page.getByRole("dialog", { name: "Accept this item" });
   await dlg.getByRole("button", { name: "Accept" }).click();
   await expect(dlg.getByRole("alert")).toContainText("Say what you checked");

@@ -30,7 +30,7 @@ export function OnboardingBar({ percent, steps }: { percent: number; steps: Tena
   return (
     <div className="min-w-[7rem]">
       <div className="flex items-baseline justify-between gap-2 text-sm"><span className="tabular font-semibold">{percent}%</span><span className="text-clay-muted">{steps.filter((s) => s.done).length} of {steps.length}</span></div>
-      <div role="img" aria-label={`Set-up ${percent}% done`} className="mt-1 h-2 overflow-hidden rounded-full bg-clay-lavender"><div className={cn("h-full rounded-full", percent === 100 ? "bg-status-active-fg" : "bg-ember-600")} style={{ width: `${percent}%` }} /></div>
+      <div role="img" aria-label={`Set-up ${percent}% done`} className="mt-1 h-2 overflow-hidden rounded-full bg-clay-lavender"><div className={cn("h-full rounded-full", percent === 100 ? "bg-status-active-fg" : "bg-ember-650")} style={{ width: `${percent}%` }} /></div>
     </div>
   );
 }
@@ -72,7 +72,7 @@ function Loaded({ v }: { v: { tenants: TenantRow[]; plans: Array<{ id: string; n
       <div role="group" aria-label="Show" className="flex flex-wrap gap-2">
         {FILTERS.map((f) => <button key={f.id} type="button" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)} className={cn("min-h-[2.75rem] cursor-pointer rounded-full border border-clay-line px-4 text-sm font-semibold", filter === f.id ? "bg-clay-ink text-white" : "bg-white hover:bg-clay-canvas")}>{f.label}<span className="ml-1.5 tabular font-normal">{count(f.id)}</span></button>)}
       </div>
-      {rows.length === 0 ? <EmptyState icon={Building2} title="No gyms here">{filter === "all" ? "Create the first gym with New gym." : "No gym is in this group right now."}</EmptyState> : <ResponsiveTable rows={rows} columns={columns} rowKey={(t) => t.id} caption="Gyms" onRowClick={(t) => nav(`/admin/tenants/${t.id}`)} />}
+      {rows.length === 0 ? <EmptyState icon={Building2} title="No gyms here">{filter === "all" ? "Create the first gym with New gym." : "No gym is in this group right now."}</EmptyState> : <ResponsiveTable rows={rows} columns={columns} rowKey={(t) => t.id} caption="Gyms" cardIsLink onRowClick={(t) => nav(`/admin/tenants/${t.id}`)} />}
       <Sheet open={adding} onClose={() => setAdding(false)} label="New gym"><NewGym plans={v.plans} onClose={() => setAdding(false)} onMade={(id) => nav(`/admin/tenants/${id}`)} /></Sheet>
     </>
   );

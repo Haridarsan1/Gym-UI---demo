@@ -42,7 +42,7 @@ export function GoalsCard({ v }: { v: AssessmentView }) {
               </div>
               {g.fraction !== null && (
                 <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-clay-line" role="img" aria-label={`${Math.round(g.fraction * 100)}% of the way`}>
-                  <div className="h-full rounded-full bg-ember-600" style={{ width: `${Math.round(g.fraction * 100)}%` }} />
+                  <div className="h-full rounded-full bg-ember-650" style={{ width: `${Math.round(g.fraction * 100)}%` }} />
                 </div>
               )}
               <p className="mt-1 text-sm text-clay-muted">

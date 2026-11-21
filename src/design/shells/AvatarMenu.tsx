@@ -36,7 +36,8 @@ export function AvatarMenu({ drop = "down" }: { drop?: "down" | "up" }) {
   return (
     <div ref={root} className="relative">
       <Tooltip label="Account" side={drop === "up" ? "right" : "bottom"}>
-        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls={panelId} aria-label={`Account menu for ${name}`} className="grid h-11 w-11 cursor-pointer place-items-center rounded-full hover:ring-2 hover:ring-ember-200">
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls={panelId} className="grid h-11 w-11 cursor-pointer place-items-center rounded-full hover:ring-2 hover:ring-ember-200">
+          <span className="sr-only">Account menu for {name}</span>
           <Avatar name={name} />
         </button>
       </Tooltip>

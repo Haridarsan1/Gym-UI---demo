@@ -1,3 +1,4 @@
+import { AxeBuilder } from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
 import { DEMO_ACCOUNTS } from "../src/app/demoAccounts";
 
@@ -48,7 +49,7 @@ export async function doWorkout(page: Page, opts: { exercises?: number; heavyBen
   await signInAs(page, "u_member_arjun", "/m");
   await opts.prepare?.(page);
   if (opts.prepare) await page.reload();
-  await page.getByRole("link", { name: "Start workout" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Start workout" }).click();
   await expect(page.getByRole("heading", { name: "Arm circles", level: 2 })).toBeVisible();
   const count = opts.exercises ?? 7;
   for (let i = 0; i < count; i++) {
@@ -110,3 +111,14 @@ export const waitForTraining = (page: Page) =>
     };
     open.onerror = () => resolve(false);
   }), undefined, { polling: 100 });
+
+/**
+ * Runs axe on the page as it is and fails on any serious or critical violation, naming the rule, the elements and how to fix it. Minor and moderate ones are not failed here.
+ * Used on every screen at 390 and 1440 px (`responsive.spec.ts`).
+ */
+export async function expectNoSeriousViolations(page: Page, where: string) {
+  const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]).analyze();
+  const bad = result.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+  const text = bad.map((v) => `${v.impact} ${v.id}: ${v.help} (${v.nodes.length}) e.g. ${v.nodes.slice(0, 2).map((n) => `${n.target.join(" ")} ${n.html.replace(/\s+/g, " ").slice(0, 170)}`).join(" || ")}`);
+  expect.soft(text, `axe on ${where}`).toEqual([]);
+}

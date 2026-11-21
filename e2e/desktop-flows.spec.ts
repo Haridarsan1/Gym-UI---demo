@@ -57,7 +57,7 @@ for (const width of WIDTHS) {
       await noSideways(page, "Progress");
 
       await nav(page, "Today").click();
-      await nav(page, /^Start today’s workout$/).click();
+      await nav(page, /^Start (today’s )?workout$/).click();
       await expect(page.getByRole("heading", { name: "Arm circles", level: 2 })).toBeVisible();
       await logRemainingSets(page);
       for (let i = 0; i < 6; i++) {

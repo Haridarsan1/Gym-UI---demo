@@ -103,7 +103,7 @@ test("M2 acceptance: a published plan stays intact after a new version (W03: 10,
   const problems = watch(page);
   await signInAs(page, "u_member_arjun", "/m");
   // Arjun logs the dumbbell bench press as 10, 10 and 8 against the prescribed 3 × 10. It counts as completed.
-  await page.getByRole("link", { name: "Start workout" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Start workout" }).click();
   await expect(page.getByRole("heading", { name: "Arm circles", level: 2 })).toBeVisible();
   await logRemainingSets(page);
   for (let i = 0; i < 6; i++) {

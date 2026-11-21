@@ -61,7 +61,7 @@ export default function Reconciliation() {
                       <p className="mt-1 max-w-[70ch] text-[0.95rem]">{i.detail}</p>
                       <p className="mt-1 text-sm text-clay-muted">{i.invoiceNumber ? `Invoice ${i.invoiceNumber}. ` : ""}{i.kind === "amount_differs" && i.amountPaise ? `Difference ${formatRupees(i.amountPaise)}.` : ""}</p>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {i.target && <Button3D size="md" variant="white" onClick={() => { setAccepting(i); setNote(""); setError(undefined); }} aria-label={`Accept: ${i.title}`}>Accept with a note</Button3D>}
+                        {i.target && <Button3D size="md" variant="white" onClick={() => { setAccepting(i); setNote(""); setError(undefined); }} aria-label={`Accept with a note: ${i.title}`}>Accept with a note</Button3D>}
                         {i.memberId && <Link to={`/desk/members/${i.memberId}?tab=billing`} className="inline-flex min-h-[2.75rem] items-center px-2 font-semibold underline underline-offset-4">Open the member</Link>}
                       </div>
                     </li>

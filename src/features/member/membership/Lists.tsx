@@ -14,7 +14,7 @@ export function InvoiceList({ invoices }: { invoices: InvoiceRow[] }) {
     <ul className="space-y-3" aria-label="Invoices">
       {shown.map((i) => (
         <li key={i.id}>
-          <Link to={`/m/membership/invoices/${i.id}`} className="clay-flat flex min-h-[4.5rem] items-center justify-between gap-3 p-4" aria-label={`Invoice ${i.number}, ${formatRupees(i.totalPaise)}, ${i.overdue ? "overdue" : i.status === "open" ? "due" : i.status === "partially_paid" ? "partly paid" : i.status}. Open receipt`}>
+          <Link to={`/m/membership/invoices/${i.id}`} className="clay-flat flex min-h-[4.5rem] items-center justify-between gap-3 p-4">
             <span className="min-w-0">
               <span className="block truncate font-bold">{i.description}</span>
               <span className="block text-sm text-clay-muted">{i.number}, {formatDate(i.issuedOn)}</span>

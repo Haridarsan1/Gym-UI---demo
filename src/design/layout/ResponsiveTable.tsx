@@ -19,7 +19,7 @@ export interface Column<T> {
  * Filters go in a Sheet on phones, and primary actions in a StickyActions bar. Pair it with the screen’s own loading
  * skeleton, empty state and error state (see design/States).
  */
-export function ResponsiveTable<T>({ rows, columns, rowKey, onRowClick, caption }: { rows: T[]; columns: Column<T>[]; rowKey: (row: T, index: number) => string; onRowClick?: (row: T) => void; caption: string }) {
+export function ResponsiveTable<T>({ rows, columns, rowKey, onRowClick, cardIsLink, caption }: { rows: T[]; columns: Column<T>[]; rowKey: (row: T, index: number) => string; onRowClick?: (row: T) => void; /** The first cell is already a link, so on a phone the card is not also a button (controls must not be nested). */ cardIsLink?: boolean; caption: string }) {
   const primary = columns.find((c) => c.primary) ?? columns[0]!;
   const rest = columns.filter((c) => c !== primary && !c.hideOnPhone && !c.action);
   const actions = columns.filter((c) => c.action);
@@ -53,7 +53,7 @@ export function ResponsiveTable<T>({ rows, columns, rowKey, onRowClick, caption 
       <ul aria-label={caption} className="grid gap-3 sm:hidden">
         {rows.map((r, i) => (
           <li key={rowKey(r, i)} className="clay-flat p-4">
-            <button type="button" disabled={!onRowClick} onClick={onRowClick ? () => onRowClick(r) : undefined} className="block min-h-[2.75rem] w-full text-left">
+            <Card onClick={onRowClick && !cardIsLink ? () => onRowClick(r) : undefined}>
               <div className="font-semibold">{primary.cell(r)}</div>
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
                 {rest.map((c) => (
@@ -63,7 +63,7 @@ export function ResponsiveTable<T>({ rows, columns, rowKey, onRowClick, caption 
                   </div>
                 ))}
               </dl>
-            </button>
+            </Card>
             {actions.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{actions.map((c) => <span key={c.key} className="contents">{c.cell(r)}</span>)}</div>}
           </li>
         ))}
@@ -79,4 +79,10 @@ export function StickyActions({ children }: { children: ReactNode }) {
       {children}
     </div>
   );
+}
+
+/** A row card is a button only when the row opens something; otherwise it is plain content, so the links and buttons inside it are not nested in another control. */
+function Card({ onClick, children }: { onClick?: () => void; children: React.ReactNode }) {
+  const cls = "block min-h-[2.75rem] w-full text-left";
+  return onClick ? <button type="button" onClick={onClick} className={cls}>{children}</button> : <div className={cls}>{children}</div>;
 }

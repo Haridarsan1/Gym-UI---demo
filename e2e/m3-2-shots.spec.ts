@@ -146,7 +146,7 @@ test("Checkpoint 2: lifecycle, money, bookings and finance", async ({ page }) =>
   const flagged = page.getByRole("list", { name: "Flagged items" });
   await expect(flagged.getByRole("listitem")).toHaveCount(4);
   await shot(page, "reconciliation");
-  await flagged.getByRole("button", { name: /^Accept: Gateway event delivered 3 times/ }).click();
+  await flagged.getByRole("button", { name: /^Accept with a note: Gateway event delivered 3 times/ }).click();
   await dialog("Accept this item").getByLabel("Note").fill("Gateway retried after a timeout; one payment exists");
   await shot(page, "recon-accept");
   await dialog("Accept this item").getByRole("button", { name: "Accept" }).click();

@@ -5,6 +5,7 @@ import { Button3DLink } from "@/design/Button3D";
 import { Tooltip } from "@/design/Tooltip";
 import { cn } from "@/lib/format";
 
+
 export interface NavEntry {
   id: string;
   to: string;
@@ -78,7 +79,7 @@ export function NavSidebar({ brand, raised, groups, footer, className }: { brand
       <div className="px-5 pb-4 pt-6">{brand}</div>
       <nav aria-label="Main" className="flex flex-1 flex-col overflow-y-auto px-3 pb-4">
         {raised && (
-          <Button3DLink to={raised.to} haptic aria-label={raised.side ? raised.label : undefined} title={raised.side ? raised.label : undefined} className="mb-4 w-full justify-center gap-2 whitespace-nowrap">
+          <Button3DLink to={raised.to} haptic title={raised.side ? raised.label : undefined} className="mb-4 w-full justify-center gap-2 whitespace-nowrap">
             <raised.icon className="h-5 w-5" aria-hidden="true" />
             {raised.side ?? raised.label}
           </Button3DLink>
@@ -91,7 +92,7 @@ export function NavSidebar({ brand, raised, groups, footer, className }: { brand
                 <li key={e.id}>
                   {e.side ? (
                     <Tooltip label={e.label} side="right">
-                      <NavLink to={e.to} end={e.end} aria-label={e.label} className={(s) => cn(item(s), "w-full")}>
+                      <NavLink to={e.to} end={e.end} className={(s) => cn(item(s), "w-full")}>
                         <e.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
                         <span className="whitespace-nowrap">{e.side}</span>
                       </NavLink>

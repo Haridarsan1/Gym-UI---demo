@@ -131,7 +131,7 @@ function Wizard({ o }: { o: NonNullable<ReturnType<typeof useWizardOptions>["dat
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
       <div className="min-w-0 space-y-4">
         <nav aria-label="Steps">
-          <ol className="flex gap-2 overflow-x-auto pb-1">
+          <ol tabIndex={0} className="flex gap-2 overflow-x-auto pb-1">
             {STEPS.map((s, i) => (
               <li key={s} aria-current={i === d.step ? "step" : undefined} className={cn("flex min-h-[2.75rem] shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold", i === d.step ? "bg-clay-ink text-white" : i < d.step ? "bg-mint-300 text-[#06301f]" : "bg-clay-lavender")}>
                 {i < d.step ? <Check className="h-4 w-4" aria-hidden="true" /> : <span aria-hidden="true">{i + 1}</span>}{s}

@@ -107,7 +107,7 @@ export async function a01Journey(page: Page) {
 
   // ── Member: log the session in their own app ───────────────────────────────────────────────────
   await switchTo(page, /Kavya Rao/, /\/m$/);
-  await page.getByRole("link", { name: "Start workout" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Start workout" }).click();
   await expect(page.getByRole("heading", { name: "Arm circles", level: 2 })).toBeVisible();
   for (let i = 0; i < 3; i++) {
     await logRemainingSets(page);

@@ -98,7 +98,7 @@ function Loaded({ v }: { v: SubscriptionView }) {
             return (
               <li key={u.key}>
                 <div className="flex items-baseline justify-between gap-3"><span className="font-semibold">{u.label}</span><span className="tabular">{u.used} of {u.limit === null ? "no limit" : u.limit}</span></div>
-                {u.limit !== null && <div role="img" aria-label={`${u.label}: ${pct}% of the limit used`} className="mt-1 h-3 overflow-hidden rounded-full bg-clay-lavender"><div className={cn("h-full rounded-full", u.level === "full" ? "bg-status-danger-fg" : u.level === "near" ? "bg-[#D29A3A]" : "bg-ember-600")} style={{ width: `${pct}%` }} /></div>}
+                {u.limit !== null && <div role="img" aria-label={`${u.label}: ${pct}% of the limit used`} className="mt-1 h-3 overflow-hidden rounded-full bg-clay-lavender"><div className={cn("h-full rounded-full", u.level === "full" ? "bg-status-danger-fg" : u.level === "near" ? "bg-[#D29A3A]" : "bg-ember-650")} style={{ width: `${pct}%` }} /></div>}
                 {u.level === "near" && <p className="mt-1 text-sm text-status-pending-fg">You are close to this limit. Ask Ember for a larger plan before you reach it.</p>}
                 {u.level === "full" && <p className="mt-1 text-sm font-semibold text-status-danger-fg">You are at this limit. {u.key === "activeMembers" ? "A new member can’t be added, and an import will stop at it." : "Nothing more of this can be added."}</p>}
               </li>

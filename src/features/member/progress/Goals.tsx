@@ -41,7 +41,7 @@ export function Goals({ goals }: { goals: GoalView[] }) {
                 ) : (
                   <>
                     <div role="progressbar" aria-label={`${g.title}, progress towards ${num(g.target, g.unit)}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-valuetext={`${pct} percent`} className="mt-3 h-3 overflow-hidden rounded-full bg-ember-100">
-                      <div className={`h-full rounded-full ${done ? "bg-mint-500" : "bg-ember-600"}`} style={{ width: `${pct}%` }} />
+                      <div className={`h-full rounded-full ${done ? "bg-mint-500" : "bg-ember-650"}`} style={{ width: `${pct}%` }} />
                     </div>
                     <p className="mt-1 text-sm text-clay-muted">
                       {pct}% of the way. Started at {num(g.baseline, g.unit)}, now {num(g.current, g.unit)}, target {num(g.target, g.unit)}.

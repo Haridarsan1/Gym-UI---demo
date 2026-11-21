@@ -57,7 +57,7 @@ test.describe("member app navigation", () => {
     await signInAs(page, "u_member_arjun", "/m");
     for (const tab of ["Today", "Program", "Progress", "Bookings"]) await expect(main(page).getByRole("link", { name: tab, exact: true })).toBeVisible();
     // Arjun has a workout today, so the raised button starts it. On a rest day it is the check-in pass.
-    await expect(main(page).getByRole("link", { name: "Start today’s workout" })).toBeVisible();
+    await expect(main(page).getByRole("link", { name: /^Start (today’s )?workout$/ })).toBeVisible();
     await page.getByRole("button", { name: /Account menu/ }).click();
     for (const item of ["Membership and receipts", "Check-in pass", "Profile, consent and preferences", "Sign out"]) {
       await expect(page.getByRole("button", { name: item }).or(page.getByRole("link", { name: item })).first()).toBeVisible();
@@ -70,7 +70,7 @@ test.describe("member app navigation", () => {
       await main(page).getByRole("link", { name: tab, exact: true }).click();
       await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
     }
-    await main(page).getByRole("link", { name: "Start today’s workout" }).click();
+    await main(page).getByRole("link", { name: /^Start (today’s )?workout$/ }).click();
     await expect(page).toHaveURL(/\/m\/workout\/\d{4}-\d{2}-\d{2}$/);
   });
 
@@ -208,7 +208,7 @@ test.describe("command palette", () => {
 
   test("opens from the search button too, and returns focus on close", async ({ page }) => {
     await signInAs(page, "u_owner", "/owner");
-    const button = page.getByRole("button", { name: "Open command palette" });
+    const button = page.getByRole("button", { name: /^Search/ });
     await button.click();
     await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
     await page.keyboard.press("Escape");

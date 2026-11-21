@@ -97,7 +97,7 @@ export function Session({ view }: { view: WorkoutView }) {
   const timer = rest ? <RestTimer key={rest.id} endsAt={rest.endsAt} total={rest.total} onAdd={(s) => setRest({ ...rest, endsAt: rest.endsAt + s * 1000, total: rest.total + s })} onClose={() => setRest(null)} /> : null;
   const buttons = (
     <div className="clay flex items-center gap-3 !rounded-3xl p-2">
-      <Button3D variant="white" disabled={step === 0} aria-label="Previous exercise" onClick={() => setStep(step - 1)} className="!px-4">
+      <Button3D variant="white" disabled={step === 0} aria-label="Back to previous exercise" onClick={() => setStep(step - 1)} className="!px-4">
         <ChevronLeft className="h-5 w-5" aria-hidden="true" />
         Back
       </Button3D>

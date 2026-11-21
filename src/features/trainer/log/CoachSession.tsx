@@ -82,7 +82,7 @@ export function CoachSession({ view, mode, onClose }: { view: CoachWorkoutView; 
         <div className="min-w-0 space-y-4">
           <ExerciseStep key={x.prescription.order} x={x} entry={entryFor(entries, x.prescription)!} actions={actions} headingId="coach-exercise-name" />
           <div className="clay flex items-center gap-3 !rounded-3xl p-2">
-            <Button3D variant="white" disabled={step === 0} aria-label="Previous exercise" onClick={() => setStep(step - 1)} className="!px-4">
+            <Button3D variant="white" disabled={step === 0} aria-label="Back to previous exercise" onClick={() => setStep(step - 1)} className="!px-4">
               <ChevronLeft className="h-5 w-5" aria-hidden="true" />
               Back
             </Button3D>

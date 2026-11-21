@@ -48,7 +48,7 @@ export function PlayShell({ area, todaysWorkout }: { area: "member" | "trainer";
     cn("flex h-14 min-w-[44px] flex-col items-center justify-center gap-0.5 rounded-2xl text-[0.7rem] font-semibold transition-colors", isActive ? "text-ember-700" : "text-clay-muted hover:text-clay-ink");
 
   const brand = (compact: boolean) => (
-    <Link to={AREA_PATH[area]} className={cn("flex min-h-[2.75rem] min-w-[2.75rem] items-center gap-2.5", compact ? "justify-center" : "min-w-0")} aria-label="Home">
+    <Link to={AREA_PATH[area]} className={cn("flex min-h-[2.75rem] min-w-[2.75rem] items-center gap-2.5", compact ? "justify-center" : "min-w-0")} aria-label={`${gym?.name ?? "Home"}, home`}>
       {gym ? (
         <>
           <GymMark name={gym.name} logoUrl={gym.logoUrl} />

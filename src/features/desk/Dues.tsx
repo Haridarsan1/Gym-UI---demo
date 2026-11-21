@@ -68,8 +68,8 @@ export default function Dues() {
                     {
                       key: "act", header: "", action: true, cell: (r) => (
                         <span className="flex flex-wrap items-center justify-end gap-2">
-                          {canRemind && <Button3D size="md" variant="white" disabled={!!r.coolingUntil || remind.isPending} onClick={() => void send(r)} aria-label={`Send ${r.name} a reminder`}><Bell className="h-4 w-4" aria-hidden="true" />{r.coolingUntil ? `Sent, again ${formatDate(r.coolingUntil)}` : "Remind"}</Button3D>}
-                          {canPay && <Link to={`/desk/members/${r.memberId}?collect=${r.invoiceId}`} aria-label={`Collect from ${r.name}`} className="inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-2xl bg-ember-600 px-4 font-bold text-white hover:bg-ember-700">Collect</Link>}
+                          {canRemind && <Button3D size="md" variant="white" disabled={!!r.coolingUntil || remind.isPending} onClick={() => void send(r)} aria-label={`${r.coolingUntil ? `Sent, again ${formatDate(r.coolingUntil)}` : "Remind"}: ${r.name}`}><Bell className="h-4 w-4" aria-hidden="true" />{r.coolingUntil ? `Sent, again ${formatDate(r.coolingUntil)}` : "Remind"}</Button3D>}
+                          {canPay && <Link to={`/desk/members/${r.memberId}?collect=${r.invoiceId}`} aria-label={`Collect from ${r.name}`} className="inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-2xl bg-ember-650 px-4 font-bold text-white hover:bg-ember-700">Collect</Link>}
                         </span>
                       ),
                     },

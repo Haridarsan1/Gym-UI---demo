@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { hasHorizontalScroll, signInAs } from "./helpers";
+import { expectNoSeriousViolations, hasHorizontalScroll, signInAs } from "./helpers";
 
 /**
  * Every area follows the same responsive rules (CLAUDE.md, “Responsive rules”): the navigation pattern for each width,
@@ -19,7 +19,7 @@ const box = async (page: Page, selector: string) => (await page.locator(selector
 
 test.describe("navigation pattern by width", () => {
   for (const [who, userId, path, raisedName] of [
-    ["member", "u_member_arjun", "/m", /^(Start|Continue) today’s workout$/],
+    ["member", "u_member_arjun", "/m", /^(Start|Continue)( today’s)? workout$/],
     ["trainer", "u_trainer_meera", "/t", /Log session/],
   ] as const) {
     for (const width of WIDTHS) {
@@ -44,7 +44,7 @@ test.describe("navigation pattern by width", () => {
           expect(b.height).toBeGreaterThan(HEIGHT(width) - 4);
           const r = (await raised.boundingBox())!;
           for (const link of await navs.first().getByRole("link").all()) {
-            if ((await link.getAttribute("aria-label")) === "Home" || link === raised) continue;
+            if (((await link.getAttribute("aria-label")) ?? "").endsWith(", home") || link === raised) continue;
             expect(r.y).toBeLessThanOrEqual((await link.boundingBox())!.y);
           }
           await expect(raised).toHaveClass(/btn3d/);
@@ -109,12 +109,13 @@ test.describe("sidebar labels", () => {
     }
   }
 
-  test("shortened sidebar labels keep their full wording as the accessible name and in a tooltip", async ({ page }) => {
+  test("shortened sidebar labels are named by what they show and keep their full wording in a tooltip", async ({ page }) => {
     await at(page, 1440, "u_member_arjun", "/m");
     const side = page.locator("aside:visible");
-    await expect(side.getByRole("link", { name: "Start today’s workout" })).toHaveText("Start workout");
-    const me = side.getByRole("link", { name: "Profile, consent and preferences" });
-    await expect(me).toHaveText("Profile and settings");
+    // The link is named by the words it shows (WCAG 2.5.3); the full wording is its tooltip.
+    const start = side.getByRole("link", { name: "Start workout" });
+    await expect(start).toHaveAttribute("title", "Start today’s workout");
+    const me = side.getByRole("link", { name: "Profile and settings" });
     await me.hover();
     await expect(page.getByRole("tooltip", { name: "Profile, consent and preferences" })).toBeVisible();
   });
@@ -222,10 +223,12 @@ test.describe("trainer screens at every width", () => {
   ];
   for (const width of WIDTHS) {
     test(`no sideways scroll, a capped width, the right zones and 44 px targets at ${width} px`, async ({ page }) => {
+      test.setTimeout(120_000); // every screen of the area, with axe on each at 390 and 1440 px
       for (const { path, h1, zones } of TRAINER_SCREENS) {
         await at(page, width, "u_trainer_meera", path);
         await expect(page.getByRole("heading", { name: h1, level: 1 })).toBeVisible();
         expect(await hasHorizontalScroll(page), `${path} scrolls sideways`).toBe(false);
+        if (width === 390 || width === 1440) await expectNoSeriousViolations(page, `${path} at ${width} px`);
         expect((await box(page, "main")).width, `${path} is wider than 1200 px`).toBeLessThanOrEqual(1200);
         if (zones) {
           // Phones: one column. 768 to 1279 px: list and detail. From 1280 px: list, detail and context.
@@ -262,10 +265,12 @@ test.describe("front desk screens at every width", () => {
   const FINANCE_SCREENS: Array<{ path: string; h1: string | RegExp }> = [{ path: "/desk/finance/refunds", h1: "Refunds" }, { path: "/desk/finance/invoices", h1: "Invoices and payments" }, { path: "/desk/finance/invoices?view=payments", h1: "Invoices and payments" }, { path: "/desk/finance/reconciliation", h1: "Reconciliation" }, { path: "/desk/finance/exports", h1: "Exports" }, { path: "/desk/finance/day-close", h1: "Day close" }];
   for (const width of WIDTHS) {
     test(`no sideways scroll, a capped width and 44 px targets at ${width} px`, async ({ page }) => {
+      test.setTimeout(120_000); // every screen of the area, with axe on each at 390 and 1440 px
       for (const { path, h1, user } of [...DESK_SCREENS.map((x) => ({ ...x, user: "u_desk_andheri" })), ...FINANCE_SCREENS.map((x) => ({ ...x, user: "u_finance" })), ...OWNER_SCREENS.map((x) => ({ ...x, user: "u_owner" })), ...ADMIN_SCREENS.map((x) => ({ ...x, user: "u_admin" }))]) {
         await at(page, width, user, path);
         await expect(page.getByRole("heading", { name: h1, level: 1 })).toBeVisible();
         expect(await hasHorizontalScroll(page), `${path} scrolls sideways`).toBe(false);
+        if (width === 390 || width === 1440) await expectNoSeriousViolations(page, `${path} at ${width} px`);
         expect((await box(page, "main")).width, `${path} is wider than 1200 px`).toBeLessThanOrEqual(1200);
         if (width < 1024) {
           const small = await page.evaluate(() =>
@@ -295,10 +300,12 @@ test.describe("member screens at every width", () => {
   ];
   for (const width of WIDTHS) {
     test(`no sideways scroll, a capped width and 44 px targets at ${width} px`, async ({ page }) => {
+      test.setTimeout(120_000); // every screen of the area, with axe on each at 390 and 1440 px
       for (const [path, h1] of SCREENS) {
         await at(page, width, "u_member_arjun", path);
         await expect(page.getByRole("heading", { name: h1, level: 1 })).toBeVisible();
         expect(await hasHorizontalScroll(page), `${path} scrolls sideways`).toBe(false);
+        if (width === 390 || width === 1440) await expectNoSeriousViolations(page, `${path} at ${width} px`);
         const main = await box(page, "main");
         expect(main.width, `${path} content is wider than 1200 px`).toBeLessThanOrEqual(1200);
         if (width >= 1024) expect(main.width, `${path} is a phone-width column on a wide screen`).toBeGreaterThan(Math.min(width - 288, 1100) * 0.9);

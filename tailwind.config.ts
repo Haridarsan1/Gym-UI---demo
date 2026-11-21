@@ -17,6 +17,8 @@ export default {
           400: "#FF7A3D",
           500: "#FC5200",
           600: "#DD4700",
+          /* Ember with white text, 4.7:1 (the marketing orange above is 4.2:1 and is only used for large text) */
+          650: "#D14000",
           700: "#B53A00",
           800: "#7A2700",
         },
@@ -35,7 +37,7 @@ export default {
         clay: {
           ink: "#231C35",
           muted: "#6B6383",
-          subtle: "#9A93AE",
+          subtle: "#736B89",
           line: "#ECE6F1",
           canvas: "#FBF8F4",
           peach: "#FFF3EA",

@@ -20,7 +20,7 @@ function Tick({ checked, onChange, label, disabled }: { checked: boolean; onChan
   return (
     <label className={cn("relative inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center gap-2 px-2", disabled ? "opacity-40" : "cursor-pointer")}>
       <input type="checkbox" aria-label={label} checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="absolute inset-0 h-full w-full cursor-[inherit] opacity-0" />
-      <span aria-hidden="true" className={cn("grid h-6 w-6 place-items-center rounded-md border-2", checked ? "border-ember-600 bg-ember-600 text-white" : "border-clay-subtle bg-white")}>{checked && <Check className="h-4 w-4" strokeWidth={3} />}</span>
+      <span aria-hidden="true" className={cn("grid h-6 w-6 place-items-center rounded-md border-2", checked ? "border-ember-600 bg-ember-650 text-white" : "border-clay-subtle bg-white")}>{checked && <Check className="h-4 w-4" strokeWidth={3} />}</span>
       <span aria-hidden="true" className="text-sm font-semibold sm:hidden">{disabled ? "Can’t be imported" : "Import this row"}</span>
     </label>
   );

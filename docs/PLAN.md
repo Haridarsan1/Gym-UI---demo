@@ -398,7 +398,7 @@ Build notes: [docs/milestones/M6.md](milestones/M6.md)
 - [x] Upgrade to Vite 6 and Vitest 4 (Vite 6.4.6, Vitest 4.1.12, plugin-react 4.7.0, PostCSS 8.5.33)
 - [x] Acceptance suite A01–A05 green in demo mode: `npm run acceptance` (A05’s backup restore moves to M6B)
 - [ ] Lighthouse measured and saved for `/`, `/m`, `/t`, `/desk` and `/owner` (performance ≥ 90, accessibility 100)
-- [ ] Keyboard and screen-reader pass
+- [x] Keyboard and screen-reader pass: axe on every screen at 390 and 1440 px (serious and critical fail), manual checklist in `docs/a11y-manual-check.md`
 - [ ] Plain-language copy pass
 - [ ] Demo reset button for presenters
 - [ ] Final Vercel deploy

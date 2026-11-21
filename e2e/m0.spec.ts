@@ -23,7 +23,7 @@ interface Role {
 }
 
 const roles: Role[] = [
-  { pick: /^Member/, built: true, name: "Arjun Kumar", url: /\/m$/, home: /^Good (morning|afternoon|evening), Arjun$/, phone: ["Today", "Program", "Start today’s workout", "Progress", "Bookings"], desktop: ["Today", "Program", "Start today’s workout", "Progress", "Bookings"], absent: ["Clients", "Dashboard", "Refunds"] },
+  { pick: /^Member/, built: true, name: "Arjun Kumar", url: /\/m$/, home: /^Good (morning|afternoon|evening), Arjun$/, phone: ["Today", "Program", "Start today’s workout", "Progress", "Bookings"], desktop: ["Today", "Program", "Start workout", "Progress", "Bookings"], absent: ["Clients", "Dashboard", "Refunds"] },
   { pick: /^Trainer/, name: "Meera Joshi", url: /\/t$/, built: true, home: /^Good (morning|afternoon|evening), Meera$/, phone: ["Today", "Clients", "Log session", "Schedule", "Exercises"], desktop: ["Today", "Clients", "Log session", "Schedule", "Exercises"], absent: ["Program", "Bookings", "Dashboard"] },
   { pick: /^Front desk/, built: true, name: "Pooja Nair", url: /\/desk$/, home: "Check-in", phone: ["Check-in", "Members", "Bookings", "Dues"], desktop: ["Check-in", "New member", "Members", "Collect payment", "Bookings", "Dues", "Day close"], absent: ["Refunds", "Reconciliation", "Exports", "Invoices and payments", "Reports", "Settings"] },
   { pick: /^Finance/, built: true, name: "Deepa Menon", url: /\/desk\/finance\/invoices$/, home: "Invoices and payments", phone: ["Members", "Dues", "Collect payment", "Invoices and payments"], desktop: ["Members", "Collect payment", "Dues", "Invoices and payments", "Refunds", "Reconciliation", "Exports"], absent: ["Check-in", "New member", "Bookings", "Settings"] },

@@ -53,7 +53,7 @@ export default function JoinPage() {
             <fieldset className="grid gap-2">
               <legend className="sr-only">How you sign in</legend>
               {([["phone_otp", "Phone and a code", `We send a code to the number ending ${invite.phoneEnding}.`], ["email_password", "Email and a password", invite.email ? `Use ${invite.email}.` : "Use your email address."]] as const).map(([v, label, note]) => (
-                <label key={v} className={cn("clay-flat relative flex min-h-[2.75rem] cursor-pointer items-center gap-3 px-3 py-2", d.method === v && "ring-2 ring-ember-400")}><input type="radio" name="method" checked={d.method === v} onChange={() => set({ method: v })} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" /><span aria-hidden="true" className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full border-2", d.method === v ? "border-ember-600 bg-ember-600" : "border-clay-subtle bg-white")}>{d.method === v && <span className="h-2 w-2 rounded-full bg-white" />}</span><span><span className="font-semibold">{label}</span><span className="block text-sm text-clay-muted">{note}</span></span></label>
+                <label key={v} className={cn("clay-flat relative flex min-h-[2.75rem] cursor-pointer items-center gap-3 px-3 py-2", d.method === v && "ring-2 ring-ember-400")}><input type="radio" name="method" checked={d.method === v} onChange={() => set({ method: v })} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" /><span aria-hidden="true" className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full border-2", d.method === v ? "border-ember-600 bg-ember-650" : "border-clay-subtle bg-white")}>{d.method === v && <span className="h-2 w-2 rounded-full bg-white" />}</span><span><span className="font-semibold">{label}</span><span className="block text-sm text-clay-muted">{note}</span></span></label>
               ))}
             </fieldset>
             {d.method === "phone_otp" ? (
@@ -71,7 +71,7 @@ export default function JoinPage() {
               </div>
             )}
             {failure && <p role="alert" className="rounded-2xl bg-status-danger-bg px-4 py-3 text-sm font-semibold text-status-danger-fg">{failure}</p>}
-            <button type="submit" disabled={busy} className="min-h-[3rem] w-full cursor-pointer rounded-2xl bg-ember-600 px-4 font-bold text-white shadow-[0_4px_0_#7A2700] disabled:opacity-60">{busy ? "Setting up…" : "Create my login"}</button>
+            <button type="submit" disabled={busy} className="min-h-[3rem] w-full cursor-pointer rounded-2xl bg-ember-650 px-4 font-bold text-white shadow-[0_4px_0_#7A2700] disabled:opacity-60">{busy ? "Setting up…" : "Create my login"}</button>
           </form>
         )}
       </div>

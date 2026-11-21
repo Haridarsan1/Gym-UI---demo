@@ -86,7 +86,7 @@ function Body({ d }: { d: DashboardData }) {
               {d.utilisation.trainers.map((t) => (
                 <li key={t.trainerId}>
                   <p className="flex justify-between gap-2"><span className="font-semibold">{t.name}</span><span className="tabular">{t.percent === null ? "–" : `${t.percent}%`}</span></p>
-                  <div role="img" aria-label={`${t.coachedHours} of ${t.availableHours} hours`} className="mt-1 h-2 overflow-hidden rounded-full bg-clay-lavender"><div className="h-full rounded-full bg-ember-600" style={{ width: `${Math.min(100, t.percent ?? 0)}%` }} /></div>
+                  <div role="img" aria-label={`${t.coachedHours} of ${t.availableHours} hours`} className="mt-1 h-2 overflow-hidden rounded-full bg-clay-lavender"><div className="h-full rounded-full bg-ember-650" style={{ width: `${Math.min(100, t.percent ?? 0)}%` }} /></div>
                   <p className="mt-0.5 text-xs text-clay-muted">{t.coachedHours} of {t.availableHours} hours coached</p>
                 </li>
               ))}
@@ -100,7 +100,7 @@ function Body({ d }: { d: DashboardData }) {
 }
 
 function Kpi({ label, value, note }: { label: string; value: string; note: string }) {
-  return <div className="clay p-4"><dt className="text-sm text-clay-muted">{label}</dt><dd className="font-display text-2xl font-extrabold tabular lg:text-3xl">{value}</dd><p className="text-xs text-clay-muted">{note}</p></div>;
+  return <div className="clay p-4"><dt className="text-sm text-clay-muted">{label}</dt><dd className="font-display text-2xl font-extrabold tabular lg:text-3xl">{value}</dd><dd className="text-xs text-clay-muted">{note}</dd></div>;
 }
 
 function Card({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
