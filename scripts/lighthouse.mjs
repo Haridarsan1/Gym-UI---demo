@@ -18,6 +18,8 @@ import puppeteer from "puppeteer-core";
 import lighthouse from "lighthouse";
 
 const RUNS = Number(process.env.LH_RUNS ?? 3);
+/** For a Vercel preview that sits behind Vercel’s login: its “Protection Bypass for Automation” secret, sent with every request. */
+const BYPASS = process.env.VERCEL_PROTECTION_BYPASS ? { "x-vercel-protection-bypass": process.env.VERCEL_PROTECTION_BYPASS } : undefined;
 const OUT = process.env.LH_OUT ?? "docs/lighthouse";
 const PAGES = [
   { name: "home", path: "/", who: null },
@@ -62,6 +64,7 @@ async function measure(base, page) {
   try {
     const browser = await puppeteer.connect({ browserURL: `http://127.0.0.1:${chrome.port}` });
     const tab = await browser.newPage();
+    if (BYPASS) await tab.setExtraHTTPHeaders(BYPASS);
     // Open it once, as a person would: the app through the login page's “Try the demo as”, left on its home screen.
     if (page.who) {
       await tab.goto(`${base}/login`, { waitUntil: "networkidle0" });
@@ -83,7 +86,7 @@ async function measure(base, page) {
     await tab.close();
     const runs = [];
     for (let i = 0; i < RUNS; i++) {
-      const r = await lighthouse(base + page.path, { port: chrome.port, output: "html", logLevel: "error", disableStorageReset: true, onlyCategories: ["performance", "accessibility", "best-practices", "seo"] });
+      const r = await lighthouse(base + page.path, { port: chrome.port, output: "html", logLevel: "error", disableStorageReset: true, ...(BYPASS ? { extraHeaders: BYPASS } : {}), onlyCategories: ["performance", "accessibility", "best-practices", "seo"] });
       const c = r.lhr.categories;
       runs.push({ score: c.performance.score, html: r.report, lhr: r.lhr });
       console.log(`  ${page.name} run ${i + 1}: performance ${Math.round(c.performance.score * 100)}, accessibility ${Math.round(c.accessibility.score * 100)}`);

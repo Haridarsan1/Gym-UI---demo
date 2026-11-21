@@ -402,7 +402,7 @@ Build notes: [docs/milestones/M6.md](milestones/M6.md)
 - [x] Keyboard and screen-reader pass: axe on every screen at 390 and 1440 px (serious and critical fail), manual checklist in `docs/a11y-manual-check.md`
 - [x] Plain-language copy pass: the writing rules as tests over the source and over every screen; no internal terms on screen
 - [x] Demo guide (six scenarios, `/demo`) and a presenter reset button, separate and confirmed
-- [ ] Final Vercel deploy
+- [ ] Final Vercel deploy: the preview is built from branch `m6-release`; live checks (`npm run verify:deploy`) wait for a protection bypass token; promotion to production waits for approval
 - **Done when:** the demo is deployed, the A01–A05 suite is green in demo mode, and the Lighthouse reports are saved in `docs/`.
 
 ### M6B · Real backend

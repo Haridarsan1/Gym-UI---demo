@@ -14,7 +14,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [["list"]],
-  use: { baseURL: LIVE ?? `http://localhost:${PORT}`, trace: "retain-on-failure", ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+  use: { baseURL: LIVE ?? `http://localhost:${PORT}`, ...(LIVE && process.env.VERCEL_PROTECTION_BYPASS ? { extraHTTPHeaders: { "x-vercel-protection-bypass": process.env.VERCEL_PROTECTION_BYPASS } } : {}), trace: "retain-on-failure", ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
   webServer: LIVE
     ? undefined
     : {
