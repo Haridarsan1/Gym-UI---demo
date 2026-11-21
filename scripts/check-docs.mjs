@@ -12,7 +12,7 @@ export const REQUIRED = [
   { file: "docs/PLAN.md", minBytes: 15000, mustContain: ["## 7. Milestones", "## 8. Decisions", "### M6B", "docs/milestones/M5.md"] },
   { file: "docs/REQUIREMENTS.md", minBytes: 8000, mustContain: ["A01"] },
   // The detailed build notes of each finished milestone (PLAN.md keeps one line per item and links here).
-  ...[["M0", 2000], ["M1", 15000], ["M2", 10000], ["M3", 10000], ["M4", 20000], ["M5", 3000]].map(([m, minBytes]) => ({ file: `docs/milestones/${m}.md`, minBytes, mustContain: [`# ${m} · `] })),
+  ...[["M0", 2000], ["M1", 15000], ["M2", 10000], ["M3", 10000], ["M4", 20000], ["M5", 3000], ["M6", 800]].map(([m, minBytes]) => ({ file: `docs/milestones/${m}.md`, minBytes, mustContain: [`# ${m} · `] })),
 ];
 
 export function problems(read) {

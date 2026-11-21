@@ -15,6 +15,6 @@ describe("the project’s instructions and plan are intact", () => {
     expect(problems((f: string) => (f === "docs/REQUIREMENTS.md" ? good(f).split("A01").join("") : good(f)))[0]).toMatch(/no longer contains/);
     expect(problems((f: string) => (f === "docs/milestones/M4.md" ? "# M4 · x" : good(f)))[0]).toMatch(/docs\/milestones\/M4.md is \d+ bytes/);
     expect(problems((f: string) => (f === "docs/milestones/M2.md" ? null : good(f)))).toEqual(["docs/milestones/M2.md is missing."]);
-    expect(REQUIRED).toHaveLength(9);
+    expect(REQUIRED).toHaveLength(10);
   });
 });

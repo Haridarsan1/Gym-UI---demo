@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "acceptance": "vitest run src/api/m3Acceptance.test.ts src/api/a05Acceptance.test.ts src/api/m4Acceptance.test.ts src/api/clients.test.ts src/api/bookings.test.ts src/api/deskBookings.test.ts src/domain/permissions.test.ts && playwright test -g \"A0[1-5]|trainer transfer\"",
     "bundle-report": "node scripts/bundle-report.mjs",
     "e2e:pwa": "playwright test -c playwright.pwa.config.ts",
     "icons": "node scripts/make-icons.mjs",
